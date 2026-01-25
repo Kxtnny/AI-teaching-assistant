@@ -1,5 +1,6 @@
 import {convertToModelMessages, streamText, UIMessage} from 'ai'
 import {createOllama} from 'ollama-ai-provider-v2'
+import { getVectorStore } from '@/lib/vectorStore'
 
 
 const ollama = createOllama();
@@ -82,9 +83,38 @@ GLOBAL RULES
 export async function POST(req: Request) {
 	const {messages}: {messages: UIMessage[]} = await req.json();
 
+	// Get the latest user message for RAG context
+	const latestMessage = messages[messages.length - 1];
+	let context = '';
+
+	if (latestMessage && latestMessage.parts) {
+		const userText = latestMessage.parts
+			.filter((part: any) => part.type === 'text')
+			.map((part: any) => part.text)
+			.join(' ');
+
+		// Retrieve relevant documents from vector store
+		try {
+			const vectorStore = await getVectorStore();
+			const relevantDocs = await vectorStore.similaritySearch(userText, 4);
+			
+			if (relevantDocs.length > 0) {
+				context = '\n\nRelevant context from uploaded documents:\n' + 
+					relevantDocs.map((doc, i) => `[${i + 1}] ${doc.pageContent}`).join('\n\n');
+			}
+		} catch (error) {
+			console.error('Error retrieving context:', error);
+		}
+	}
+
+	// Enhance the system prompt with retrieved context
+	const enhancedPrompt = context 
+		? `${prompt}${context}\n\nUse the above context to help answer the student's questions when relevant.`
+		: prompt;
+
 	const result = streamText({
 		model: model,
-        system: prompt,
+        system: enhancedPrompt,
 		messages: await convertToModelMessages(messages),
 	});
 

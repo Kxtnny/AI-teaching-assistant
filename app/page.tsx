@@ -2,12 +2,46 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { User, Bot, Send } from 'lucide-react';
+import { User, Bot, Send, Upload } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Chat() {
   const { messages, sendMessage, status } = useChat(); 
-  const [input, setInput] = useState('');              
+  const [input, setInput] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadStatus('Uploading...');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUploadStatus(`✓ ${data.message}`);
+        setTimeout(() => setUploadStatus(''), 5000);
+      } else {
+        setUploadStatus(`✗ Error: ${data.error}`);
+      }
+    } catch (error) {
+      setUploadStatus('✗ Upload failed');
+    } finally {
+      setUploading(false);
+      e.target.value = ''; // Reset file input
+    }
+  };
 
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -21,11 +55,39 @@ export default function Chat() {
     <div className="flex flex-col h-screen bg-white">
       {/* Header */}
       <header className="bg-black text-white p-4 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-center text-white">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-white">
             AI Teacher Assistant
           </h1>
+          
+          {/* Upload button */}
+          <div className="relative">
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={handleFileUpload}
+              disabled={uploading}
+              className="hidden"
+              id="file-upload"
+            />
+            <label
+              htmlFor="file-upload"
+              className={`flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg cursor-pointer hover:bg-gray-200 transition ${
+                uploading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <Upload className="w-5 h-5" />
+              <span>{uploading ? 'Uploading...' : 'Upload PDF'}</span>
+            </label>
+          </div>
         </div>
+        
+        {/* Upload status */}
+        {uploadStatus && (
+          <div className="max-w-4xl mx-auto mt-2">
+            <p className="text-sm text-center">{uploadStatus}</p>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-hidden flex justify-center">
