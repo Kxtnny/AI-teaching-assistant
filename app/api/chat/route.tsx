@@ -1,12 +1,34 @@
-import {convertToModelMessages, streamText, UIMessage} from 'ai'
-import {createOllama} from 'ollama-ai-provider-v2'
-import { getVectorStore } from '@/lib/vectorStore'
 
 
-const ollama = createOllama();
 
-const model = ollama("llama3.2")
 
+
+
+
+
+
+
+import { createUIMessageStreamResponse,  UIMessage } from "ai";
+import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
+import { getVectorStore } from "@/lib/vectorStore";
+import { ChatOpenAI } from '@langchain/openai';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+import { ChatOllama } from "@langchain/ollama";
+
+const model = new ChatOllama({
+  model: "llama3.2",
+  temperature: 0,
+});
+
+// const model = new ChatOpenAI({
+//   model: 'gpt-4o-mini',
+//   temperature: 0,
+//   openAIApiKey: OPENAI_API_KEY,
+// });
+// const model = new Ollama({
+//   model: "llama3.2",
+//   temperature: 0,
+// })
 const prompt = `You are a Teaching Assistant whose goal is to help students learn efficiently and confidently.
 
 You use two teaching styles:
@@ -78,45 +100,54 @@ GLOBAL RULES
 - Do NOT loop Socratic when the student is stuck
 - If in doubt between Socratic and Feynman, choose Feynman
 - Clarity > purity of teaching method
-`
+`;
+
+
+
+
+function getLastUserText(messages: UIMessage[]) {
+  const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
+  if (!lastUser) return "";
+
+  const parts = (lastUser as any).parts ?? [];
+  return parts
+    .filter((p: any) => p.type === "text")
+    .map((p: any) => p.text)
+    .join(" ");
+}
 
 export async function POST(req: Request) {
-	const {messages}: {messages: UIMessage[]} = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
-	// Get the latest user message for RAG context
-	const latestMessage = messages[messages.length - 1];
-	let context = '';
+  const userText = getLastUserText(messages);
 
-	if (latestMessage && latestMessage.parts) {
-		const userText = latestMessage.parts
-			.filter((part: any) => part.type === 'text')
-			.map((part: any) => part.text)
-			.join(' ');
+  // Retrieve relevant documents from vector store
+  let context = "";
+  if (userText.trim()) {
+    try {
+      const vectorStore = await getVectorStore();
+      const relevantDocs = await vectorStore.similaritySearch(userText, 4);
 
-		// Retrieve relevant documents from vector store
-		try {
-			const vectorStore = await getVectorStore();
-			const relevantDocs = await vectorStore.similaritySearch(userText, 4);
-			
-			if (relevantDocs.length > 0) {
-				context = '\n\nRelevant context from uploaded documents:\n' + 
-					relevantDocs.map((doc, i) => `[${i + 1}] ${doc.pageContent}`).join('\n\n');
-			}
-		} catch (error) {
-			console.error('Error retrieving context:', error);
-		}
-	}
+      if (relevantDocs.length > 0) {
+        context =
+          "\n\nRelevant context from uploaded documents:\n" +
+          relevantDocs.map((doc, i) => `[${i + 1}] ${doc.pageContent}`).join("\n\n");
+      }
+    } catch (error) {
+      console.error("Error retrieving context:", error);
+    }
+  }
 
-	// Enhance the system prompt with retrieved context
-	const enhancedPrompt = context 
-		? `${prompt}${context}\n\nUse the above context to help answer the student's questions when relevant.`
-		: prompt;
+  // Build the final prompt that includes: system instructions + RAG context + the student's question
+  const enhancedPrompt = context
+    ? `${prompt}${context}\n\nStudent question:\n${userText}\n\nAnswer:`
+    : `${prompt}\n\nStudent question:\n${userText}\n\nAnswer:`;
 
-	const result = streamText({
-		model: model,
-        system: enhancedPrompt,
-		messages: await convertToModelMessages(messages),
-	});
+  // Stream the response from the model
+  const response = await model.stream(enhancedPrompt);
 
-	return result.toUIMessageStreamResponse();
+  // Convert the LangChain stream to UI message stream
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(response),
+  });
 }
