@@ -120,10 +120,12 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const userText = getLastUserText(messages);
+  const greetings = ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'];
+  const isGreeting = greetings.some(g => userText.trim().toLowerCase().includes(g)) && userText.trim().length < 30;
 
   // Retrieve relevant documents from vector store
   let context = "";
-  if (userText.trim()) {
+  if (userText.trim() && !isGreeting) {
     try {
       const vectorStore = await getVectorStore();
       const relevantDocs = await vectorStore.similaritySearch(userText, 4);
