@@ -177,30 +177,12 @@ export default function Homepage() {
             </div>
           </div>
 
-          <div className="hero-right" aria-label="Cartoon scientist illustration">
+          <div className="hero-right" aria-label="Dr Feynman portrait">
             <div className="mascot-card">
-              <div className="mascot-top">
-                <div className="mascot-badge">AI Tutor</div>
-              </div>
 
               <div className="mascot-body">
-                {/* Simple “cartoon scientist” illustration built from shapes */}
-                <div className="scientist">
-                  <div className="hair" />
-                  <div className="head">
-                    <div className="eye eye-l" />
-                    <div className="eye eye-r" />
-                    <div className="smile" />
-                  </div>
-                  <div className="coat">
-                    <div className="coat-pocket" />
-                    <div className="coat-btn coat-btn-1" />
-                    <div className="coat-btn coat-btn-2" />
-                  </div>
-                  <div className="atom" aria-hidden="true">
-                    ⚛️
-                  </div>
-                </div>
+                {/* Dr Feynman portrait image */}
+                <img src="/feynman-pic.png" alt="Dr Feynman" className="feynman-image" />
 
                 <div className="mini-icons" aria-hidden="true">
                   <span className="mini mini-1">💬</span>
