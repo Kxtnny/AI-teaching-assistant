@@ -125,8 +125,10 @@ export async function POST(req: Request) {
 
   // Retrieve relevant documents from vector store
   let context = "";
+  
   if (userText.trim() && !isGreeting) {
     try {
+      // Search for relevant text documents
       const vectorStore = await getVectorStore();
       const relevantDocs = await vectorStore.similaritySearch(userText, 4);
 
