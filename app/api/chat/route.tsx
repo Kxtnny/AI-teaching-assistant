@@ -1,10 +1,6 @@
-
-
-
-
-
-
-
+// DOCS used
+// https://docs.langchain.com/oss/javascript/integrations/chat/ollama
+// https://ai-sdk.dev/providers/adapters/langchain 
 
 
 
@@ -14,12 +10,14 @@ import { getVectorStore } from "@/lib/vectorStore";
 import { ChatOpenAI } from '@langchain/openai';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 import { ChatOllama } from "@langchain/ollama";
+import { tool } from "@langchain/core/tools";
+import * as z from "zod";
 
 const model = new ChatOllama({
   model: "llama3.2",
-  temperature: 0,
+  temperature: 0.1,
 });
-
+ 
 // const model = new ChatOpenAI({
 //   model: 'gpt-4o-mini',
 //   temperature: 0,
@@ -29,6 +27,12 @@ const model = new ChatOllama({
 //   model: "llama3.2",
 //   temperature: 0,
 // })
+
+
+
+
+// Bind the tool to the model
+//const model = model_v1.bindTools([evaluatorTool]);
 const prompt = `You are a Teaching Assistant whose goal is to help students learn efficiently and confidently.
 
 You use two teaching styles:
@@ -100,6 +104,7 @@ GLOBAL RULES
 - Do NOT loop Socratic when the student is stuck
 - If in doubt between Socratic and Feynman, choose Feynman
 - Clarity > purity of teaching method
+
 `;
 
 

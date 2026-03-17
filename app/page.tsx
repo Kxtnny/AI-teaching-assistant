@@ -1,368 +1,375 @@
+"use client";
 
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import "./Homepage.css";
 
-'use client';
+type StepKey = "pick" | "simplify" | "gaps" | "review";
 
-import { useChat } from '@ai-sdk/react';
-import { User, Bot, Send, Upload, Image as ImageIcon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+export default function Homepage() {
+  const [loaded, setLoaded] = useState(false);
+  const [openStep, setOpenStep] = useState<StepKey | null>(null);
 
-export default function Chat() {
-  const { messages, sendMessage, status } = useChat();
-  const [input, setInput] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setLoaded(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
+  const steps = useMemo(
+    () => [
+      {
+        key: "pick" as const,
+        step: 1,
+        title: "Pick a Topic",
+        icon: "🧠",
+        subtitle: "Choose what you want to understand more deeply.",
+        bullets: [
+          "Pick a random topic (surprise me!)",
+          "Pick a challenging topic (level up!)",
+          "AI detects where you struggle most using BERT Topic Modeling",
+          "See a mini analytics view of “hard topics” + a Fact of the Day",
+        ],
+        cardAccent: "accent-blue",
+        details:
+          "Start with a topic you’re learning right now. Dr Feynman helps you choose what matters most by surfacing your highest-friction areas and nudging you toward the best next topic.",
+      },
+      {
+        key: "simplify" as const,
+        step: 2,
+        title: "Simplify the Topic",
+        icon: "💬",
+        subtitle: "Teach it back in plain language—like explaining to a friend.",
+        bullets: [
+          "Explain concepts to the AI facilitator",
+          "Tracks your explanations and saves versions",
+          "Summarizes what you said (so you can refine it)",
+          "Gives clear, friendly explanations when needed",
+        ],
+        cardAccent: "accent-green",
+        details:
+          "You do the talking. The AI listens, summarizes, and helps you rephrase. Teaching forces clarity—and clarity is what we’re building.",
+      },
+      {
+        key: "gaps" as const,
+        step: 3,
+        title: "Identify Knowledge Gaps",
+        icon: "🔎",
+        subtitle: "Find the fuzzy parts with gentle, Socratic questions.",
+        bullets: [
+          "Adaptive Socratic questioning",
+          "Guided learning paths",
+          "AI explains after gaps are identified",
+          "Turns confusion into checkpoints you can conquer",
+        ],
+        cardAccent: "accent-purple",
+        details:
+          "When your explanation has a jump, Dr Feynman pauses and asks the perfect follow-up question—until every step makes sense end-to-end.",
+      },
+      {
+        key: "review" as const,
+        step: 4,
+        title: "Review",
+        icon: "✅",
+        subtitle: "Polish your understanding and make it stick.",
+        bullets: [
+          "Response Optimization (clearer explanations)",
+          "RAG Enhancement (more accurate support)",
+          "Prompt Optimization (ask better questions)",
+          "Checklist-style review and improvement meter",
+        ],
+        cardAccent: "accent-orange",
+        details:
+          "Review turns a good explanation into a great one. We help you rewrite, fact-check, and improve your questions so your learning accelerates.",
+      },
+    ],
+    []
+  );
 
-  // Image upload states
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imageDescription, setImageDescription] = useState('');
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imageUploadStatus, setImageUploadStatus] = useState('');
-
-  // Store images for the latest response
-  const [latestImages, setLatestImages] = useState<any[]>([]);
-
-  const fetchRelevantImages = async (query: string) => {
-    try {
-      const response = await fetch('/api/search-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.images && data.images.length > 0) {
-          console.log('Setting images:', data.images);
-          setLatestImages(data.images);
-        } else {
-          setLatestImages([]);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      setLatestImages([]);
-    }
-  };
-
-  const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setSelectedFile(file);
-
-    if (!file) {
-      setUploadStatus('');
-      return;
-    }
-
-    if (file.type !== 'application/pdf') {
-      setSelectedFile(null);
-      setUploadStatus('✗ Only PDF files are supported');
-      return;
-    }
-
-    setUploadStatus(`Selected: ${file.name}`);
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      setUploadStatus('✗ Please choose a PDF first');
-      return;
-    }
-
-    setUploading(true);
-    setUploadStatus('Uploading + vectorizing...');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile); // MUST be "file" (your API expects this)
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setUploadStatus(`✗ Error: ${data.error ?? 'Upload failed'}`);
-        return;
-      }
-
-      setUploadStatus(`✓ ${data.message}`);
-      setSelectedFile(null);
-      setTimeout(() => setUploadStatus(''), 5000);
-    } catch (e) {
-      setUploadStatus('✗ Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setSelectedImage(file);
-
-    if (!file) {
-      setImageUploadStatus('');
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      setSelectedImage(null);
-      setImageUploadStatus('✗ Only image files are supported');
-      return;
-    }
-
-    setImageUploadStatus(`Selected: ${file.name}`);
-  };
-
-  const handleImageUpload = async () => {
-    if (!selectedImage) {
-      setImageUploadStatus('✗ Please choose an image first');
-      return;
-    }
-
-    if (!imageDescription.trim()) {
-      setImageUploadStatus('✗ Please provide a description for the image');
-      return;
-    }
-
-    setUploadingImage(true);
-    setImageUploadStatus('Uploading image...');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedImage);
-      formData.append('description', imageDescription);
-
-      const res = await fetch('/api/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setImageUploadStatus(`✗ Error: ${data.error ?? 'Upload failed'}`);
-        return;
-      }
-
-      setImageUploadStatus(`✓ ${data.message}`);
-      setSelectedImage(null);
-      setImageDescription('');
-      setTimeout(() => setImageUploadStatus(''), 5000);
-    } catch (e) {
-      setImageUploadStatus('✗ Upload failed');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      const userQuery = input.trim();
-      sendMessage({ text: userQuery });
-      
-      // Fetch relevant images for this query
-      fetchRelevantImages(userQuery);
-      
-      setInput('');
-    }
+  const toggleStep = (key: StepKey) => {
+    setOpenStep((prev) => (prev === key ? null : key));
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      <header className="bg-black text-white p-4 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-4">AI Teacher Assistant</h1>
+    <div className={`homepage-container ${loaded ? "page-loaded" : ""}`}>
+      {/* Entrance curtain */}
+      <div className="entrance-curtain" />
 
-          {/* PDF Upload Section */}
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={handleFilePick}
-              disabled={uploading}
-              className="hidden"
-              id="file-upload"
-            />
+      {/* Floating education doodles */}
+      <div className="bg-doodles" aria-hidden="true">
+        <span className="doodle doodle-1">📐</span>
+        <span className="doodle doodle-2">🧪</span>
+        <span className="doodle doodle-3">📚</span>
+        <span className="doodle doodle-4">🔬</span>
+        <span className="doodle doodle-5">✏️</span>
+        <span className="doodle doodle-6">🧮</span>
+        <span className="doodle doodle-7">🎓</span>
+        <span className="doodle doodle-8">💡</span>
+        <span className="doodle doodle-9">⚛️</span>
+        <span className="doodle doodle-10">🌍</span>
+      </div>
 
-            <label
-              htmlFor="file-upload"
-              className={`flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg cursor-pointer hover:bg-gray-200 transition ${
-                uploading ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              <Upload className="w-5 h-5" />
-              <span>{selectedFile ? 'Change PDF' : 'Choose PDF'}</span>
-            </label>
+      {/* Sticky Navbar */}
+      <nav className="navbar" role="navigation" aria-label="Primary">
+        <div className="nav-left">
+          <Link href="/" className="brand">
+            <span className="mascot" aria-hidden="true">
+              🧑‍🔬
+            </span>
+            <span className="brand-text">Dr Feynman</span>
+          </Link>
+        </div>
 
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={uploading || !selectedFile}
-              className={`px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition ${
-                uploading || !selectedFile ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              {uploading ? 'Working...' : 'Upload & Vectorize'}
-            </button>
+        <div className="nav-right">
+          <a className="pill pill-soft" href="#home">
+            Home
+          </a>
+          <a className="pill pill-blue" href="#chatbot">
+            Chatbot
+          </a>
+          <a className="pill pill-purple" href="#collabot">
+            Collabot
+          </a>
+          <a className="pill pill-green" href="#about">
+            About
+          </a>
+        </div>
+      </nav>
 
-            {uploadStatus && <span className="text-sm">{uploadStatus}</span>}
-          </div>
+      {/* HERO */}
+      <header id="home" className="hero">
+        <div className="hero-bg" aria-hidden="true">
+          <div className="shape shape-1" />
+          <div className="shape shape-2" />
+          <div className="shape shape-3" />
+          <div className="shape shape-4" />
+        </div>
 
-          {/* Image Upload Section */}
-          <div className="border-t border-gray-700 pt-3">
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImagePick}
-                disabled={uploadingImage}
-                className="hidden"
-                id="image-upload"
-              />
-
-              <label
-                htmlFor="image-upload"
-                className={`flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg cursor-pointer hover:bg-gray-200 transition ${
-                  uploadingImage ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                <ImageIcon className="w-5 h-5" />
-                <span>{selectedImage ? 'Change Image' : 'Choose Image'}</span>
-              </label>
-
-              <input
-                type="text"
-                value={imageDescription}
-                onChange={(e) => setImageDescription(e.target.value)}
-                placeholder="Describe this image..."
-                disabled={uploadingImage || !selectedImage}
-                className="flex-1 px-3 py-2 bg-white text-black rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              />
-
-              <button
-                type="button"
-                onClick={handleImageUpload}
-                disabled={uploadingImage || !selectedImage || !imageDescription.trim()}
-                className={`px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition ${
-                  uploadingImage || !selectedImage || !imageDescription.trim() ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {uploadingImage ? 'Uploading...' : 'Upload Image'}
-              </button>
+        <div className="hero-inner">
+          <div className="hero-left">
+            <div className="hero-kicker">
+              Learn faster by teaching
             </div>
 
-            {imageUploadStatus && <p className="text-sm text-center">{imageUploadStatus}</p>}
+            <h1 className="hero-title">Dr Feynman</h1>
+
+            <p className="hero-subtitle">Learn by Teaching with AI</p>
+
+            <p className="hero-desc">
+              An AI-powered platform that enhances the <strong>Feynman learning technique</strong>{" "}
+              using LLMs—so you can explain clearly, find gaps, and build real understanding.
+            </p>
+
+            <div className="hero-actions">
+              <Link className="btn btn-primary" href="/start">
+                Start Learning
+              </Link>
+              <Link className="btn btn-secondary" href="/Chatbot">
+                Try Chatbot
+              </Link>
+            </div>
+
+            <div className="hero-floats" aria-hidden="true">
+              <span className="float float-1">🧠</span>
+              <span className="float float-2">📚</span>
+              <span className="float float-3">💡</span>
+              <span className="float float-4">💬</span>
+              <span className="float float-5">🧪</span>
+            </div>
+          </div>
+
+          <div className="hero-right" aria-label="Cartoon scientist illustration">
+            <div className="mascot-card">
+              <div className="mascot-top">
+                <div className="mascot-badge">AI Tutor</div>
+              </div>
+
+              <div className="mascot-body">
+                {/* Simple “cartoon scientist” illustration built from shapes */}
+                <div className="scientist">
+                  <div className="hair" />
+                  <div className="head">
+                    <div className="eye eye-l" />
+                    <div className="eye eye-r" />
+                    <div className="smile" />
+                  </div>
+                  <div className="coat">
+                    <div className="coat-pocket" />
+                    <div className="coat-btn coat-btn-1" />
+                    <div className="coat-btn coat-btn-2" />
+                  </div>
+                  <div className="atom" aria-hidden="true">
+                    ⚛️
+                  </div>
+                </div>
+
+                <div className="mini-icons" aria-hidden="true">
+                  <span className="mini mini-1">💬</span>
+                  <span className="mini mini-2">📖</span>
+                  <span className="mini mini-3">💡</span>
+                  <span className="mini mini-4">🧠</span>
+                </div>
+              </div>
+
+              <div className="mascot-footer">
+                <div className="pill tiny pill-soft">Playful</div>
+                <div className="pill tiny pill-green">Guided</div>
+                <div className="pill tiny pill-blue">Accurate</div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* rest of your chat UI unchanged */}
-      <div className="flex-1 overflow-hidden flex justify-center">
-        <div className="w-full max-w-4xl flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((m, msgIndex) => {
-              // Show images only on the last assistant message
-              const isLastAssistantMessage = m.role === 'assistant' && msgIndex === messages.length - 1;
-              const messageImages = isLastAssistantMessage ? latestImages : [];
-              
-              return (
-                <div
-                  key={m.id}
-                  className={`flex items-start gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      m.role === 'user' ? 'bg-black order-2' : 'bg-gray-600 order-1'
-                    }`}
-                  >
-                    {m.role === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
+      {/* ABOUT / STEPS */}
+      <section id="about" className="section about">
+        <div className="section-head center">
+          <h2 className="section-title">How Dr Feynman Enhances the Feynman Technique</h2>
+          <p className="section-subtitle">
+            Four friendly steps. Big understanding. Tap a card to expand details.
+          </p>
+        </div>
+
+        <div className="steps-grid">
+          {steps.map((s) => {
+            const isOpen = openStep === s.key;
+            return (
+              <article
+                key={s.key}
+                className={`step-card ${s.cardAccent} ${isOpen ? "open" : ""}`}
+              >
+                <div className="step-top">
+                  <div className="step-icon" aria-hidden="true">
+                    {s.icon}
                   </div>
-
-                  <div className={`flex flex-col gap-2 max-w-[75%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
-                    <div
-                      className={`p-3 rounded-lg shadow-md ${
-                        m.role === 'user' ? 'bg-black text-white' : 'bg-gray-200 text-black'
-                      }`}
-                    >
-                      {m.parts.map((part, index) => {
-                        if (part.type === 'text') {
-                          return (
-                            <div key={`${m.id}-${index}`} className="whitespace-pre-wrap">
-                              {part.text}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-
-                    {/* Display images associated with this message */}
-                    {messageImages && messageImages.length > 0 && (
-                      <div className="flex flex-col gap-2">
-                        <p className="text-sm text-gray-600 font-semibold">Relevant Images:</p>
-                        <div className="grid grid-cols-1 gap-2">
-                          {messageImages.map((img: any, idx: number) => (
-                            <div key={`img-${m.id}-${idx}`} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-300">
-                              <img
-                                src={img.url}
-                                alt={img.description}
-                                className="w-full h-48 object-cover"
-                                onError={(e) => {
-                                  console.error('Image failed to load:', img.url);
-                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3EImage Error%3C/text%3E%3C/svg%3E';
-                                }}
-                              />
-                              <div className="p-2">
-                                <p className="text-sm text-gray-700">{img.description}</p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Similarity: {(img.similarity * 100).toFixed(1)}%
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  <div className="step-meta">
+                    <div className="step-number">Step {s.step}</div>
+                    <h3 className="step-title">{s.title}</h3>
+                    <p className="step-subtitle">{s.subtitle}</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          <div>
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-              <div className="flex space-x-2">
-                <input
-                  className="flex-1 p-3 pb-14 mb-4 bg-white h-30 text-black border border-gray-400 focus:outline-none rounded-xl"
-                  value={input}
-                  placeholder="Type your message..."
-                  onChange={(e) => setInput(e.target.value)}
-                />
+                {s.key === "pick" && (
+                  <div className="mini-analytics" aria-label="Topic difficulty mini chart">
+                    <div className="mini-analytics-title">
+                      <span aria-hidden="true">📊</span> Difficult topics (sample)
+                    </div>
+                    <div className="bars" aria-hidden="true">
+                      <div className="bar b1" />
+                      <div className="bar b2" />
+                      <div className="bar b3" />
+                      <div className="bar b4" />
+                    </div>
+                    <details className="fact-dropdown">
+                      <summary>Fact of the Day</summary>
+                      <div className="fact-body">
+                        Lightning can heat the air around it to ~30,000°C—about 5× hotter than the sun’s surface.
+                      </div>
+                    </details>
+                  </div>
+                )}
+
+                <ul className="step-bullets">
+                  {s.bullets.map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
+                </ul>
 
                 <button
-                  type="submit"
-                  className="px-4 py-2 mb-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-600 shadow-md flex items-center justify-center"
-                  disabled={status !== 'ready'}
+                  className="dropdown-toggle"
+                  onClick={() => toggleStep(s.key)}
+                  aria-expanded={isOpen}
+                  aria-controls={`step-details-${s.key}`}
                 >
-                  {status === 'submitted' || status === 'streaming' ? (
-                    <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin"></div>
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
+                  <span>{isOpen ? "Hide details" : "More details"}</span>
+                  <span className={`chev ${isOpen ? "up" : ""}`} aria-hidden="true">
+                    ▾
+                  </span>
                 </button>
+
+                <div
+                  id={`step-details-${s.key}`}
+                  className={`step-details ${isOpen ? "show" : ""}`}
+                >
+                  <p>{s.details}</p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* CHATBOT */}
+      <section id="chatbot" className="section split chatbot">
+        <div className="split-inner">
+          <div className="split-illustration">
+            <div className="big-illustration-card">
+              <div className="big-icon" aria-hidden="true">
+                🤖
               </div>
-            </form>
+              <div className="bubble bubble-1" aria-hidden="true">
+                💬
+              </div>
+              <div className="bubble bubble-2" aria-hidden="true">
+                💡
+              </div>
+              <div className="bubble bubble-3" aria-hidden="true">
+                📚
+              </div>
+            </div>
           </div>
 
+          <div className="split-text">
+            <h2 className="section-title">Chatbot Mode</h2>
+            <p className="section-subtitle">
+              Practice the Feynman technique by explaining concepts to an AI tutor that guides your
+              learning.
+            </p>
+            <Link className="btn btn-primary" href="/Chatbot">
+              Open Chatbot
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* COLLABOT */}
+      <section id="collabot" className="section split collabot">
+        <div className="split-inner reverse">
+          <div className="split-illustration">
+            <div className="big-illustration-card">
+              <div className="big-icon" aria-hidden="true">
+                🧑‍🤝‍🧑
+              </div>
+              <div className="assist" aria-hidden="true">
+                🤖
+              </div>
+              <div className="bubble bubble-1" aria-hidden="true">
+                💬
+              </div>
+              <div className="bubble bubble-2" aria-hidden="true">
+                🔎
+              </div>
+            </div>
+          </div>
+
+          <div className="split-text">
+            <h2 className="section-title">Collabot – Collaborative Learning Mode</h2>
+            <p className="section-subtitle">
+              Students explain concepts together while the AI guides discussion and identifies
+              knowledge gaps.
+            </p>
+            <Link className="btn btn-secondary" href="/Collabot">
+              Enter Collabot
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="homepage-footer">
+        <p>
+          "If you want to master something, teach it." — <em>Richard Feynman</em>
+        </p>
+      </footer>
     </div>
   );
 }
-
-
