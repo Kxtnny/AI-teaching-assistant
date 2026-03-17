@@ -322,7 +322,6 @@ export default function Homepage() {
                 🧑‍🤝‍🧑
               </div>
               <div className="assist" aria-hidden="true">
-                🤖
               </div>
               <div className="bubble bubble-1" aria-hidden="true">
                 💬

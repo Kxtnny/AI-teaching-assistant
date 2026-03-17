@@ -3,8 +3,9 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { User, Bot, Send, Upload } from 'lucide-react';
+import { User, Bot, Send, Upload, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function Chat() {
   const { messages, sendMessage, status } = useChat();
@@ -77,49 +78,52 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      <header className="bg-black text-white p-4 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <h1 className="text-3xl font-bold text-white">AI Teacher Assistant</h1>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={handleFilePick}
-              disabled={uploading}
-              className="hidden"
-              id="file-upload"
-            />
-
-            <label
-              htmlFor="file-upload"
-              className={`flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg cursor-pointer hover:bg-gray-200 transition ${
-                uploading ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              <Upload className="w-5 h-5" />
-              <span>{selectedFile ? 'Change PDF' : 'Choose PDF'}</span>
-            </label>
-
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={uploading || !selectedFile}
-              className={`px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition ${
-                uploading || !selectedFile ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              {uploading ? 'Working...' : 'Upload & Vectorize'}
-            </button>
-          </div>
+      <nav className="navbar" style={{padding: '14px 18px', margin: '14px auto 0', width: 'min(1100px, calc(100% - 24px))', background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(15, 23, 42, 0.08)', borderRadius: '999px', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.10)', position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>
+          <Link href="/" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.06)', border: '1px solid rgba(15, 23, 42, 0.08)', cursor: 'pointer', transition: 'all 180ms ease', textDecoration: 'none', color: '#121629'}} onMouseEnter={(e) => {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.12)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.08)';}} onMouseLeave={(e) => {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.06)'; e.currentTarget.style.boxShadow = 'none';}}>
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 style={{fontSize: '18px', fontWeight: 900, color: '#121629', margin: 0, letterSpacing: '-0.02em'}}>Dr Feynman</h1>
         </div>
 
-        {uploadStatus && (
-          <div className="max-w-4xl mx-auto mt-2">
-            <p className="text-sm text-center">{uploadStatus}</p>
-          </div>
-        )}
-      </header>
+        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={handleFilePick}
+            disabled={uploading}
+            className="hidden"
+            id="file-upload"
+          />
+
+          <label
+            htmlFor="file-upload"
+            style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.9)', color: '#121629', borderRadius: '999px', cursor: uploading ? 'not-allowed' : 'pointer', border: '1px solid rgba(15, 23, 42, 0.08)', fontWeight: 800, fontSize: '14px', transition: 'all 180ms ease', opacity: uploading ? 0.5 : 1}}
+            onMouseEnter={(e) => {if (!uploading) {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.06)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(15, 23, 42, 0.10)';}}}
+            onMouseLeave={(e) => {e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)'; e.currentTarget.style.boxShadow = 'none';}}
+          >
+            <Upload className="w-4 h-4" />
+            <span>{selectedFile ? 'Change PDF' : 'Choose PDF'}</span>
+          </label>
+
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={uploading || !selectedFile}
+            style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.9)', color: '#121629', borderRadius: '999px', border: '1px solid rgba(15, 23, 42, 0.08)', cursor: uploading || !selectedFile ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '14px', transition: 'all 180ms ease', opacity: uploading || !selectedFile ? 0.5 : 1}}
+            onMouseEnter={(e) => {if (!uploading && selectedFile) {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.06)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(15, 23, 42, 0.10)';}}}
+            onMouseLeave={(e) => {e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)'; e.currentTarget.style.boxShadow = 'none';}}
+          >
+            {uploading ? 'Uploading...' : 'Upload & Vectorize'}
+          </button>
+        </div>
+      </nav>
+
+      {uploadStatus && (
+        <div style={{textAlign: 'center', padding: '8px 18px', fontSize: '14px', color: '#121629', maxWidth: '1100px', margin: '0 auto', width: '100%'}}>
+          <p>{uploadStatus}</p>
+        </div>
+      )}
 
       {/* rest of your chat UI unchanged */}
       <div className="flex-1 overflow-hidden flex justify-center">

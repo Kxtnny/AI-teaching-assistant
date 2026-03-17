@@ -14,7 +14,7 @@ import { tool } from "@langchain/core/tools";
 import * as z from "zod";
 
 const model = new ChatOllama({
-  model: "llama3.2",
+  model: "llama3.1",
   temperature: 0.1,
 });
  

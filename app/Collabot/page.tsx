@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 interface Msg {
   id: string;
@@ -263,7 +265,9 @@ export default function CollabotPage() {
     return (
       <div style={S.joinWrap}>
         <div style={S.joinCard}>
-          <div style={{ fontSize: "2.2rem" }}>🎓</div>
+          <Link href="/" style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.06)', border: '1px solid rgba(15, 23, 42, 0.08)', cursor: 'pointer', transition: 'all 180ms ease', textDecoration: 'none', color: '#1f2937', marginBottom: '12px'}} onMouseEnter={(e) => {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.12)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.08)';}} onMouseLeave={(e) => {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.06)'; e.currentTarget.style.boxShadow = 'none';}}>
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
           <h1 style={{ margin: "0.4rem 0 0.2rem" }}>Dr. Feynman’s Collaborative Room</h1>
           <p style={{ color: "#6b7280", marginBottom: 14 }}>
             Pick your topic and join a room (max 3 students per room). Room starts when 2 students join.
@@ -324,6 +328,9 @@ export default function CollabotPage() {
   return (
     <div style={S.container}>
       <header style={S.header}>
+        <Link href="/" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.06)', border: '1px solid rgba(15, 23, 42, 0.08)', cursor: 'pointer', transition: 'all 180ms ease', textDecoration: 'none', color: '#1f2937'}} onMouseEnter={(e) => {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.12)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.08)';}} onMouseLeave={(e) => {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.06)'; e.currentTarget.style.boxShadow = 'none';}}>
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         <div style={S.headerIcon}>🎓</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 900 }}>Dr. Feynman’s Classroom</div>
@@ -532,7 +539,7 @@ const S: Record<string, React.CSSProperties> = {
     padding: "10px 12px",
     color: "#fff",
     fontWeight: 800,
-    background: "linear-gradient(135deg,#3b82f6,#8b5cf6)",
+    background: "#6b7280",
     cursor: "pointer",
   },
   feedbackBtn: {
