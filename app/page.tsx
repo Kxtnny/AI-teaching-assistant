@@ -166,6 +166,9 @@ export default function Homepage() {
               <Link className="btn btn-secondary" href="/Chatbot">
                 Try Chatbot
               </Link>
+              <Link className="btn btn-secondary" href="/VisionLab">
+                Vision Lab
+              </Link>
             </div>
 
             <div className="hero-floats" aria-hidden="true">
