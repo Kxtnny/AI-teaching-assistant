@@ -12,8 +12,11 @@ export default function Chat() {
   const [input, setInput] = useState('');
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [visionModel, setVisionModel] = useState('llama3.2-vision');
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [parserOutput, setParserOutput] = useState('');
+  const [parserModelUsed, setParserModelUsed] = useState('');
 
   const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -21,16 +24,19 @@ export default function Chat() {
 
     if (!file) {
       setUploadStatus('');
+      setParserOutput('');
+      setParserModelUsed('');
       return;
     }
 
-    if (file.type !== 'application/pdf') {
+    const supported = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    if (!supported.includes(file.type)) {
       setSelectedFile(null);
-      setUploadStatus('✗ Only PDF files are supported');
+      setUploadStatus('✗ Only PDF, PNG, and JPG/JPEG are supported');
       return;
     }
 
-    setUploadStatus(`Selected: ${file.name}`);
+    setUploadStatus(`Selected: ${file.name} (${visionModel})`);
   };
 
   const handleUpload = async () => {
@@ -40,11 +46,13 @@ export default function Chat() {
     }
 
     setUploading(true);
-    setUploadStatus('Uploading + vectorizing...');
+    setParserOutput('');
+    setUploadStatus(`Uploading + parsing with ${visionModel}...`);
 
     try {
       const formData = new FormData();
-      formData.append('file', selectedFile); // MUST be "file" (your API expects this)
+      formData.append('file', selectedFile);
+      formData.append('visionModel', visionModel);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -59,8 +67,10 @@ export default function Chat() {
       }
 
       setUploadStatus(`✓ ${data.message}`);
+      setParserOutput(data.parserOutput ?? '');
+      setParserModelUsed(data.parserModel ?? visionModel);
       setSelectedFile(null);
-      setTimeout(() => setUploadStatus(''), 5000);
+      setTimeout(() => setUploadStatus(''), 7000);
     } catch (e) {
       setUploadStatus('✗ Upload failed');
     } finally {
@@ -89,12 +99,24 @@ export default function Chat() {
         <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
           <input
             type="file"
-            accept="application/pdf,.pdf"
+            accept="application/pdf,.pdf,image/png,image/jpeg,.jpg,.jpeg"
             onChange={handleFilePick}
             disabled={uploading}
             className="hidden"
             id="file-upload"
           />
+
+          <select
+            value={visionModel}
+            onChange={(e) => setVisionModel(e.target.value)}
+            disabled={uploading}
+            style={{padding: '10px 12px', borderRadius: '999px', border: '1px solid rgba(15, 23, 42, 0.08)', background: 'rgba(255, 255, 255, 0.9)', color: '#121629', fontWeight: 700, fontSize: '14px'}}
+            aria-label="Vision parser model"
+          >
+            <option value="llama3.2-vision">llama3.2-vision</option>
+            <option value="gemma3">gemma3</option>
+            <option value="llava">llava</option>
+          </select>
 
           <label
             htmlFor="file-upload"
@@ -103,7 +125,7 @@ export default function Chat() {
             onMouseLeave={(e) => {e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)'; e.currentTarget.style.boxShadow = 'none';}}
           >
             <Upload className="w-4 h-4" />
-            <span>{selectedFile ? 'Change PDF' : 'Choose PDF'}</span>
+            <span>{selectedFile ? 'Change File' : 'Choose PDF/PNG/JPG'}</span>
           </label>
 
           <button
@@ -114,7 +136,7 @@ export default function Chat() {
             onMouseEnter={(e) => {if (!uploading && selectedFile) {e.currentTarget.style.background = 'rgba(15, 23, 42, 0.06)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(15, 23, 42, 0.10)';}}}
             onMouseLeave={(e) => {e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)'; e.currentTarget.style.boxShadow = 'none';}}
           >
-            {uploading ? 'Uploading...' : 'Upload & Vectorize'}
+            {uploading ? 'Uploading...' : 'Parse & Index'}
           </button>
         </div>
       </nav>
@@ -122,6 +144,17 @@ export default function Chat() {
       {uploadStatus && (
         <div style={{textAlign: 'center', padding: '8px 18px', fontSize: '14px', color: '#121629', maxWidth: '1100px', margin: '0 auto', width: '100%'}}>
           <p>{uploadStatus}</p>
+        </div>
+      )}
+
+      {parserOutput && (
+        <div style={{maxWidth: '1100px', margin: '0 auto', width: '100%', padding: '0 18px 8px'}}>
+          <div style={{border: '1px solid rgba(15, 23, 42, 0.12)', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.9)', padding: '12px'}}>
+            <p style={{margin: '0 0 8px', fontWeight: 800, color: '#121629', fontSize: '14px'}}>Parser output preview ({parserModelUsed || visionModel})</p>
+            <div style={{whiteSpace: 'pre-wrap', color: '#1f2937', fontSize: '13px', maxHeight: '180px', overflowY: 'auto'}}>
+              {parserOutput}
+            </div>
+          </div>
         </div>
       )}
 
