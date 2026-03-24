@@ -12,6 +12,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 import { ChatOllama } from "@langchain/ollama";
 import { tool } from "@langchain/core/tools";
 import * as z from "zod";
+import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 
 const model = new ChatOllama({
   model: "llama3.1",
@@ -147,16 +148,36 @@ export async function POST(req: Request) {
     }
   }
 
-  // Build the final prompt that includes: system instructions + RAG context + the student's question
-  const enhancedPrompt = context
-    ? `${prompt}${context}\n\nStudent question:\n${userText}\n\nAnswer:`
-    : `${prompt}\n\nStudent question:\n${userText}\n\nAnswer:`;
+  // Build message history for the model
+  const systemMessage = new SystemMessage(prompt + (context ? context : ""));
+  
+  // Convert all UI messages to LangChain BaseMessages, preserving conversation history
+  const chatMessages = messages.map((msg: UIMessage) => {
+    const textContent = getMessageText(msg);
+    if (msg.role === "user") {
+      return new HumanMessage(textContent);
+    } else if (msg.role === "assistant") {
+      return new AIMessage(textContent);
+    }
+    return new HumanMessage(textContent);
+  });
 
-  // Stream the response from the model
-  const response = await model.stream(enhancedPrompt);
+  // Combine system message with full conversation history
+  const allMessages = [systemMessage, ...chatMessages];
+
+  // Stream the response from the model with full context
+  const response = await model.stream(allMessages);
 
   // Convert the LangChain stream to UI message stream
   return createUIMessageStreamResponse({
     stream: toUIMessageStream(response),
   });
+}
+
+function getMessageText(msg: UIMessage): string {
+  const parts = (msg as any).parts ?? [];
+  return parts
+    .filter((p: any) => p.type === "text")
+    .map((p: any) => p.text)
+    .join(" ");
 }

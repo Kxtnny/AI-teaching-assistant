@@ -160,10 +160,7 @@ export default function Homepage() {
             </p>
 
             <div className="hero-actions">
-              <Link className="btn btn-primary" href="/start">
-                Start Learning
-              </Link>
-              <Link className="btn btn-secondary" href="/Chatbot">
+              <Link className="btn btn-primary" href="/Chatbot">
                 Try Chatbot
               </Link>
               <Link className="btn btn-secondary" href="/VisionLab">
