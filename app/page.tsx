@@ -8,7 +8,8 @@ type StepKey = "pick" | "simplify" | "gaps" | "review";
 
 export default function Homepage() {
   const [loaded, setLoaded] = useState(false);
-  const [openStep, setOpenStep] = useState<StepKey | null>(null);
+  const [expandedStep, setExpandedStep] = useState<StepKey | null>(null);
+  const [flippedSteps, setFlippedSteps] = useState<Set<StepKey>>(() => new Set());
 
   useEffect(() => {
     const timer = setTimeout(() => setLoaded(true), 50);
@@ -85,8 +86,17 @@ export default function Homepage() {
     []
   );
 
-  const toggleStep = (key: StepKey) => {
-    setOpenStep((prev) => (prev === key ? null : key));
+  const toggleExpandedStep = (key: StepKey) => {
+    setExpandedStep((prev) => (prev === key ? null : key));
+  };
+
+  const toggleFlippedStep = (key: StepKey) => {
+    setFlippedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   return (
@@ -207,72 +217,100 @@ export default function Homepage() {
         <div className="section-head center">
           <h2 className="section-title">How Dr Feynman Enhances the Feynman Technique</h2>
           <p className="section-subtitle">
-            Four friendly steps. Big understanding. Tap a card to expand details.
+            Four friendly steps. Big understanding. Click a card to flip.
           </p>
         </div>
 
         <div className="steps-grid">
           {steps.map((s) => {
-            const isOpen = openStep === s.key;
+            const isOpen = expandedStep === s.key;
+            const isFlipped = flippedSteps.has(s.key);
             return (
               <article
                 key={s.key}
-                className={`step-card ${s.cardAccent} ${isOpen ? "open" : ""}`}
+                className={`step-card step-card-flip ${s.cardAccent} ${isFlipped ? "flipped" : ""}`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isFlipped}
+                onClick={() => toggleFlippedStep(s.key)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggleFlippedStep(s.key);
+                  }
+                }}
               >
-                <div className="step-top">
-                  <div className="step-icon" aria-hidden="true">
-                    {s.icon}
+                <div className="step-card-inner">
+                  {/* Face shown initially */}
+                  <div className="step-card-face step-card-face-label">
+                    <div className="step-card-step-label">Step {s.step}</div>
                   </div>
-                  <div className="step-meta">
-                    <div className="step-number">Step {s.step}</div>
-                    <h3 className="step-title">{s.title}</h3>
-                    <p className="step-subtitle">{s.subtitle}</p>
-                  </div>
-                </div>
 
-                {s.key === "pick" && (
-                  <div className="mini-analytics" aria-label="Topic difficulty mini chart">
-                    <div className="mini-analytics-title">
-                      <span aria-hidden="true">📊</span> Difficult topics (sample)
-                    </div>
-                    <div className="bars" aria-hidden="true">
-                      <div className="bar b1" />
-                      <div className="bar b2" />
-                      <div className="bar b3" />
-                      <div className="bar b4" />
-                    </div>
-                    <details className="fact-dropdown">
-                      <summary>Fact of the Day</summary>
-                      <div className="fact-body">
-                        Lightning can heat the air around it to ~30,000°C—about 5× hotter than the sun’s surface.
+                  {/* Face shown after flip */}
+                  <div className="step-card-face step-card-face-content">
+                    <div className="step-top">
+                      <div className="step-icon" aria-hidden="true">
+                        {s.icon}
                       </div>
-                    </details>
+                      <div className="step-meta">
+                        <div className="step-number">Step {s.step}</div>
+                        <h3 className="step-title">{s.title}</h3>
+                        <p className="step-subtitle">{s.subtitle}</p>
+                      </div>
+                    </div>
+
+                    {s.key === "pick" && (
+                      <div
+                        className="mini-analytics"
+                        aria-label="Topic difficulty mini chart"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="mini-analytics-title">
+                          <span aria-hidden="true">📊</span> Difficult topics (sample)
+                        </div>
+                        <div className="bars" aria-hidden="true">
+                          <div className="bar b1" />
+                          <div className="bar b2" />
+                          <div className="bar b3" />
+                          <div className="bar b4" />
+                        </div>
+                        <details className="fact-dropdown" onClick={(e) => e.stopPropagation()}>
+                          <summary>Fact of the Day</summary>
+                          <div className="fact-body">
+                            Lightning can heat the air around it to ~30,000°C—about 5× hotter than the sun’s surface.
+                          </div>
+                        </details>
+                      </div>
+                    )}
+
+                    <ul className="step-bullets">
+                      {s.bullets.map((b, i) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                    </ul>
+
+                    <button
+                      className="dropdown-toggle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpandedStep(s.key);
+                      }}
+                      aria-expanded={isOpen}
+                      aria-controls={`step-details-${s.key}`}
+                    >
+                      <span>{isOpen ? "Hide details" : "More details"}</span>
+                      <span className={`chev ${isOpen ? "up" : ""}`} aria-hidden="true">
+                        ▾
+                      </span>
+                    </button>
+
+                    <div
+                      id={`step-details-${s.key}`}
+                      className={`step-details ${isOpen ? "show" : ""}`}
+                    >
+                      <p>{s.details}</p>
+                    </div>
                   </div>
-                )}
-
-                <ul className="step-bullets">
-                  {s.bullets.map((b, i) => (
-                    <li key={i}>{b}</li>
-                  ))}
-                </ul>
-
-                <button
-                  className="dropdown-toggle"
-                  onClick={() => toggleStep(s.key)}
-                  aria-expanded={isOpen}
-                  aria-controls={`step-details-${s.key}`}
-                >
-                  <span>{isOpen ? "Hide details" : "More details"}</span>
-                  <span className={`chev ${isOpen ? "up" : ""}`} aria-hidden="true">
-                    ▾
-                  </span>
-                </button>
-
-                <div
-                  id={`step-details-${s.key}`}
-                  className={`step-details ${isOpen ? "show" : ""}`}
-                >
-                  <p>{s.details}</p>
                 </div>
               </article>
             );
@@ -348,7 +386,7 @@ export default function Homepage() {
       {/* FOOTER */}
       <footer className="homepage-footer">
         <p>
-          "If you want to master something, teach it." — <em>Richard Feynman</em>
+          &quot;If you want to master something, teach it.&quot; — <em>Richard Feynman</em>
         </p>
       </footer>
     </div>
