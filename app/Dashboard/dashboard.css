@@ -63,11 +63,9 @@ body {
   transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
   z-index: 50;
   pointer-events: none;
-}
-
-.page-loaded .entrance-curtain {
   transform: translateY(-110%);
 }
+
 
 /* Background doodles */
 .bg-doodles {
@@ -351,6 +349,33 @@ body {
   50% { transform: translateY(-9px); }
 }
 
+
+/* Sections */
+.section {
+  width: min(1100px, calc(100% - 24px));
+  margin: 28px auto 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* =======================
+   UPDATED: make each section fill ~90% viewport height (minus navbar)
+   Applies to About / Chatbot / Collabot because you add className="section-tall"
+   ======================= */
+.section-tall {
+  min-height: calc(var(--section-vh) - var(--nav-h));
+  display: grid;
+  align-items: center;
+
+  /* keep some spacing between sections */
+  margin-top: 22px;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.section-head {
+  margin-bottom: 14px;
+}
 
 /* Footer */
 .quote-footer {
