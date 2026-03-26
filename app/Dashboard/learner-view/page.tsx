@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import "./Homepage.css";
+import "../dashboard.css";
 import { Container } from "lucide-react";
 
 type StepKey = "pick" | "simplify" | "gaps" | "review";
@@ -18,7 +18,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className={`homepage-container ${loaded ? "page-loaded" : ""}`}>
+    <div className={`dashboard-container ${loaded ? "page-loaded" : ""}`}>
       {/* Entrance curtain */}
       <div className="entrance-curtain" />
 
@@ -60,7 +60,7 @@ export default function Dashboard() {
           <a className="pill pill-green" href="#about">
             About
           </a>
-          <a className="pill pill-orange" href="/Dashboard">
+          <a className="pill pill-orange" href="/dashboard">
             Dashboard
           </a>
         </div>
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
       
       {/* FOOTER */}
-      <footer className="homepage-footer">
+      <footer className="quote-footer">
         <p>
           "If you want to master something, teach it." — <em>Richard Feynman</em>
         </p>

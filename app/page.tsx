@@ -132,7 +132,7 @@ export default function Homepage() {
           <a className="pill pill-green" href="#about">
             About
           </a>
-          <a className="pill pill-orange" href="/Dashboard">
+          <a className="pill pill-orange" href="/dashboard">
             Dashboard
           </a>
         </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import "./Homepage.css";
+import "./dashboard.css";
 
 type StepKey = "pick" | "simplify" | "gaps" | "review";
 
@@ -17,7 +17,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className={`homepage-container ${loaded ? "page-loaded" : ""}`}>
+    <div className={`dashboard-container ${loaded ? "page-loaded" : ""}`}>
       {/* Entrance curtain */}
       <div className="entrance-curtain" />
 
@@ -82,10 +82,10 @@ export default function Dashboard() {
 
             <h1 className="hero-title">Learning Analytics Dashboard</h1>
             <div className="hero-actions">
-              <Link className="btn btn-primary" href="/Dashboard/EducatorView">
+              <Link className="btn btn-primary" href="/dashboard/educator-view">
                 Educator
               </Link>
-              <Link className="btn btn-secondary" href="/Dashboard/LearnerView">
+              <Link className="btn btn-secondary" href="/dashboard/learner-view">
                 Learner
               </Link>
             </div>
@@ -95,7 +95,7 @@ export default function Dashboard() {
         </div>
       </header>
       {/* FOOTER */}
-      <footer className="homepage-footer">
+      <footer className="quote-footer">
         <p>
           "If you want to master something, teach it." — <em>Richard Feynman</em>
         </p>
