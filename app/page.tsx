@@ -89,6 +89,9 @@ export default function Homepage() {
     setOpenStep((prev) => (prev === key ? null : key));
   };
 
+  /*Hard coded userId for testing purposes */
+  const userId = 1
+
   return (
     <div className={`homepage-container ${loaded ? "page-loaded" : ""}`}>
       {/* Entrance curtain */}
@@ -132,7 +135,7 @@ export default function Homepage() {
           <a className="pill pill-green" href="#about">
             About
           </a>
-          <a className="pill pill-orange" href="/dashboard">
+          <a className="pill pill-orange" href={`/dashboard/${userId}`}>
             Dashboard
           </a>
         </div>

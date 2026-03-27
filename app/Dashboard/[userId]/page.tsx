@@ -1,8 +1,8 @@
 import Link from "next/link";
-import "./dashboard.css";
+import "../dashboard.css";
 
-export default function Dashboard() {
-
+export default async function Dashboard({params}:{params:Promise<{userId:string}>}) {
+  const {userId} = await params;
   return (
     <>
       {/* HERO */}
@@ -21,10 +21,10 @@ export default function Dashboard() {
             </div>
             <h1 className="hero-title">Learning Analytics Dashboard</h1>
             <div className="hero-actions">
-              <Link className="btn btn-primary" href="/dashboard/educator-view">
+              <Link className="btn btn-primary" href={`/dashboard/${userId}/educator-view`}>
                 Educator
               </Link>
-              <Link className="btn btn-secondary" href="/dashboard/learner-view">
+              <Link className="btn btn-secondary" href={`/dashboard/${userId}/learner-view`}>
                 Learner
               </Link>
             </div>

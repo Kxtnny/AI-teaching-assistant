@@ -46,7 +46,8 @@ export default function DashboardLayout({
                     <a className="pill pill-green" href="#about">
                         About
                     </a>
-                    <a className="pill pill-orange" href="/dashboard">
+                    {/* Hardcoded userId */}
+                    <a className="pill pill-orange" href="/dashboard/1">
                         Dashboard
                     </a>
                 </div>
