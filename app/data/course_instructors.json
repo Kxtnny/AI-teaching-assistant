@@ -1,0 +1,26 @@
+[
+    {
+        "userId": 5,
+        "courseId": 1
+    },
+    {
+        "userId": 5,
+        "courseId": 2
+    },
+    {
+        "userId": 6,
+        "courseId": 2
+    },
+    {
+        "userId": 6,
+        "courseId": 3
+    },
+    {
+        "userId": 7,
+        "courseId": 3
+    },
+    {
+        "userId": 7,
+        "courseId": 4
+    }
+]

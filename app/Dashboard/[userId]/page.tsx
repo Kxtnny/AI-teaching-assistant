@@ -21,10 +21,10 @@ export default async function Dashboard({params}:{params:Promise<{userId:string}
             </div>
             <h1 className="hero-title">Learning Analytics Dashboard</h1>
             <div className="hero-actions">
-              <Link className="btn btn-primary" href={`/dashboard/${userId}/educator-view`}>
+              <Link className="btn btn-primary" href={`/dashboard/${userId}/educator/courses`}>
                 Educator
               </Link>
-              <Link className="btn btn-secondary" href={`/dashboard/${userId}/learner-view`}>
+              <Link className="btn btn-secondary" href={`/dashboard/${userId}/learner/courses`}>
                 Learner
               </Link>
             </div>

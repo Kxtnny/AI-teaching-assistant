@@ -358,6 +358,19 @@ body {
   z-index: 1;
 }
 
+.section-title {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 34px);
+  letter-spacing: -0.03em;
+}
+
+.section-subtitle {
+  margin: 5px auto 15px;
+  max-width: 72ch;
+  color: rgba(18, 22, 41, 0.72);
+  line-height: 1.6;
+}
+
 /* =======================
    UPDATED: make each section fill ~90% viewport height (minus navbar)
    Applies to About / Chatbot / Collabot because you add className="section-tall"
@@ -390,6 +403,34 @@ body {
   color: rgba(18, 22, 41, 0.72);
 }
 
+/* Split sections */
+.split {
+  margin-top: 30px;
+}
 
+.split-inner {
+  display: grid;
+  grid-template-columns: 1.0fr;
+  gap: 18px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: calc(var(--radius) + 6px);
+  box-shadow: var(--shadow-soft);
+  padding: clamp(16px, 3vw, 26px);
+  overflow: hidden;
+}
+
+/* =======================
+   UPDATED: make Chatbot/Collabot inner container taller
+   ======================= */
+.split-inner-big {
+  padding: clamp(18px, 3.2vw, 34px);
+  min-height: clamp(360px, 52vh, 520px);
+}
+
+.split-inner.reverse {
+  grid-template-columns: 1.05fr 0.95fr;
+}
 
 
