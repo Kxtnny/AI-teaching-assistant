@@ -1,12 +1,19 @@
+import CourseCard from "@/app/dashboard/components/CourseCard";
+
 export default async function LearnerDashboardView({ params }: { params: Promise<{ userId: string; role: string }> }) {
     type User = {
         id: number;
         name: string;
     }
 
+    type Course = {
+        id: number;
+        name: string;
+    }
+
     type AssociatedCourse = {
         userId: number;
-        courseId: number;
+        course: Course;
     }
 
     const { userId, role } = await params;
@@ -51,13 +58,9 @@ export default async function LearnerDashboardView({ params }: { params: Promise
                         <h1 className="section-title">COURSES</h1>
                     </div>
                     <div>
-                        <ul>
-                            {courses.map((course: AssociatedCourse) => (
-                                <li key={course.courseId}>
-                                    Course ID: {course.courseId}
-                                </li>
-                            ))}
-                        </ul>
+                        {courses.map((associatedCourse: AssociatedCourse) => (
+                            <CourseCard key={associatedCourse.course.id} course={associatedCourse.course} role={role}/>
+                        ))}
                     </div>
                 </div>
             </section>

@@ -1,0 +1,18 @@
+[
+    {
+        "id": 1,
+        "name": "Introduction to AI"
+    },
+    {
+        "id": 2,
+        "name": "Introduction to Python"
+    },
+    {
+        "id": 3,
+        "name": "Machine Learning Basics"
+    },
+    {
+        "id": 4,
+        "name": "Linear Algebra"
+    }
+]
