@@ -230,8 +230,8 @@
         "question": "How do try and except blocks handle errors?",
         "context": "self_study_chatbot",
         "authorId": 3
-    }
-  {
+    },
+    {
         "questionId": 30,
         "courseId": 1,
         "topicId": 1,

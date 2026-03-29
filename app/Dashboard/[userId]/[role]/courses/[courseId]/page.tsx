@@ -1,8 +1,8 @@
 import EducatorCourseView from "./EducatorCourseView";
 import LearnerCourseView from "./LearnerCourseView";
 
-export default async function CourseView({ params }: { params: Promise<{ userId: string; role: string }> }) {
-    const { userId, role } = await params;
+export default async function CourseView({ params }: { params: Promise<{ userId: string; role: string; courseId: string }> }) {
+    const { userId, role, courseId } = await params;
     return (
         <>
             <header id="home" className="hero">
@@ -19,7 +19,7 @@ export default async function CourseView({ params }: { params: Promise<{ userId:
             </header>
 
             {/* Content */}
-            {role === "educator"?<EducatorCourseView/>:<LearnerCourseView/>}
+            {role === "educator"?<EducatorCourseView courseId={courseId}/>:<LearnerCourseView/>}
         </>
     )
 }
