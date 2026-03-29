@@ -1,6 +1,6 @@
-import CourseCard from "@/app/dashboard/components/CourseCard";
+import CourseGrid from "@/app/dashboard/components/CourseGrid";
 
-export default async function LearnerDashboardView({ params }: { params: Promise<{ userId: string; role: string }> }) {
+export default async function CourseListView({ params }: { params: Promise<{ userId: string; role: string }> }) {
     type User = {
         id: number;
         name: string;
@@ -33,7 +33,7 @@ export default async function LearnerDashboardView({ params }: { params: Promise
     }
 
     return (
-        <>
+        <div>
             {/* HERO */}
             <header id="home" className="hero">
                 <div className="hero-bg" aria-hidden="true">
@@ -57,14 +57,11 @@ export default async function LearnerDashboardView({ params }: { params: Promise
                     <div>
                         <h1 className="section-title">COURSES</h1>
                     </div>
-                    <div>
-                        {courses.map((associatedCourse: AssociatedCourse) => (
-                            <CourseCard key={associatedCourse.course.id} course={associatedCourse.course} role={role}/>
-                        ))}
-                    </div>
+                    
+                    <CourseGrid courses={courses} role = {role}/>
                 </div>
             </section>
-        </>
+        </div>
     )
 
 }

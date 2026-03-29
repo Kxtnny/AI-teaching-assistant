@@ -11,9 +11,12 @@
   "dependencies": {
     "@ai-sdk/langchain": "^2.0.92",
     "@ai-sdk/react": "^3.0.11",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@langchain/community": "^1.1.5",
     "@langchain/core": "^1.1.16",
     "@langchain/ollama": "^1.2.2",
+    "@mui/material": "^7.3.9",
     "@supabase/supabase-js": "^2.91.0",
     "ai": "^6.0.86",
     "langchain": "^1.2.24",
