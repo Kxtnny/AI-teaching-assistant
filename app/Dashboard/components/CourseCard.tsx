@@ -6,6 +6,11 @@ import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 
+import { redirect, RedirectType } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { usePathname } from "next/navigation";
+
+
 type Course = {
   id: number;
   name: string;
@@ -18,6 +23,9 @@ type CourseCardProps = {
 }
 
 export default function CourseCard({ course, role }: CourseCardProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+
   return (
 
     <>
@@ -26,9 +34,9 @@ export default function CourseCard({ course, role }: CourseCardProps) {
         '&:hover': {
           boxShadow: 6,
           backgroundColor: '#ffffff',
-          transform:'scale(1.02)'
+          transform: 'scale(1.02)'
         }
-      }} onClick={() => console.log('Card clicked')}>
+      }} onClick={() => router.push(`${pathname}/${course.id}`)}>
         <CardContent>
           <Typography variant="h4" component="div">
             {course.name}

@@ -1,0 +1,426 @@
+[
+    {
+        "questionId": 1,
+        "courseId": 2,
+        "topicId": 8,
+        "question": "What is the difference between Python and other programming languages?",
+        "context": "lecture",
+        "authorId": 1
+    },
+    {
+        "questionId": 2,
+        "courseId": 2,
+        "topicId": 9,
+        "question": "What are the main data types in Python?",
+        "context": "lecture",
+        "authorId": 2
+    },
+    {
+        "questionId": 3,
+        "courseId": 2,
+        "topicId": 9,
+        "question": "What is the difference between int and float in Python?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 4,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "How does an if statement work in Python?",
+        "context": "lecture",
+        "authorId": 1
+    },
+    {
+        "questionId": 5,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "What is the difference between for loop and while loop?",
+        "context": "forum",
+        "authorId": 2
+    },
+    {
+        "questionId": 6,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "When should I use a while loop instead of a for loop?",
+        "context": "self_study_chatbot",
+        "authorId": 3
+    },
+    {
+        "questionId": 7,
+        "courseId": 2,
+        "topicId": 11,
+        "question": "What is a function in Python?",
+        "context": "lecture",
+        "authorId": 4
+    },
+    {
+        "questionId": 8,
+        "courseId": 2,
+        "topicId": 11,
+        "question": "How do I pass arguments into a function?",
+        "context": "forum",
+        "authorId": 1
+    },
+    {
+        "questionId": 9,
+        "courseId": 2,
+        "topicId": 11,
+        "question": "What is the difference between parameters and arguments?",
+        "context": "self_study_chatbot",
+        "authorId": 2
+    },
+    {
+        "questionId": 10,
+        "courseId": 2,
+        "topicId": 12,
+        "question": "What is the difference between a list and a tuple?",
+        "context": "lecture",
+        "authorId": 3
+    },
+    {
+        "questionId": 11,
+        "courseId": 2,
+        "topicId": 12,
+        "question": "When should I use a dictionary instead of a list?",
+        "context": "forum",
+        "authorId": 4
+    },
+    {
+        "questionId": 12,
+        "courseId": 2,
+        "topicId": 12,
+        "question": "How do I loop through a dictionary?",
+        "context": "self_study_chatbot",
+        "authorId": 1
+    },
+    {
+        "questionId": 13,
+        "courseId": 2,
+        "topicId": 13,
+        "question": "How do I read a file in Python?",
+        "context": "lecture",
+        "authorId": 2
+    },
+    {
+        "questionId": 14,
+        "courseId": 2,
+        "topicId": 13,
+        "question": "What is the difference between read() and readline()?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 15,
+        "courseId": 2,
+        "topicId": 14,
+        "question": "What is a try-except block in Python?",
+        "context": "lecture",
+        "authorId": 4
+    },
+    {
+        "questionId": 16,
+        "courseId": 2,
+        "topicId": 14,
+        "question": "How do I handle errors in Python programs?",
+        "context": "chat_with_educator",
+        "authorId": 1
+    },
+    {
+        "questionId": 17,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "Why is my for loop not stopping?",
+        "context": "forum",
+        "authorId": 2
+    },
+    {
+        "questionId": 18,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "Why does my loop run forever?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 19,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "What is the difference between a for loop and a while loop in Python?",
+        "context": "self_study_chatbot",
+        "authorId": 4
+    },
+    {
+        "questionId": 20,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "How are for loops different from while loops?",
+        "context": "forum",
+        "authorId": 1
+    },
+    {
+        "questionId": 21,
+        "courseId": 2,
+        "topicId": 10,
+        "question": "Can someone explain the difference between for and while loops?",
+        "context": "chat_with_educator",
+        "authorId": 2
+    },
+    {
+        "questionId": 22,
+        "courseId": 2,
+        "topicId": 11,
+        "question": "What is a function in Python used for?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 23,
+        "courseId": 2,
+        "topicId": 11,
+        "question": "Why do we use functions in Python?",
+        "context": "self_study_chatbot",
+        "authorId": 4
+    },
+    {
+        "questionId": 24,
+        "courseId": 2,
+        "topicId": 12,
+        "question": "What is the difference between lists and tuples?",
+        "context": "forum",
+        "authorId": 2
+    },
+    {
+        "questionId": 25,
+        "courseId": 2,
+        "topicId": 12,
+        "question": "How are lists different from tuples in Python?",
+        "context": "self_study_chatbot",
+        "authorId": 3
+    },
+    {
+        "questionId": 26,
+        "courseId": 2,
+        "topicId": 13,
+        "question": "How do you open and read a file in Python?",
+        "context": "forum",
+        "authorId": 1
+    },
+    {
+        "questionId": 27,
+        "courseId": 2,
+        "topicId": 13,
+        "question": "What is the way to read files in Python?",
+        "context": "self_study_chatbot",
+        "authorId": 4
+    },
+    {
+        "questionId": 28,
+        "courseId": 2,
+        "topicId": 14,
+        "question": "How does error handling work in Python?",
+        "context": "forum",
+        "authorId": 2
+    },
+    {
+        "questionId": 29,
+        "courseId": 2,
+        "topicId": 14,
+        "question": "How do try and except blocks handle errors?",
+        "context": "self_study_chatbot",
+        "authorId": 3
+    }
+  {
+        "questionId": 30,
+        "courseId": 1,
+        "topicId": 1,
+        "question": "What is artificial intelligence?",
+        "context": "lecture",
+        "authorId": 1
+    },
+    {
+        "questionId": 31,
+        "courseId": 1,
+        "topicId": 2,
+        "question": "What is an intelligent agent?",
+        "context": "lecture",
+        "authorId": 2
+    },
+    {
+        "questionId": 32,
+        "courseId": 1,
+        "topicId": 2,
+        "question": "How do intelligent agents interact with their environment?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 33,
+        "courseId": 1,
+        "topicId": 4,
+        "question": "What is the difference between BFS and DFS?",
+        "context": "forum",
+        "authorId": 4
+    },
+    {
+        "questionId": 34,
+        "courseId": 1,
+        "topicId": 4,
+        "question": "How does breadth-first search differ from depth-first search?",
+        "context": "self_study_chatbot",
+        "authorId": 1
+    },
+    {
+        "questionId": 35,
+        "courseId": 1,
+        "topicId": 5,
+        "question": "What is A* search algorithm?",
+        "context": "lecture",
+        "authorId": 2
+    },
+    {
+        "questionId": 36,
+        "courseId": 1,
+        "topicId": 6,
+        "question": "What is knowledge representation in AI?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 37,
+        "courseId": 3,
+        "topicId": 15,
+        "question": "What is machine learning?",
+        "context": "lecture",
+        "authorId": 1
+    },
+    {
+        "questionId": 38,
+        "courseId": 3,
+        "topicId": 16,
+        "question": "What is data preprocessing?",
+        "context": "lecture",
+        "authorId": 2
+    },
+    {
+        "questionId": 39,
+        "courseId": 3,
+        "topicId": 16,
+        "question": "Why do we need to preprocess data before training?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 40,
+        "courseId": 3,
+        "topicId": 17,
+        "question": "What is regression in machine learning?",
+        "context": "lecture",
+        "authorId": 4
+    },
+    {
+        "questionId": 41,
+        "courseId": 3,
+        "topicId": 18,
+        "question": "What is classification in machine learning?",
+        "context": "lecture",
+        "authorId": 1
+    },
+    {
+        "questionId": 42,
+        "courseId": 3,
+        "topicId": 19,
+        "question": "What is model evaluation?",
+        "context": "forum",
+        "authorId": 2
+    },
+    {
+        "questionId": 43,
+        "courseId": 3,
+        "topicId": 19,
+        "question": "How do we evaluate machine learning models?",
+        "context": "self_study_chatbot",
+        "authorId": 3
+    },
+    {
+        "questionId": 44,
+        "courseId": 3,
+        "topicId": 20,
+        "question": "What is overfitting?",
+        "context": "lecture",
+        "authorId": 4
+    },
+    {
+        "questionId": 45,
+        "courseId": 3,
+        "topicId": 20,
+        "question": "Why does overfitting happen?",
+        "context": "forum",
+        "authorId": 1
+    },
+    {
+        "questionId": 46,
+        "courseId": 4,
+        "topicId": 22,
+        "question": "What is a vector?",
+        "context": "lecture",
+        "authorId": 2
+    },
+    {
+        "questionId": 47,
+        "courseId": 4,
+        "topicId": 22,
+        "question": "What does a vector represent?",
+        "context": "forum",
+        "authorId": 3
+    },
+    {
+        "questionId": 48,
+        "courseId": 4,
+        "topicId": 23,
+        "question": "What is a matrix?",
+        "context": "lecture",
+        "authorId": 4
+    },
+    {
+        "questionId": 49,
+        "courseId": 4,
+        "topicId": 23,
+        "question": "How do matrix operations work?",
+        "context": "forum",
+        "authorId": 1
+    },
+    {
+        "questionId": 50,
+        "courseId": 4,
+        "topicId": 24,
+        "question": "What is a system of linear equations?",
+        "context": "lecture",
+        "authorId": 2
+    },
+    {
+        "questionId": 51,
+        "courseId": 4,
+        "topicId": 25,
+        "question": "What is a determinant?",
+        "context": "lecture",
+        "authorId": 3
+    },
+    {
+        "questionId": 52,
+        "courseId": 4,
+        "topicId": 26,
+        "question": "What are eigenvalues and eigenvectors?",
+        "context": "lecture",
+        "authorId": 4
+    },
+    {
+        "questionId": 53,
+        "courseId": 4,
+        "topicId": 26,
+        "question": "Why are eigenvalues important?",
+        "context": "forum",
+        "authorId": 1
+    }
+]

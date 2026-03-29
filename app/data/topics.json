@@ -1,0 +1,110 @@
+[
+    {
+        "topicId": 1,
+        "name": "Introduction to Artificial Intelligence"
+    },
+    {
+        "topicId": 2,
+        "name": "Intelligent Agents and Environments"
+    },
+    {
+        "topicId": 3,
+        "name": "State Space Representation"
+    },
+    {
+        "topicId": 4,
+        "name": "Uninformed Search Algorithms (BFS, DFS)"
+    },
+    {
+        "topicId": 5,
+        "name": "Informed Search Algorithms (A*)"
+    },
+    {
+        "topicId": 6,
+        "name": "Knowledge Representation"
+    },
+    {
+        "topicId": 7,
+        "name": "Logical Reasoning"
+    },
+    {
+        "topicId": 8,
+        "name": "Python Basics and Syntax"
+    },
+    {
+        "topicId": 9,
+        "name": "Variables and Data Types"
+    },
+    {
+        "topicId": 10,
+        "name": "Control Flow (Conditionals and Loops)"
+    },
+    {
+        "topicId": 11,
+        "name": "Functions and Modular Programming"
+    },
+    {
+        "topicId": 12,
+        "name": "Built-in Data Structures (Lists, Tuples, Dictionaries, Sets)"
+    },
+    {
+        "topicId": 13,
+        "name": "File Handling and Input/Output"
+    },
+    {
+        "topicId": 14,
+        "name": "Error Handling and Debugging"
+    },
+    {
+        "topicId": 15,
+        "name": "Introduction to Machine Learning"
+    },
+    {
+        "topicId": 16,
+        "name": "Data Preprocessing"
+    },
+    {
+        "topicId": 17,
+        "name": "Supervised Learning (Regression)"
+    },
+    {
+        "topicId": 18,
+        "name": "Supervised Learning (Classification)"
+    },
+    {
+        "topicId": 19,
+        "name": "Model Evaluation and Validation"
+    },
+    {
+        "topicId": 20,
+        "name": "Overfitting and Regularization"
+    },
+    {
+        "topicId": 21,
+        "name": "Introduction to Unsupervised Learning"
+    },
+    {
+        "topicId": 22,
+        "name": "Vectors and Vector Spaces"
+    },
+    {
+        "topicId": 23,
+        "name": "Matrices and Matrix Operations"
+    },
+    {
+        "topicId": 24,
+        "name": "Systems of Linear Equations"
+    },
+    {
+        "topicId": 25,
+        "name": "Determinants"
+    },
+    {
+        "topicId": 26,
+        "name": "Eigenvalues and Eigenvectors"
+    },
+    {
+        "topicId": 27,
+        "name": "Linear Transformations"
+    }
+]
