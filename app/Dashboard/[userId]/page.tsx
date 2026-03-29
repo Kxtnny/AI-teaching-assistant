@@ -1,7 +1,7 @@
 import Link from "next/link";
 import "../dashboard.css";
 
-export default async function Dashboard({params}:{params:Promise<{userId:string}>}) {
+export default async function DashboardLandingPage({params}:{params:Promise<{userId:string}>}) {
   const {userId} = await params;
   return (
     <>
