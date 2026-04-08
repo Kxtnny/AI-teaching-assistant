@@ -366,7 +366,7 @@ body {
 
 .section-subtitle {
   margin: 5px auto 15px;
-  max-width: 72ch;
+  font-size: clamp(24px, 3vw, 28px);
   color: rgba(18, 22, 41, 0.72);
   line-height: 1.6;
 }

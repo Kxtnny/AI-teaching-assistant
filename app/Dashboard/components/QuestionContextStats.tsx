@@ -14,7 +14,7 @@ type Question = {
     authorId: number
 }
 
-export default function NumQuestionStats({ questions }: { questions: Question[] }) {
+export default function QuestionContextStats({ questions }: { questions: Question[] }) {
 
     const contextCount: Record<string, number> = {};
 

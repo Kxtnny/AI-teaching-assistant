@@ -5,6 +5,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const courseId = url.searchParams.get('courseId');
     const topicId = url.searchParams.get('topicId');
+    const authorId = url.searchParams.get('authorId')
 
     let filtered = questions
 
@@ -14,6 +15,10 @@ export async function GET(request: Request) {
 
     if (topicId) {
         filtered = filtered.filter(qns => qns.topicId === Number(topicId))
+    }
+
+    if (authorId) {
+        filtered = filtered.filter(qns => qns.authorId === Number(authorId))
     }
 
     const result = filtered.map(item => {
