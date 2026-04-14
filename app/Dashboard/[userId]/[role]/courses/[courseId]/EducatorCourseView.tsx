@@ -11,6 +11,7 @@ type Topic = {
     topicId: number,
     name: string
 }
+
 type Question = {
     questionId: number,
     courseId: number,

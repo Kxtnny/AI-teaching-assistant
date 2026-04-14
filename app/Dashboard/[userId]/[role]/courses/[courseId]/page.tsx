@@ -26,7 +26,7 @@ export default async function CourseView({ params }: { params: Promise<{ userId:
             </header>
 
             {/* Content */}
-            {role === "educator"?<EducatorCourseView courseId={courseId}/>:<LearnerCourseView/>}
+            {role === "educator"?<EducatorCourseView courseId={courseId}/>:<LearnerCourseView userId={userId} courseId={courseId}/>}
         </>
     )
 }
