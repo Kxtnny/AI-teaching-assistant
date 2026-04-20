@@ -1,0 +1,76 @@
+.layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; background: #f6f4f1; color: #151515; }
+.sidebar { border-right: 1px solid #e5e2dd; padding: 16px 12px; background: #f7f5f2; }
+.sideTop { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 4px 6px; }
+.miniLogo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #171310; color: #fff; font-size: 16px; }
+.miniText strong { display: block; font-size: 15px; line-height: 1; color: #1f1a16; }
+.miniText span { display: block; margin-top: 3px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #7b746a; }
+.menu { display: grid; gap: 6px; }
+.menuItem { text-decoration: none; color: #595249; border: 1px solid transparent; border-radius: 12px; padding: 11px 12px; background: transparent; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+.menuItem:hover { background: #f0ece7; color: #1f1a16; }
+.active { background: #ece8e3; color: #14110f; border-color: #e2ddd6; }
+.activeSoft { background: #f3f0ec; border-color: #e9e3dc; }
+.icon { width: 22px; text-align: center; font-size: 14px; opacity: .9; }
+.muted { opacity: .55; cursor: not-allowed; }
+
+.main { padding: 24px; }
+.title { margin: 0; font-family: serif; font-size: 56px; line-height: 1.05; }
+.subtitle { margin: 8px 0 0; color: #5f5951; max-width: 760px; font-size: 17px; }
+.searchRow { margin: 16px 0; }
+.searchInput { width: 100%; max-width: 580px; border: 1px solid #ddd7cf; border-radius: 999px; padding: 12px 16px; font-size: 16px; background: #fff; }
+
+.section { margin-top: 22px; }
+.sectionHead { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.sectionHead h2 { margin: 0; font-family: serif; font-size: 32px; }
+.count { border: 1px solid #ddd7cf; border-radius: 999px; padding: 2px 8px; font-size: 12px; background: #fff; }
+.emptyCard { border: 1px solid #e1ddd7; border-radius: 12px; padding: 14px; background: #fff; color: #7a7268; }
+
+.grid { display: grid; grid-template-columns: repeat(3, minmax(260px, 1fr)); gap: 14px; }
+.courseCard { border: 1px solid #e1ddd7; border-radius: 16px; overflow: hidden; background: #fff; text-decoration: none; color: inherit; }
+.cover { height: 170px; position: relative; display: grid; place-items: center; }
+.tone0 { background: linear-gradient(135deg, #4658d6, #3346b8); } .tone1 { background: linear-gradient(135deg, #9f5a21, #7f451a); }
+.tone2 { background: linear-gradient(135deg, #1f7b65, #165d4d); } .tone3 { background: linear-gradient(135deg, #6b2aac, #4f1d84); }
+.tone4 { background: linear-gradient(135deg, #a72866, #7f1f4e); } .tone5 { background: linear-gradient(135deg, #19758d, #13596b); }
+.topBadge { position: absolute; top: 10px; left: 10px; font-size: 11px; border-radius: 999px; padding: 4px 8px; background: rgba(0,0,0,.35); color: #fff; }
+.centerGlyph { font-family: serif; font-size: 72px; color: rgba(255,255,255,.45); }
+.body { padding: 14px; }
+.body h3 { margin: 0 0 6px; font-size: 26px; font-family: serif; }
+.sub { margin: 0 0 10px; color: #7a7268; font-size: 14px; }
+.metaRow { display: flex; gap: 14px; font-size: 13px; color: #665f55; border-top: 1px solid #eee8e1; padding-top: 10px; }
+.date { margin-left: auto; }
+/* Make card positioning context for absolute delete button */
+.courseCard {
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.courseCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+/* Delete button */
+.deleteBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+
+  border: 1px solid #ead9d4;
+  background: rgba(255, 255, 255, 0.95);
+  color: #8e1f1f;
+  border-radius: 10px;
+  padding: 5px 8px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.deleteBtn:hover {
+  background: #fff4f4;
+  border-color: #e3bcbc;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

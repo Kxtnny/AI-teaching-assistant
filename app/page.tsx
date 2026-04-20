@@ -382,7 +382,68 @@ export default function Homepage() {
           </div>
         </div>
       </section>
+      {/* LectureLens */}
 
+      <section id="lecturelens" className="section split lecturelens">
+        <div className="split-inner reverse">
+          <div className="split-illustration">
+            <div className="big-illustration-card">
+              <div className="big-icon" aria-hidden="true">
+                🧑‍🤝‍🧑
+              </div>
+              <div className="assist" aria-hidden="true">
+              </div>
+              <div className="bubble bubble-1" aria-hidden="true">
+                💬
+              </div>
+              <div className="bubble bubble-2" aria-hidden="true">
+                🔎
+              </div>
+            </div>
+          </div>
+
+          <div className="split-text">
+            <h2 className="section-title">LectureLens – Interactive Lecture Mode</h2>
+            <p className="section-subtitle">
+              Engage with interactive lectures that adapt to your learning style and provide real-time feedback.
+            </p>
+            <Link className="btn btn-secondary" href="/LectureLens">
+              Enter LectureLens
+            </Link>
+          </div>
+        </div>
+      </section>
+       {/* teacher */}
+
+      <section id="teacher" className="section split teacher">
+        <div className="split-inner reverse">
+          <div className="split-illustration">
+            <div className="big-illustration-card">
+              <div className="big-icon" aria-hidden="true">
+                🧑‍🤝‍🧑
+              </div>
+              <div className="assist" aria-hidden="true">
+              </div>
+              <div className="bubble bubble-1" aria-hidden="true">
+                💬
+              </div>
+              <div className="bubble bubble-2" aria-hidden="true">
+                🔎
+              </div>
+            </div>
+          </div>
+
+          <div className="split-text">
+            <h2 className="section-title">Teacher – Personalized Instruction Mode</h2>
+            <p className="section-subtitle">
+              Receive personalized instruction and support tailored to your unique learning needs.
+            </p>
+            <Link className="btn btn-secondary" href="/teacher">
+              Enter Teacher
+            </Link>
+          </div>
+        </div>
+      </section>
       {/* FOOTER */}
       <footer className="homepage-footer">
         <p>

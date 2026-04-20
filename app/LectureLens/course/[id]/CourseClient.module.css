@@ -1,0 +1,118 @@
+.page {
+  min-height: 100vh;
+  background: #f6f4f1;
+  padding: 22px;
+  color: #151515;
+}
+
+.back {
+  text-decoration: none;
+  color: #6b645b;
+  font-weight: 600;
+}
+
+.hero {
+  margin-top: 12px;
+  border-radius: 16px;
+  padding: 28px 26px;
+  background: linear-gradient(120deg, #191313 0%, #201515 65%, #211a33 100%);
+  border: 1px solid #2f2727;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(36px, 4vw, 62px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-family: serif;
+}
+
+.contentGrid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 14px;
+}
+
+.summaryCard,
+.modeWrap {
+  border: 1px solid #e3ddd6;
+  border-radius: 16px;
+  background: #fff;
+  padding: 18px;
+}
+
+.sectionLabel {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6a635a;
+  font-weight: 700;
+}
+
+.summaryText {
+  margin: 0;
+  color: #4c4741;
+  line-height: 1.7;
+  font-size: 16px;
+  white-space: pre-wrap;
+}
+
+.modeHeading {
+  margin: 2px 0 12px;
+  font-size: 34px;
+  line-height: 1.15;
+  font-family: serif;
+  color: #221d19;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid #e2ddd6;
+  border-radius: 14px;
+  padding: 16px;
+  min-height: 170px;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(20, 17, 15, .08);
+}
+
+.quiz { background: #fff9e7; border-color: #f1dd9b; }
+.chat { background: #eef7ff; border-color: #cfe8ff; }
+.adaptive { background: #f2eeff; border-color: #ddd3ff; }
+
+.cardTitle {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-family: serif;
+}
+
+.cardText {
+  margin: 0;
+  font-size: 15px;
+  color: #615b52;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

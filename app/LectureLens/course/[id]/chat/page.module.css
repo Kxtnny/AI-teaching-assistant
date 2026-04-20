@@ -1,0 +1,87 @@
+.page {
+  min-height: 100vh;
+  background: #f6f4f1;
+  padding: 22px;
+  color: #151515;
+}
+
+.back {
+  color: #6b645b;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.title {
+  margin: 12px 0 14px;
+  font-family: serif;
+  font-size: 42px;
+  line-height: 1.1;
+}
+
+.chatBox {
+  border: 1px solid #e3ddd6;
+  border-radius: 12px;
+  background: #fff;
+  min-height: 320px;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.msg {
+  padding: 10px 12px;
+  border-radius: 10px;
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+.user {
+  background: #ece9ff;
+  border: 1px solid #d9d2ff;
+}
+
+.assistant {
+  background: #edf8ff;
+  border: 1px solid #d2ecff;
+}
+
+.row {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 8px;
+}
+
+.input {
+  border: 1px solid #ddd7cf;
+  border-radius: 10px;
+  background: #fff;
+  padding: 11px 12px;
+  font-size: 15px;
+}
+
+.button {
+  border: 0;
+  border-radius: 10px;
+  background: #171310;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 34px;
+  }
+}
