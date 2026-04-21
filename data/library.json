@@ -1,19 +1,19 @@
 [
   {
-    "lecture_id": "b9484ce807edd1a5",
-    "title": "BU5401-Lect08-WaitingLineI",
-    "file_hash": "b9484ce807edd1a50a70a751fae3c1b963b2c5635e6d4b6dceec9e1173fa090a",
+    "lecture_id": "d15a4def1fd0575c",
+    "title": "Week 12a",
+    "file_hash": "d15a4def1fd0575c6ca5d76ad764239bf9facf0c8fd991356710586cebb404e8",
     "creator": "student",
     "status": "Ready",
     "time_ago": "Saved",
-    "original_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\original.pdf",
+    "original_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\original.pdf",
     "audio_path": null,
-    "transcript_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\transcript.txt",
-    "summary_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\summary.txt",
-    "memory_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\memory.txt",
-    "chunks_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\chunks.json",
-    "created_at": "2026-04-21T04:55:41.453Z",
-    "updated_at": "2026-04-21T04:56:15.454Z"
+    "transcript_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\transcript.txt",
+    "summary_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\summary.txt",
+    "memory_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\memory.txt",
+    "chunks_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\chunks.json",
+    "created_at": "2026-04-21T07:57:33.394Z",
+    "updated_at": "2026-04-21T07:57:54.122Z"
   },
   {
     "lecture_id": "d6af311a3de558cd",

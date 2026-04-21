@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import btnStyles from "./page.module.css";
 
 function useTypewriter(text: string, startDelay = 0, speed = 40) {
   const [displayed, setDisplayed] = useState("");
@@ -55,8 +56,8 @@ export default function Home() {
       </p>
 
       <div style={styles.imageSection}>
-        <Link href="/LectureLens?creator=student" style={{ ...styles.btn, ...styles.btnStudent }}>
-          Student
+        <Link href="/LectureLens?creator=student" className={`${btnStyles.btn} ${btnStyles.btnStudent}`}>
+          <span>Student</span>
         </Link>
 
         <Image
@@ -68,8 +69,8 @@ export default function Home() {
           priority
         />
 
-        <Link href="/teacher" style={{ ...styles.btn, ...styles.btnTeacher }}>
-          Teacher
+        <Link href="/teacher" className={`${btnStyles.btn} ${btnStyles.btnTeacher}`}>
+          <span>Teacher</span>
         </Link>
       </div>
     </main>
@@ -138,27 +139,5 @@ const styles: Record<string, React.CSSProperties> = {
     width: "auto",
     flexShrink: 0,
     alignSelf: "flex-end",
-  },
-  btn: {
-    textDecoration: "none",
-    fontFamily: "system-ui, sans-serif",
-    fontWeight: 600,
-    fontSize: 16,
-    padding: "13px 36px",
-    borderRadius: 12,
-    display: "inline-block",
-    marginBottom: 32,
-    whiteSpace: "nowrap",
-  },
-  btnStudent: {
-    background: "linear-gradient(120deg, #191313 0%, #201515 65%, #211a33 100%)",
-    color: "#fff",
-    boxShadow: "0 4px 16px rgba(20,17,15,0.18)",
-  },
-  btnTeacher: {
-    background: "#fff",
-    color: "#221d19",
-    border: "1.5px solid #d6d0c8",
-    boxShadow: "0 2px 8px rgba(20,17,15,0.07)",
   },
 };

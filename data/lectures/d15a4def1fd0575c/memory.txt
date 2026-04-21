@@ -1,0 +1,54 @@
+LECTURE MEMORY: CZ3005 Artificial Intelligence – Week 12a: Fuzzy Logic
+
+- Introduction to fuzzy logic and its application in safe autonomous vehicles.
+- Responsibility Sensitive Safety (RSS) model for autonomous driving safety.
+- Key RSS rules: no rear-end collisions, no reckless cut-ins, right-of-way is given, caution in limited visibility, avoid accidents without causing others.
+- Concepts of Exposure Time and Danger Threshold Time in vehicle observation and safety.
+- Definition of unreasonable situations due to unreasonable speed and improper behavior of other agents.
+- Use of semantic action space in autonomous driving decisions (e.g., rule-based slowing near red lights).
+- Fuzzy sets: sets with fuzzy boundaries, characterized by membership functions (MFs) assigning degrees of membership between 0 and 1.
+- Membership functions are subjective, not probabilities.
+- Trapezoidal membership functions (tpmf[a,b,c,d]) with degrees 0 or 1 at specified points.
+- Formal definition of fuzzy sets as ordered pairs (element, membership degree).
+- Fuzzy sets can be defined over discrete or continuous universes.
+- Alternative notation for fuzzy sets using summation or integration over membership degrees.
+- Fuzzy partitions and pseudo fuzzy partitions (sum of MFs at any point equals 1).
+- MF terminology: core, support, crossover points, α-cut.
+- Convexity of fuzzy sets: a fuzzy set is convex if membership at any convex combination of points is at least the minimum membership of those points.
+- Set-theoretic operations on fuzzy sets: subset (μ_A ≤ μ_B), complement (1 - μ_A), union (max), intersection (min).
+- Fuzzy logical operations correspond to these set operations.
+
+Formulas/Theorems:
+- Trapezoidal MF: degree=0 at x=a, degree=1 at x=b and x=c, degree=0 at x=d.
+- Convexity condition: μ_A(λx1 + (1-λ)x2) ≥ min(μ_A(x1), μ_A(x2)) for λ ∈ [0,1].
+- Set operations:
+  - Subset: A ⊆ B ⇔ μ_A(x) ≤ μ_B(x)
+  - Complement: μ_{A^c}(x) = 1 - μ_A(x)
+  - Union: μ_{A∪B}(x) = max(μ_A(x), μ_B(x))
+  - Intersection: μ_{A∩B}(x) = min(μ_A(x), μ_B(x))
+
+Pitfalls:
+- Confusing fuzzy membership degrees with probabilities.
+- Assuming fuzzy partitions always sum to 1 (only true for pseudo fuzzy partitions).
+- Overly defensive driving assumptions (e.g., always assuming worst-case occlusions) can lead to impractical driving behavior.
+- Ignoring the importance of exposure time and danger threshold in safety modeling.
+- Misapplication of fuzzy logic operations without considering the context of the problem.
+
+Example Problem Types:
+- Designing membership functions for linguistic variables (e.g., "tall", "young").
+- Applying fuzzy set operations to combine or compare fuzzy concepts.
+- Modeling safe driving scenarios using RSS principles and fuzzy logic.
+- Calculating braking distances and safe following distances under uncertain conditions.
+- Constructing fuzzy partitions for classification problems (e.g., age groups).
+- Evaluating convexity of fuzzy sets and interpreting α-cuts.
+
+Combined Lecture Text:
+The lecture covers fuzzy logic fundamentals and their application to autonomous vehicle safety. It introduces Responsibility Sensitive Safety (RSS), a formal model ensuring safe driving behaviors such as avoiding rear-end collisions and reckless cut-ins, respecting right-of-way, and cautious driving in occluded or limited visibility scenarios. Key concepts include Exposure Time (when an object becomes visible) and Danger Threshold Time (when a situation becomes unsafe). Unreasonable situations arise from excessive speed or improper behavior, which RSS aims to mitigate.
+
+Fuzzy sets extend classical sets by allowing partial membership characterized by membership functions (MFs) ranging from 0 to 1, representing subjective degrees rather than probabilities. Trapezoidal MFs are common, defined by four parameters marking where membership rises and falls. Fuzzy sets can be defined over discrete or continuous domains and can be represented using summations or integrals of membership degrees.
+
+Fuzzy partitions divide a universe into overlapping fuzzy sets, sometimes forming pseudo partitions where membership sums to 1 at each point. Important MF terminology includes core (where membership is 1), support (where membership > 0), crossover points, and α-cuts (thresholded subsets).
+
+Convexity of fuzzy sets ensures smooth membership transitions and is defined via a minimum membership condition over convex combinations of points. Set-theoretic operations on fuzzy sets generalize classical operations using max (union), min (intersection), and complement (1 minus membership).
+
+The lecture also discusses practical considerations in autonomous driving, such as semantic action spaces for decision-making and the trade-offs in defensive driving strategies. Understanding these fuzzy logic concepts and their application to safety models is crucial for designing intelligent, safe autonomous systems.
