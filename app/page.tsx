@@ -1,455 +1,164 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import "./Homepage.css";
+import { useEffect, useState } from "react";
 
-type StepKey = "pick" | "simplify" | "gaps" | "review";
-
-export default function Homepage() {
-  const [loaded, setLoaded] = useState(false);
-  const [expandedStep, setExpandedStep] = useState<StepKey | null>(null);
-  const [flippedSteps, setFlippedSteps] = useState<Set<StepKey>>(() => new Set());
+function useTypewriter(text: string, startDelay = 0, speed = 40) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoaded(true), 50);
-    return () => clearTimeout(timer);
-  }, []);
+    let i = 0;
+    setDisplayed("");
+    setDone(false);
+    const start = setTimeout(() => {
+      const interval = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length) {
+          clearInterval(interval);
+          setDone(true);
+        }
+      }, speed);
+      return () => clearInterval(interval);
+    }, startDelay);
+    return () => clearTimeout(start);
+  }, [text, startDelay, speed]);
 
-  const steps = useMemo(
-    () => [
-      {
-        key: "pick" as const,
-        step: 1,
-        title: "Pick a Topic",
-        icon: "🧠",
-        subtitle: "Choose what you want to understand more deeply.",
-        bullets: [
-          "Pick a random topic (surprise me!)",
-          "Pick a challenging topic (level up!)",
-          "AI detects where you struggle most using BERT Topic Modeling",
-          "See a mini analytics view of “hard topics” + a Fact of the Day",
-        ],
-        cardAccent: "accent-blue",
-        details:
-          "Start with a topic you’re learning right now. Dr Feynman helps you choose what matters most by surfacing your highest-friction areas and nudging you toward the best next topic.",
-      },
-      {
-        key: "simplify" as const,
-        step: 2,
-        title: "Simplify the Topic",
-        icon: "💬",
-        subtitle: "Teach it back in plain language—like explaining to a friend.",
-        bullets: [
-          "Explain concepts to the AI facilitator",
-          "Tracks your explanations and saves versions",
-          "Summarizes what you said (so you can refine it)",
-          "Gives clear, friendly explanations when needed",
-        ],
-        cardAccent: "accent-green",
-        details:
-          "You do the talking. The AI listens, summarizes, and helps you rephrase. Teaching forces clarity—and clarity is what we’re building.",
-      },
-      {
-        key: "gaps" as const,
-        step: 3,
-        title: "Identify Knowledge Gaps",
-        icon: "🔎",
-        subtitle: "Find the fuzzy parts with gentle, Socratic questions.",
-        bullets: [
-          "Adaptive Socratic questioning",
-          "Guided learning paths",
-          "AI explains after gaps are identified",
-          "Turns confusion into checkpoints you can conquer",
-        ],
-        cardAccent: "accent-purple",
-        details:
-          "When your explanation has a jump, Dr Feynman pauses and asks the perfect follow-up question—until every step makes sense end-to-end.",
-      },
-      {
-        key: "review" as const,
-        step: 4,
-        title: "Review",
-        icon: "✅",
-        subtitle: "Polish your understanding and make it stick.",
-        bullets: [
-          "Response Optimization (clearer explanations)",
-          "RAG Enhancement (more accurate support)",
-          "Prompt Optimization (ask better questions)",
-          "Checklist-style review and improvement meter",
-        ],
-        cardAccent: "accent-orange",
-        details:
-          "Review turns a good explanation into a great one. We help you rewrite, fact-check, and improve your questions so your learning accelerates.",
-      },
-    ],
-    []
-  );
+  return { displayed, done };
+}
 
-  const toggleExpandedStep = (key: StepKey) => {
-    setExpandedStep((prev) => (prev === key ? null : key));
-  };
+const HEADING = "Dr Feynman";
+const SUBHEADING = "Learn by Teaching with AI";
+const DESC =
+  "An AI-powered platform that enhances the Feynman learning technique using LLMs—so you can explain clearly, find gaps, and build real understanding.";
 
-  const toggleFlippedStep = (key: StepKey) => {
-    setFlippedSteps((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+export default function Home() {
+  const h = useTypewriter(HEADING, 0, 60);
+  const s = useTypewriter(SUBHEADING, HEADING.length * 60 + 120, 40);
+  const d = useTypewriter(DESC, HEADING.length * 60 + SUBHEADING.length * 40 + 280, 18);
 
   return (
-    <div className={`homepage-container ${loaded ? "page-loaded" : ""}`}>
-      {/* Entrance curtain */}
-      <div className="entrance-curtain" />
+    <main style={styles.page}>
+      <h1 style={styles.heading}>
+        {h.displayed}
+        {!h.done && <span style={styles.cursor}>|</span>}
+      </h1>
+      <p style={styles.subheading}>
+        {s.displayed}
+        {h.done && !s.done && <span style={styles.cursor}>|</span>}
+      </p>
+      <p style={styles.description}>
+        {d.displayed}
+        {s.done && !d.done && <span style={styles.cursor}>|</span>}
+      </p>
 
-      {/* Floating education doodles */}
-      <div className="bg-doodles" aria-hidden="true">
-        <span className="doodle doodle-1">📐</span>
-        <span className="doodle doodle-2">🧪</span>
-        <span className="doodle doodle-3">📚</span>
-        <span className="doodle doodle-4">🔬</span>
-        <span className="doodle doodle-5">✏️</span>
-        <span className="doodle doodle-6">🧮</span>
-        <span className="doodle doodle-7">🎓</span>
-        <span className="doodle doodle-8">💡</span>
-        <span className="doodle doodle-9">⚛️</span>
-        <span className="doodle doodle-10">🌍</span>
+      <div style={styles.imageSection}>
+        <Link href="/LectureLens?creator=student" style={{ ...styles.btn, ...styles.btnStudent }}>
+          Student
+        </Link>
+
+        <Image
+          src="/feynman-pic.png"
+          alt="Dr Feynman"
+          width={420}
+          height={520}
+          style={styles.image}
+          priority
+        />
+
+        <Link href="/teacher" style={{ ...styles.btn, ...styles.btnTeacher }}>
+          Teacher
+        </Link>
       </div>
-
-      {/* Sticky Navbar */}
-      <nav className="navbar" role="navigation" aria-label="Primary">
-        <div className="nav-left">
-          <Link href="/" className="brand">
-            <span className="mascot" aria-hidden="true">
-              🧑‍🔬
-            </span>
-            <span className="brand-text">Dr Feynman</span>
-          </Link>
-        </div>
-
-        <div className="nav-right">
-          <a className="pill pill-soft" href="#home">
-            Home
-          </a>
-          <a className="pill pill-blue" href="#chatbot">
-            Chatbot
-          </a>
-          <a className="pill pill-purple" href="#collabot">
-            Collabot
-          </a>
-          <a className="pill pill-green" href="#about">
-            About
-          </a>
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <header id="home" className="hero">
-        <div className="hero-bg" aria-hidden="true">
-          <div className="shape shape-1" />
-          <div className="shape shape-2" />
-          <div className="shape shape-3" />
-          <div className="shape shape-4" />
-        </div>
-
-        <div className="hero-inner">
-          <div className="hero-left">
-            <div className="hero-kicker">
-              Learn faster by teaching
-            </div>
-
-            <h1 className="hero-title">Dr Feynman</h1>
-
-            <p className="hero-subtitle">Learn by Teaching with AI</p>
-
-            <p className="hero-desc">
-              An AI-powered platform that enhances the <strong>Feynman learning technique</strong>{" "}
-              using LLMs—so you can explain clearly, find gaps, and build real understanding.
-            </p>
-
-            <div className="hero-actions">
-              <Link className="btn btn-primary" href="/Chatbot">
-                Try Chatbot
-              </Link>
-              <Link className="btn btn-secondary" href="/VisionLab">
-                Vision Lab
-              </Link>
-            </div>
-
-            <div className="hero-floats" aria-hidden="true">
-              <span className="float float-1">🧠</span>
-              <span className="float float-2">📚</span>
-              <span className="float float-3">💡</span>
-              <span className="float float-4">💬</span>
-              <span className="float float-5">🧪</span>
-            </div>
-          </div>
-
-          <div className="hero-right" aria-label="Dr Feynman portrait">
-            <div className="mascot-card">
-
-              <div className="mascot-body">
-                {/* Dr Feynman portrait image */}
-                <img src="/feynman-pic.png" alt="Dr Feynman" className="feynman-image" />
-
-                <div className="mini-icons" aria-hidden="true">
-                  <span className="mini mini-1">💬</span>
-                  <span className="mini mini-2">📖</span>
-                  <span className="mini mini-3">💡</span>
-                  <span className="mini mini-4">🧠</span>
-                </div>
-              </div>
-
-              <div className="mascot-footer">
-                <div className="pill tiny pill-soft">Playful</div>
-                <div className="pill tiny pill-green">Guided</div>
-                <div className="pill tiny pill-blue">Accurate</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ABOUT / STEPS */}
-      <section id="about" className="section about">
-        <div className="section-head center">
-          <h2 className="section-title">How Dr Feynman Enhances the Feynman Technique</h2>
-          <p className="section-subtitle">
-            Four friendly steps. Big understanding. Click a card to flip.
-          </p>
-        </div>
-
-        <div className="steps-grid">
-          {steps.map((s) => {
-            const isOpen = expandedStep === s.key;
-            const isFlipped = flippedSteps.has(s.key);
-            return (
-              <article
-                key={s.key}
-                className={`step-card step-card-flip ${s.cardAccent} ${isFlipped ? "flipped" : ""}`}
-                role="button"
-                tabIndex={0}
-                aria-pressed={isFlipped}
-                onClick={() => toggleFlippedStep(s.key)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggleFlippedStep(s.key);
-                  }
-                }}
-              >
-                <div className="step-card-inner">
-                  {/* Face shown initially */}
-                  <div className="step-card-face step-card-face-label">
-                    <div className="step-card-step-label">Step {s.step}</div>
-                  </div>
-
-                  {/* Face shown after flip */}
-                  <div className="step-card-face step-card-face-content">
-                    <div className="step-top">
-                      <div className="step-icon" aria-hidden="true">
-                        {s.icon}
-                      </div>
-                      <div className="step-meta">
-                        <div className="step-number">Step {s.step}</div>
-                        <h3 className="step-title">{s.title}</h3>
-                        <p className="step-subtitle">{s.subtitle}</p>
-                      </div>
-                    </div>
-
-                    {s.key === "pick" && (
-                      <div
-                        className="mini-analytics"
-                        aria-label="Topic difficulty mini chart"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="mini-analytics-title">
-                          <span aria-hidden="true">📊</span> Difficult topics (sample)
-                        </div>
-                        <div className="bars" aria-hidden="true">
-                          <div className="bar b1" />
-                          <div className="bar b2" />
-                          <div className="bar b3" />
-                          <div className="bar b4" />
-                        </div>
-                        <details className="fact-dropdown" onClick={(e) => e.stopPropagation()}>
-                          <summary>Fact of the Day</summary>
-                          <div className="fact-body">
-                            Lightning can heat the air around it to ~30,000°C—about 5× hotter than the sun’s surface.
-                          </div>
-                        </details>
-                      </div>
-                    )}
-
-                    <ul className="step-bullets">
-                      {s.bullets.map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
-
-                    <button
-                      className="dropdown-toggle"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleExpandedStep(s.key);
-                      }}
-                      aria-expanded={isOpen}
-                      aria-controls={`step-details-${s.key}`}
-                    >
-                      <span>{isOpen ? "Hide details" : "More details"}</span>
-                      <span className={`chev ${isOpen ? "up" : ""}`} aria-hidden="true">
-                        ▾
-                      </span>
-                    </button>
-
-                    <div
-                      id={`step-details-${s.key}`}
-                      className={`step-details ${isOpen ? "show" : ""}`}
-                    >
-                      <p>{s.details}</p>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* CHATBOT */}
-      <section id="chatbot" className="section split chatbot">
-        <div className="split-inner">
-          <div className="split-illustration">
-            <div className="big-illustration-card">
-              <div className="big-icon" aria-hidden="true">
-                🤖
-              </div>
-              <div className="bubble bubble-1" aria-hidden="true">
-                💬
-              </div>
-              <div className="bubble bubble-2" aria-hidden="true">
-                💡
-              </div>
-              <div className="bubble bubble-3" aria-hidden="true">
-                📚
-              </div>
-            </div>
-          </div>
-
-          <div className="split-text">
-            <h2 className="section-title">Chatbot Mode</h2>
-            <p className="section-subtitle">
-              Practice the Feynman technique by explaining concepts to an AI tutor that guides your
-              learning.
-            </p>
-            <Link className="btn btn-primary" href="/adaptive">
-              Open Chatbot
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* COLLABOT */}
-      <section id="collabot" className="section split collabot">
-        <div className="split-inner reverse">
-          <div className="split-illustration">
-            <div className="big-illustration-card">
-              <div className="big-icon" aria-hidden="true">
-                🧑‍🤝‍🧑
-              </div>
-              <div className="assist" aria-hidden="true">
-              </div>
-              <div className="bubble bubble-1" aria-hidden="true">
-                💬
-              </div>
-              <div className="bubble bubble-2" aria-hidden="true">
-                🔎
-              </div>
-            </div>
-          </div>
-
-          <div className="split-text">
-            <h2 className="section-title">Collabot – Collaborative Learning Mode</h2>
-            <p className="section-subtitle">
-              Students explain concepts together while the AI guides discussion and identifies
-              knowledge gaps.
-            </p>
-            <Link className="btn btn-secondary" href="/Collabot">
-              Enter Collabot
-            </Link>
-          </div>
-        </div>
-      </section>
-      {/* LectureLens */}
-
-      <section id="lecturelens" className="section split lecturelens">
-        <div className="split-inner reverse">
-          <div className="split-illustration">
-            <div className="big-illustration-card">
-              <div className="big-icon" aria-hidden="true">
-                🧑‍🤝‍🧑
-              </div>
-              <div className="assist" aria-hidden="true">
-              </div>
-              <div className="bubble bubble-1" aria-hidden="true">
-                💬
-              </div>
-              <div className="bubble bubble-2" aria-hidden="true">
-                🔎
-              </div>
-            </div>
-          </div>
-
-          <div className="split-text">
-            <h2 className="section-title">LectureLens – Interactive Lecture Mode</h2>
-            <p className="section-subtitle">
-              Engage with interactive lectures that adapt to your learning style and provide real-time feedback.
-            </p>
-            <Link className="btn btn-secondary" href="/LectureLens">
-              Enter LectureLens
-            </Link>
-          </div>
-        </div>
-      </section>
-       {/* teacher */}
-
-      <section id="teacher" className="section split teacher">
-        <div className="split-inner reverse">
-          <div className="split-illustration">
-            <div className="big-illustration-card">
-              <div className="big-icon" aria-hidden="true">
-                🧑‍🤝‍🧑
-              </div>
-              <div className="assist" aria-hidden="true">
-              </div>
-              <div className="bubble bubble-1" aria-hidden="true">
-                💬
-              </div>
-              <div className="bubble bubble-2" aria-hidden="true">
-                🔎
-              </div>
-            </div>
-          </div>
-
-          <div className="split-text">
-            <h2 className="section-title">Teacher – Personalized Instruction Mode</h2>
-            <p className="section-subtitle">
-              Receive personalized instruction and support tailored to your unique learning needs.
-            </p>
-            <Link className="btn btn-secondary" href="/teacher">
-              Enter Teacher
-            </Link>
-          </div>
-        </div>
-      </section>
-      {/* FOOTER */}
-      <footer className="homepage-footer">
-        <p>
-          &quot;If you want to master something, teach it.&quot; — <em>Richard Feynman</em>
-        </p>
-      </footer>
-    </div>
+    </main>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    height: "100vh",
+    background: "#f6f4f1",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    textAlign: "center",
+    padding: "40px 24px 0",
+    overflow: "hidden",
+  },
+  heading: {
+    margin: "0 0 10px",
+    fontFamily: "Georgia, serif",
+    fontSize: "clamp(44px, 7vw, 72px)",
+    lineHeight: 1.05,
+    letterSpacing: "-0.02em",
+    color: "#151515",
+    minHeight: "1.1em",
+  },
+  subheading: {
+    margin: "0 0 12px",
+    fontFamily: "Georgia, serif",
+    fontSize: "clamp(16px, 2.5vw, 22px)",
+    color: "#4c4741",
+    fontWeight: 400,
+    minHeight: "1.4em",
+  },
+  description: {
+    margin: "0 0 32px",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: "clamp(13px, 1.6vw, 15px)",
+    color: "#6a635a",
+    lineHeight: 1.7,
+    maxWidth: 460,
+    minHeight: "5em",
+  },
+  cursor: {
+    display: "inline-block",
+    marginLeft: 2,
+    animation: "blink 0.8s step-start infinite",
+    color: "#151515",
+  },
+  imageSection: {
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 40,
+    width: "100%",
+    maxWidth: 860,
+    flex: 1,
+    minHeight: 0,
+  },
+  image: {
+    display: "block",
+    objectFit: "contain",
+    objectPosition: "bottom",
+    height: "100%",
+    width: "auto",
+    flexShrink: 0,
+    alignSelf: "flex-end",
+  },
+  btn: {
+    textDecoration: "none",
+    fontFamily: "system-ui, sans-serif",
+    fontWeight: 600,
+    fontSize: 16,
+    padding: "13px 36px",
+    borderRadius: 12,
+    display: "inline-block",
+    marginBottom: 32,
+    whiteSpace: "nowrap",
+  },
+  btnStudent: {
+    background: "linear-gradient(120deg, #191313 0%, #201515 65%, #211a33 100%)",
+    color: "#fff",
+    boxShadow: "0 4px 16px rgba(20,17,15,0.18)",
+  },
+  btnTeacher: {
+    background: "#fff",
+    color: "#221d19",
+    border: "1.5px solid #d6d0c8",
+    boxShadow: "0 2px 8px rgba(20,17,15,0.07)",
+  },
+};
