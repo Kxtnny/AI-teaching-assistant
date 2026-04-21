@@ -18,6 +18,7 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
 
   const [title, setTitle] = useState("Course Topic");
   const [summary, setSummary] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   async function api(action: string, payload: any = {}) {
     return fetch(apiBase, {
@@ -36,10 +37,23 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
     })();
   }, [lectureId, apiBase]);
 
-  const shortSummary =
-    summary.length > 700
-      ? `${summary.slice(0, 700)}...`
-      : summary || "No summary available yet. Please process this lecture first.";
+  const shortSummary = (() => {
+    const text = summary || "No summary available yet. Please process this lecture first.";
+    if (text.length <= 450) return text;
+    const cut = text.lastIndexOf(".", 450);
+    return cut > 100 ? text.slice(0, cut + 1) : text.slice(0, 450) + "…";
+  })();
+
+  function renderMarkdown(text: string) {
+    return text.split("\n").filter(line => line.trim() !== "").map((line, i) => {
+      const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
+        if (part.startsWith("**") && part.endsWith("**"))
+          return <strong key={j}>{part.slice(2, -2)}</strong>;
+        return part;
+      });
+      return <p key={i} className={styles.summaryLine}>{parts}</p>;
+    });
+  }
 
   const q = `?creator=${creator}`;
 
@@ -54,7 +68,12 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
       <section className={styles.contentGrid}>
         <article className={styles.summaryCard}>
           <h3 className={styles.sectionLabel}>Summary of Content</h3>
-          <p className={styles.summaryText}>{shortSummary}</p>
+          <div className={styles.summaryText}>{renderMarkdown(shortSummary)}</div>
+          {summary.length > 450 && (
+            <button className={styles.readMore} onClick={() => setShowModal(true)}>
+              Read more ↗
+            </button>
+          )}
         </article>
 
         <article className={styles.modeWrap}>
@@ -78,6 +97,20 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
           </div>
         </article>
       </section>
+
+      {showModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+          <div className={styles.modalPanel} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Summary of Content</h2>
+              <button className={styles.modalClose} onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            <div className={styles.modalBody}>
+              {renderMarkdown(summary)}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

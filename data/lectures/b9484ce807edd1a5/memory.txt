@@ -1,0 +1,68 @@
+LECTURE MEMORY: Waiting Line Models I (BU5401 Management Decision Tools)
+
+- Waiting line (queue) systems consist of customer arrivals, queue, service system (servers), and departures.
+- Key queue features: arrival process, service process, queue discipline, queue configuration, calling population, reneging (leaving after waiting), balking (not joining if queue too long).
+- Queue disciplines: FCFS (First Come First Serve), priority, round robin, shortest processing time, preemptive.
+- Arrival rate (λ): average number of arrivals per unit time; service rate (μ): average number served per unit time.
+- Service time distributions: deterministic (D), exponential (M), general (G).
+- Kendall-Lee notation: A/B/k where A = arrival distribution, B = service distribution, k = number of servers.
+- Performance metrics:
+  - Lq = average queue length
+  - L = average number in system (queue + service)
+  - Wq = average waiting time in queue
+  - W = average time in system
+  - ρ = utilization factor = λ/μ (server busy proportion)
+  - P0 = probability system empty
+- Little’s Law: L = λW and Lq = λWq (relates average number in system/queue to average time spent).
+- M/M/1 queue assumptions: Poisson arrivals, exponential service times, single server, infinite queue, FCFS, no reneging.
+- M/M/1 steady state formulas (ρ = λ/μ < 1):
+  - P0 = 1 - ρ
+  - Lq = ρ² / (1 - ρ)
+  - Wq = Lq / λ = ρ / (μ - λ)
+  - L = ρ / (1 - ρ)
+  - W = 1 / (μ - λ)
+  - Pn = P0 * ρ^n
+- Example: Toll booth with λ=120 cars/hr (2 cars/min), μ=4 cars/min, ρ=0.5, results:
+  - P0=0.5, L=1 car, W=0.5 min, Lq=0.5 cars, Wq=0.25 min.
+- Utilization impact: queue length grows rapidly as ρ approaches 1; infinite queue length at ρ=1.
+- M/G/1 queue: general service time distribution with mean 1/μ and standard deviation σ.
+  - Lq = (ρ² + λ²σ²) / (2(1 - ρ))
+  - L = Lq + ρ
+  - Wq = Lq / λ, W = Wq + 1/μ
+- M/D/1 queue: deterministic (constant) service time (σ=0 in M/G/1 formulas).
+  - Lq = ρ² / (2(1 - ρ))
+  - Other formulas similar but numerical values differ from M/G/1.
+- Poisson distribution models number of arrivals in fixed time if inter-arrival times are exponential.
+- Exponential distribution has memoryless property: future independent of past.
+- Practical considerations: balking and reneging affect queue length and waiting times.
+- Steady state equilibrium assumes system stable (ρ < 1).
+
+Formulas/Theorems:
+- Little’s Law: L = λW, Lq = λWq
+- M/M/1:
+  - ρ = λ/μ
+  - P0 = 1 - ρ
+  - Lq = ρ² / (1 - ρ)
+  - Wq = ρ / (μ - λ)
+  - L = ρ / (1 - ρ)
+  - W = 1 / (μ - λ)
+  - Pn = P0 * ρ^n
+- M/G/1:
+  - Lq = (ρ² + λ²σ²) / (2(1 - ρ))
+  - L = Lq + ρ
+- M/D/1:
+  - Lq = ρ² / (2(1 - ρ))
+
+Pitfalls:
+- Assuming ρ ≥ 1 leads to unstable system with infinite queue length.
+- Ignoring balking and reneging can underestimate actual waiting times.
+- Using wrong service time distribution affects accuracy of performance measures.
+- Confusing arrival rate λ and service rate μ units (per minute vs per hour).
+- Forgetting that Little’s Law applies only in steady state.
+
+Example Problem Types:
+- Calculate probabilities of number of arrivals in time interval using Poisson distribution.
+- Compute queue performance metrics (L, Lq, W, Wq, P0) for M/M/1 queue.
+- Analyze impact of utilization on queue length and waiting times.
+- Use M/G/1 and M/D/1 formulas to evaluate queues with general or deterministic service times.
+- Model real-world systems like toll booths, call centers, or stock trading order processing.

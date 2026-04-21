@@ -344,7 +344,7 @@ export default function Homepage() {
               Practice the Feynman technique by explaining concepts to an AI tutor that guides your
               learning.
             </p>
-            <Link className="btn btn-primary" href="/Chatbot">
+            <Link className="btn btn-primary" href="/adaptive">
               Open Chatbot
             </Link>
           </div>

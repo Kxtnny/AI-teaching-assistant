@@ -1,0 +1,518 @@
+=== PDF/NOTES TEXT ===
+Nanyang Business School
+BU5401: 
+Management Decision Tools
+Seminar 8: 
+Waiting Line Models I
+
+Outline
+▪Structure of Waiting Line System
+▪Queuing Systems Parameters & Notations
+▪M/M/1 Waiting Line Model
+▪M/G/1 Waiting Line Model
+▪M/D/1 Waiting Line Model
+2
+
+Structure of Queues
+3
+......
+Waiting Line
+Servicing System
+Customer
+Arrivals
+...
+Servers
+Exit
+
+Essential Features of a Queue
+4
+Departure
+Queue
+discipline
+Arrival 
+process
+Queue
+configuration
+Service
+process
+Renege
+Balk
+Calling
+population
+No future
+need for 
+service
+Balking - arriving customers do not join the queue (when the 
+queue is too long)
+Reneging - customers give up and leave after waiting for a 
+while
+Queues study Steady State Equilibrium (SSE) behaviors
+
+Queuing Discipline
+The order in which customers in queue are served
+5
+Static
+(FCFS rule)
+Dynamic
+selection
+based on status
+of queue
+Selection based
+on individual
+customer
+attributes
+Number of 
+customers
+waiting
+Round robinPriorityPreemptive
+Processing time
+of customers
+(SPT rule)
+
+Temporal Variations in Arrival Rate
+6
+0
+0.5
+1
+1.5
+2
+2.5
+3
+3.5
+1
+3
+5
+7
+9
+11
+13
+15
+17
+19
+21
+23
+Average calls per hour
+Hour of day
+60
+70
+80
+90
+100
+110
+120
+130
+140
+1
+2
+3
+4
+5
+Percentage of average daily 
+physician visits
+Day  of w eek
+0
+10
+20
+30
+40
+135791113151719
+Re lative  fre quency, %
+Patient interarrival time, minutes
+Arrival rate : Average 
+number of arrivals per 
+unit time
+Distribution of Inter-Arrival Time
+
+Service Pattern
+•Distribution for the time to serve a customer, 
+e.g. deterministic, exponential, or any other 
+theoretical or empirical distribution
+•Service rate = average number of customers 
+served per unit time
+•Exponential service time implies Poisson service 
+rate and vice versa
+7
+
+The Service System
+Configuration: How the service system is set up
+1.Number of phases (single vs. multiple)
+2.Number of servers (channels) (single vs. multiple)
+3.Number of waiting lines (single vs. multiple)
+8
+
+Kendall-Lee Notation for Queuing Systems
+A/B/k  is used to describe various queuing systems where   
+A identifies the arrival distribution, 
+B  the service (departure) distribution and 
+k  the number of channels for the system.
+  
+Symbols used for the arrival and service processes are: 
+ M - Markov distributions (Poisson/exponential),
+ D - Deterministic (constant) and 
+ G - General distribution (with a known mean and 
+variance). 
+9
+
+Performance of Queuing Systems
+10
+L
+q
+: Average queue length
+L: Average number of 
+customers in the system
+: Arrival rate, average number 
+of arrivals per unit time
+W
+q
+: Average time in queue 
+W: Average time in system
+: Service rate, average 
+number of customers 
+served per unit time
+: Service utilisation factor 
+(proportion of time server is 
+busy)            
+P
+0
+: Probability that no 
+one is in the system
+P
+n
+: Probability that there 
+are n customers present in 
+the system
+
+Little’s Law
+11
+For nearly all queuing systems, there is a relationship between 
+the average time a unit spends in the system or queue and the 
+average number of units in the system or queue.  
+These relationships, known as Little's flow equations are:
+Exit
+Flow 
+rate: l=λ
+Time in system: W
+Arrival
+Total water 
+volume L
+퐿=휆푊 and 퐿
+푞
+=휆푊
+푞
+
+Single Server Queues
+-- The M/M/1 Queue
+-- The M/G/1 Queue
+-- The M/D/1 Queue
+12
+
+Single Server – M/M/1 Queue
+•Infinite calling population
+•Infinite queue length
+•Poisson Arrivals Rates, Exponential inter-arrival times
+•FCFS queue discipline, infinite queue size
+•Exponential service time
+•Customer are patient (i.e., no reneging)
+13
+S
+1
+S
+1
+Customer
+leaves
+Customer
+arrives
+Waiting line
+
+The Exponential Distribution
+14
+•Arrival rate:  (on average, there are 
+ arrivals per unit time)
+•Inter-arrival time X: time between 
+two consecutive arrivals
+•No memory property: future does not 
+depend on past
+•Probability density function: 
+ 
+e
+f(t)
+t
+-
+
+
+=
+e
+f(t)
+t
+-
+
+
+=
+
+The Poisson Distribution
+15
+•Arrival rate:  (on average, there are  
+arrivals per unit time)
+•If inter-arrival time follows an 
+exponential distribution, the number of 
+arrivals (X) in a period of length T 
+follows a Poisson distribution
+•Probability distribution function:
+ 
+n!
+e
+)T(
+n)P(X
+T-
+n
+
+
+==
+n!
+e
+)T(
+n)P(X
+T-
+n
+
+
+==
+T=1
+
+An Example: Joe Ferris
+16
+Joe Ferris is a stock trader on the floor of the New York 
+Stock Exchange. Stock transactions arrive at a mean rate 
+of 20 per hour.  Each order received by Joe requires an 
+average of two minutes to process.
+What is the probability that (a) no orders, (b) exactly 3 
+orders, and (c) more than 6 orders are received within a 15-
+minute period?
+•Arrival rate for a 15-minute period: λT = 5
+a. P (x = 0) = (5
+0
+e 
+-5
+)/0! = e 
+-5
+ =  .0067
+b. P (x = 3) = (5
+3
+e 
+-5
+)/3! = 125(.0067)/6 = .1396
+c. P (x > 6)  = 1 – P(X ≤ 6) 
+ Since P (x = 0) + ... + P (x = 6) = 0.762,
+ P(x > 6) = 1 – 0.762 = 0.238
+
+Steady State Measurements for M/M/1
+17
+Formulae
+Under assumption of 휌=
+휆
+휇
+<1
+[ Little’s Law ]
+P
+0
+=1−
+휆
+휇
+=1−휌
+퐿
+푞
+=
+휆
+2
+휇휇−휆
+=
+휌
+2
+1−휌
+푊
+푞
+=
+퐿
+푞
+휆
+=
+휆
+휇휇−휆
+P
+n
+=푃
+0
+휆
+휇
+푛
+=푃
+0
+휌
+푛
+퐿=퐿
+푞
++
+휆
+휇
+=
+휆
+휇
+1−
+휆
+휇
+푊=
+퐿
+휆
+=
+1
+휇−휆
+
+An Example: A Toll Road
+A toll road has one attendant at an exit gate. Cars 
+arrive in a Poisson fashion at the rate of 120 cars per 
+hour. It takes the attendant, on the average, 15 
+seconds to service a car. Service times are 
+exponentially distributed. Obtain the basic queue 
+performance measures for the system. Assume that 
+there is an infinite car calling population and an 
+infinite queue length is possible.
+18
+
+Performance of the Gate
+19
+ = 2 cars per minute  = 4 cars per minute
+ = /  = 2/4 = 0.5P(0) = 1 -  = 1 - 0.5=0.5
+L
+ 
+= /( - ) = 2/(4 - 2) = 1.0
+W = L/ = ½ = 0.5 min 
+W
+q
+ = L
+q 
+/ = 0.5/2 = 0.25 min 
+L
+q 
+= 
+2
+/[( - )] = 2
+2
+/[4(4 - 2)] = 0.5
+
+Impact of Utilization
+20
+0
+20
+40
+60
+80
+100
+120
+0
+0.2
+0.4
+0.6
+0.8
+1
+1.2
+Queue  Length
+Utilization
+Utilization versus Queue Length
+Note that queue length theoretically goes to infinity when 
+utilization reaches the limit of 1.0.
+
+M/G/1 Queue
+21
+S
+1
+Customers
+leave
+Customers
+arrive
+Waiting line
+−=1
+0
+P
+n
+P
+n
+P
+
+0
+=
+
++
+=
+q
+L
+L
+)1(2
+2
+2
+)(
+
+
+
+−
++
+=
+q
+L
+/LW=
+/
+q
+L
+q
+W=
+*Service time is generally distributed with mean 1/  and 
+standard deviation σ and under assumption of  ρ=/ <1
+
+M/D/1 Queue
+22
+S
+1
+Customers
+leave
+Customers
+arrive
+Waiting line
+−=1
+0
+P
+n
+P
+n
+P
+
+0
+=
+
++
+=
+q
+L
+L
+)
+1
+(
+2
+2
+
+
+−
+=
+q
+L
+/LW=
+
+/
+q
+L
+q
+W
+=
+For Deterministic service time where there is NO 
+variation in service times (ie fixed constant service 
+duration), we set σ to zero in M/G/1 and get:
+Note: while the formulas look the same, the numerical values 
+differ from those of M/G/1.

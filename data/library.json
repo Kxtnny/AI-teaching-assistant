@@ -1,5 +1,21 @@
 [
   {
+    "lecture_id": "b9484ce807edd1a5",
+    "title": "BU5401-Lect08-WaitingLineI",
+    "file_hash": "b9484ce807edd1a50a70a751fae3c1b963b2c5635e6d4b6dceec9e1173fa090a",
+    "creator": "student",
+    "status": "Ready",
+    "time_ago": "Saved",
+    "original_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\original.pdf",
+    "audio_path": null,
+    "transcript_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\transcript.txt",
+    "summary_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\summary.txt",
+    "memory_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\memory.txt",
+    "chunks_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\b9484ce807edd1a5\\chunks.json",
+    "created_at": "2026-04-21T04:55:41.453Z",
+    "updated_at": "2026-04-21T04:56:15.454Z"
+  },
+  {
     "lecture_id": "d6af311a3de558cd",
     "title": "MA4829 Visual Intelligence CA 2 - Homework",
     "file_hash": "d6af311a3de558cd79ee687504fbcd1839dd4aacd9249f7da923520b2ba1ee53",

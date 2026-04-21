@@ -1,6 +1,6 @@
 .page { min-height: 100vh; background: #f6f4f1; padding: 22px; }
 .back { color: #6b645b; text-decoration: none; font-weight: 600; }
-.title { margin: 12px 0 14px; font-family: serif; font-size: 42px; }
+.title { color: black; margin: 12px 0 14px; font-family: serif; font-size: 42px; }
 
 .controls { display: grid; grid-template-columns: 1fr 160px 180px; gap: 10px; margin-bottom: 14px; }
 .input, .select {

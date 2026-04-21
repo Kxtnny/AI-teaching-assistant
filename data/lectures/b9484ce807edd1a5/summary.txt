@@ -1,0 +1,38 @@
+**Summary:**
+
+- Waiting line (queuing) systems consist of customer arrivals, a service system, and departures, with key features including queue discipline, arrival and service processes, and customer behaviors like balking and reneging.
+- Kendall-Lee notation (A/B/k) classifies queuing systems by arrival distribution (A), service distribution (B), and number of servers (k), with common distributions being Markovian (M), Deterministic (D), and General (G).
+- The M/M/1 queue model assumes Poisson arrivals, exponential service times, a single server, infinite queue length, and FCFS discipline, with key performance metrics derived using Little’s Law and utilization factor ρ.
+- The M/G/1 and M/D/1 models extend the single-server queue to general and deterministic service time distributions respectively, affecting queue length and waiting time calculations.
+- Queue performance depends heavily on utilization; as utilization approaches 1, queue length tends to infinity, highlighting the importance of balancing arrival and service rates.
+
+**Key Terms:**
+
+1. Waiting line (Queue)
+2. Queue discipline (FCFS, priority, round robin)
+3. Balking
+4. Reneging
+5. Arrival rate (λ)
+6. Service rate (μ)
+7. Utilization factor (ρ)
+8. Kendall-Lee notation (A/B/k)
+9. Poisson distribution
+10. Exponential distribution
+11. Deterministic distribution
+12. General distribution
+13. M/M/1 queue
+14. M/G/1 queue
+15. M/D/1 queue
+16. Little’s Law (L = λW)
+17. Steady State Equilibrium (SSE)
+18. Queue length (Lq)
+19. Waiting time in queue (Wq)
+20. Service system configuration (phases, servers, lines)
+
+**Action Items:**
+
+- Review the definitions and implications of balking and reneging in queue behavior.
+- Practice calculating queue performance metrics (L, Lq, W, Wq, P0, Pn) for M/M/1 queues using given formulas.
+- Understand and apply Kendall-Lee notation to identify different queuing models.
+- Compare and contrast the M/M/1, M/G/1, and M/D/1 models, focusing on how service time distributions affect performance.
+- Analyze the impact of utilization on queue length and waiting times, and explore strategies to manage high utilization scenarios.

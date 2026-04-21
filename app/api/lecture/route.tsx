@@ -258,10 +258,17 @@ function buildSummaryPrompt(transcript: string) {
   return `You are helping a student learn from multi-modal lecture content.
 Task:
 1) Lightly clean obvious recognition mistakes.
-2) Produce:
-- Summary (exactly 5 bullets)
-- Key terms (10–20 terms)
-- Action items
+2) Produce the following sections, each on its own line:
+
+**Summary:**
+- Write exactly 5 bullet points. Each bullet must be one concise sentence (max 20 words). Start each with "- ".
+
+**Key Terms:**
+- List 8–12 key terms separated by commas, each at most 3 words.
+
+**Action Items:**
+- 3 bullet points of what a student should do to follow up. Each one sentence.
+
 Combined Lecture Text:
 ${transcript}`;
 }
