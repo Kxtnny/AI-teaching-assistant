@@ -1,8 +1,30 @@
 [
   {
+<<<<<<< HEAD
     "lecture_id": "87ea0461415f0ee7",
     "title": "Free Vibration",
     "file_hash": "87ea0461415f0ee7b2792c536af58fa4f22c348d73355f0b5a2c933318941e90",
+=======
+    "lecture_id": "d15a4def1fd0575c",
+    "title": "Week 12a",
+    "file_hash": "d15a4def1fd0575c6ca5d76ad764239bf9facf0c8fd991356710586cebb404e8",
+    "creator": "student",
+    "status": "Ready",
+    "time_ago": "Saved",
+    "original_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\original.pdf",
+    "audio_path": null,
+    "transcript_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\transcript.txt",
+    "summary_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\summary.txt",
+    "memory_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\memory.txt",
+    "chunks_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\d15a4def1fd0575c\\chunks.json",
+    "created_at": "2026-04-21T07:57:33.394Z",
+    "updated_at": "2026-04-21T07:57:54.122Z"
+  },
+  {
+    "lecture_id": "d6af311a3de558cd",
+    "title": "MA4829 Visual Intelligence CA 2 - Homework",
+    "file_hash": "d6af311a3de558cd79ee687504fbcd1839dd4aacd9249f7da923520b2ba1ee53",
+>>>>>>> fdbee7a609dd436a18d42e7284b8418d5360c662
     "creator": "student",
     "status": "Uploaded",
     "time_ago": "Saved",

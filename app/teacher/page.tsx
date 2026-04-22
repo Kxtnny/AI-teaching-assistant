@@ -222,6 +222,7 @@ export default function TeacherStudioPage() {
   return (
     <div className="teacherPage">
       <aside className="sidebar">
+        <a href="/" className="backHome">← Back to home</a>
         <nav className="nav">
           <button className={`navItem ${activeTab === "overview" ? "active" : ""}`} onClick={() => setActiveTab("overview")}>
             Overview
@@ -429,6 +430,8 @@ export default function TeacherStudioPage() {
       <style jsx>{`
         .teacherPage { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; background: #f6f4f1; color: #171717; }
         .sidebar { border-right: 1px solid #e5e2dd; padding: 16px 12px; background: #f7f5f2; }
+        .backHome { display: inline-block; margin-bottom: 14px; text-decoration: none; color: #6b645b; font-weight: 600; font-size: 14px; padding: 2px 4px; }
+        .backHome:hover { color: #1f1a16; }
         .nav { display: grid; gap: 8px; margin-top: 8px; }
         .navItem { text-align: left; border: 1px solid #e8e4df; background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 600; }
         .navItem.active { background: #ece8e3; }

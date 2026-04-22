@@ -1,5 +1,5 @@
 .layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; background: #f6f4f1; color: #151515; }
-
+.back { text-decoration: none; color: #6b645b; font-weight: 600; display: inline-block; margin-bottom: 14px; padding: 2px 4px; font-size: 14px; }
 .sidebar { border-right: 1px solid #e5e2dd; padding: 16px 12px; background: #f7f5f2; }
 .sideTop { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 4px 6px; }
 .miniLogo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #171310; color: #fff; font-size: 16px; }

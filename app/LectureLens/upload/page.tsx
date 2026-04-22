@@ -23,6 +23,7 @@ function Sidebar() {
 
   return (
     <aside className={styles.sidebar}>
+      <Link href="/" className={styles.back}>← Back to home</Link>
       <div className={styles.sideTop}>
         <div className={styles.miniLogo}>🎓</div>
         <div className={styles.miniText}>

@@ -1,0 +1,14 @@
+**Summary:**
+- Fuzzy logic uses membership functions to represent subjective degrees of truth between 0 and 1.  
+- Responsibility Sensitive Safety (RSS) defines formal safety rules for autonomous vehicles to avoid accidents.  
+- Exposure Time marks when an object becomes visible to a vehicle, critical for safe driving decisions.  
+- Unreasonable situations arise from excessive speed or improper behavior of other agents in traffic.  
+- Fuzzy sets can be discrete or continuous and are manipulated using set-theoretic operations like union and intersection.  
+
+**Key Terms:**
+Fuzzy logic, Membership function, Responsibility Sensitive Safety, Exposure Time, Unreasonable Situation, Danger Threshold, Fuzzy set, Trapezoidal MF, Fuzzy partition, Convexity, Set-theoretic operations, Semantic Action Space  
+
+**Action Items:**
+- Review the definitions and examples of fuzzy membership functions and their parameterizations.  
+- Study the Responsibility Sensitive Safety model and its application to autonomous vehicle scenarios.  
+- Practice set-theoretic operations on fuzzy sets and understand their logical interpretations.

@@ -1,0 +1,53 @@
+.btn {
+  position: relative;
+  text-decoration: none;
+  font-family: system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 13px 20px;
+  min-width: 140px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 32px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: center;
+}
+
+.btn span {
+  display: inline-block;
+  transition: transform 0.2s linear;
+}
+
+.btn::before {
+  content: "→";
+  font-size: 15px;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%) translateX(40px);
+  opacity: 0;
+  transition: opacity 0.2s linear, transform 0.2s linear;
+}
+
+.btn:hover span {
+  transform: translateX(-12px);
+}
+
+.btn:hover::before {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.btnStudent {
+  background: linear-gradient(120deg, #191313 0%, #201515 65%, #211a33 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(20, 17, 15, 0.18);
+}
+
+.btnTeacher {
+  background: #fff;
+  color: #221d19;
+  border: 1.5px solid #d6d0c8;
+  box-shadow: 0 2px 8px rgba(20, 17, 15, 0.07);
+}
