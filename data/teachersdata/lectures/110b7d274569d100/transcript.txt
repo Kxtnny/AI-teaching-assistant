@@ -1,0 +1,38 @@
+=== PDF/NOTES TEXT ===
+Transforming Digital Experiences - Meeting Summary
+1. The Past: Fragmented Systems
+Customers:
+- Multiple logins for different services.
+- Non-standard, non-design-centric interfaces.
+- Manual broadband appointment booking.
+Enterprise:
+- Field engineers required for physical site surveys.
+- Channel partners manually booked customer visits.
+- Siloed applications across different portals.
+- Assistance required via phone calls.
+2. The Present: Unified, Automated, Assisted
+Customers:
+- Single sign-on with MFA.
+- Self-service portals with service discovery features.
+- Automated processes; live agent can assist by phone.
+Enterprise:
+- Central incident tracking system (specific tool not mentioned).
+- Similar interface design to customer portals.
+- Root Cause Analysis performed after incidents.
+3. Suggestions for Improvement
+- Use network logs with AI to detect issues before customer reports.
+- Real-time billing validation to prevent overcharges.
+- Ensure revenue reporting is accurate and auditable.
+4. Future: AI and Agentic Capabilities
+- AI-based recommender system for business-specific suggestions.
+- Integration into automated marketing workflows.
+- Agentic AI for handling large query volumes with intelligent responses.
+- Self-service capabilities enhanced by AI.
+Consumer: MySingtel App for mobile plans.
+Enterprise: Empower Portal for over 300 products.
+Internal teams assist where self-service is insufficient.
+5. Project Context: SWORD Analysis Preparation
+
+Transforming Digital Experiences - Meeting Summary
+- Prepare slides based on SWORD framework.
+- Perform market analysis using competitive metrics, customer personas, and innovation aspects.

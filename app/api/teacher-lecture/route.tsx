@@ -15,6 +15,10 @@ type Action =
   | "process"
   | "progress"
   | "load"
+  | "chat"
+  | "mcq"
+  | "tf"
+  | "derivation"
   | "deleteLecture"
   | "deleteAll";
 
@@ -60,7 +64,7 @@ const DEFAULT_LLM_MODEL = "gpt-4.1-mini";
 const TRANSCRIBE_MODEL = "whisper-1";
 const WORD_RE = /[A-Za-z0-9']+/g;
 
-// IMPORTANT: teacher-specific storage
+// teacher storage
 const DATA_DIR = path.resolve(process.cwd(), "data", "teachersdata");
 const LECTURES_DIR = path.join(DATA_DIR, "lectures");
 const LIBRARY_PATH = path.join(DATA_DIR, "library.json");
@@ -71,7 +75,6 @@ const SUPPORTED_EXTS = new Set([
   ".mp3", ".wav", ".m4a", ".mp4", ".mov", ".mkv", ".flac",
   ".pdf", ".png", ".jpg", ".jpeg", ".webp",
 ]);
-
 const VIDEO_EXTS = new Set([".mp4", ".mov", ".mkv"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".m4a", ".flac"]);
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
@@ -103,9 +106,7 @@ function withTimeout<T>(p: Promise<T>, ms: number, label = "Operation"): Promise
 
 // PDF cache
 const MAX_PDF_CACHE_ENTRIES = 12;
-const globalForPdf = globalThis as unknown as {
-  pdfTextCache?: Map<string, string>;
-};
+const globalForPdf = globalThis as unknown as { pdfTextCache?: Map<string, string> };
 if (!globalForPdf.pdfTextCache) globalForPdf.pdfTextCache = new Map();
 function upsertPdfCache(key: string, value: string) {
   const cache = globalForPdf.pdfTextCache!;
@@ -121,12 +122,7 @@ async function ensureDir(p: string) {
   await fsp.mkdir(p, { recursive: true });
 }
 async function fileExists(p: string) {
-  try {
-    await fsp.access(p);
-    return true;
-  } catch {
-    return false;
-  }
+  try { await fsp.access(p); return true; } catch { return false; }
 }
 async function removeIfExists(p: string) {
   if (await fileExists(p)) await fsp.rm(p, { recursive: true, force: true });
@@ -142,11 +138,7 @@ async function initStorage() {
 }
 async function loadProgress(): Promise<ProgressState> {
   await initStorage();
-  try {
-    return JSON.parse(await fsp.readFile(PROGRESS_PATH, "utf-8"));
-  } catch {
-    return defaultProgress;
-  }
+  try { return JSON.parse(await fsp.readFile(PROGRESS_PATH, "utf-8")); } catch { return defaultProgress; }
 }
 async function setProgress(patch: Partial<ProgressState>) {
   const cur = await loadProgress();
@@ -192,12 +184,8 @@ async function computeHash(filePath: string): Promise<string> {
   });
   return h.digest("hex");
 }
-function lectureDir(lectureId: string) {
-  return path.join(LECTURES_DIR, lectureId);
-}
-function normalizeTokens(text: string) {
-  return (text.match(WORD_RE) || []).map((x) => x.toLowerCase());
-}
+function lectureDir(lectureId: string) { return path.join(LECTURES_DIR, lectureId); }
+function normalizeTokens(text: string) { return (text.match(WORD_RE) || []).map((x) => x.toLowerCase()); }
 function scoreChunk(query: string, chunk: string) {
   const q = normalizeTokens(query);
   const c = normalizeTokens(chunk);
@@ -227,12 +215,7 @@ function chunkText(text: string, maxChars = 3500, overlap = 400): string[] {
   while (start < t.length) {
     let end = Math.min(t.length, start + maxChars);
     const window = t.slice(start, end);
-    const cut = Math.max(
-      window.lastIndexOf("\n"),
-      window.lastIndexOf(". "),
-      window.lastIndexOf("? "),
-      window.lastIndexOf("! ")
-    );
+    const cut = Math.max(window.lastIndexOf("\n"), window.lastIndexOf(". "), window.lastIndexOf("? "), window.lastIndexOf("! "));
     if (cut > 1000) end = start + cut + 1;
     const ch = t.slice(start, end).trim();
     if (ch) chunks.push(ch);
@@ -252,10 +235,17 @@ function buildSummaryPrompt(transcript: string) {
   return `You are helping a student learn from multi-modal lecture content.
 Task:
 1) Lightly clean obvious recognition mistakes.
-2) Produce:
-- Summary (exactly 5 bullets)
-- Key terms (10–20 terms)
-- Action items
+2) Produce the following sections, each on its own line:
+
+**Summary:**
+- Write exactly 5 bullet points. Each bullet must be one concise sentence (max 20 words). Start each with "- ".
+
+**Key Terms:**
+- List 8–12 key terms separated by commas, each at most 3 words.
+
+**Action Items:**
+- 3 bullet points of what a student should do to follow up. Each one sentence.
+
 Combined Lecture Text:
 ${transcript}`;
 }
@@ -269,6 +259,41 @@ LECTURE MEMORY:
 - example problem types
 Combined Lecture Text:
 ${transcript}`;
+}
+function mcqPrompt(memory: string, context: string[], n = 5) {
+  return `Create exactly ${n} MCQs from lecture only. Return strict JSON list.
+Lecture Memory:
+${memory}
+Context:
+${context.join("\n\n---\n\n")}`;
+}
+function tfPrompt(memory: string, context: string[], n = 5) {
+  return `Create exactly ${n} True/False from lecture only. Return strict JSON list.
+Lecture Memory:
+${memory}
+Context:
+${context.join("\n\n---\n\n")}`;
+}
+function derivationPrompt(memory: string, context: string[], topic: string) {
+  return `Provide a step-by-step derivation.
+Topic: ${topic}
+Lecture Memory:
+${memory}
+Context:
+${context.join("\n\n---\n\n")}`;
+}
+function extractJsonList(raw: string): any[] {
+  const t = raw.trim();
+  const s = t.indexOf("[");
+  const e = t.lastIndexOf("]");
+  if (s < 0 || e < 0) throw new Error("No JSON list found.");
+  const candidate = t.slice(s, e + 1);
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    const repaired = candidate.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
+    return JSON.parse(repaired);
+  }
 }
 async function runCmd(bin: string, args: string[]) {
   return new Promise<{ code: number; stderr: string }>((resolve, reject) => {
@@ -499,7 +524,13 @@ export async function POST(req: NextRequest) {
           ? await fsp.readFile(lecture.memory_path, "utf-8")
           : "";
 
-        return NextResponse.json({ ok: true, lecture, transcript, summary, memory });
+        let chunks: string[] = [];
+        if (lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
+          const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
+          chunks = Array.isArray(raw) ? raw.map((x: any) => x.text).filter(Boolean) : [];
+        }
+
+        return NextResponse.json({ ok: true, lecture, transcript, summary, memory, chunks });
       }
 
       return NextResponse.json({ ok: true, library: lib });
@@ -536,11 +567,11 @@ export async function POST(req: NextRequest) {
         await setProgress({ stage: "transcribing audio", percent: 35 });
         audioText = await transcribeAudio(audioPath, language);
 
-        await setProgress({ stage: "extracting key frames", percent: 50 });
+        await setProgress({ stage: "extracting key frames (scene change)", percent: 50 });
         const framesDir = path.join(ldir, "frames");
         const frames = await extractFramesSceneBased(lecture.original_path, framesDir);
 
-        await setProgress({ stage: "reading slides (vision)", percent: 68 });
+        await setProgress({ stage: "reading slide content (vision)", percent: 68 });
         visualText = await visionExtractFromImages(frames);
       } else if (AUDIO_EXTS.has(ext)) {
         await setProgress({ stage: "preparing audio", percent: 20 });
@@ -577,7 +608,7 @@ export async function POST(req: NextRequest) {
             stage: "failed",
             percent: 100,
             done: true,
-            error: "Could not extract text from PDF.",
+            error: "Could not extract text from PDF (text layer + vision fallback failed).",
           });
           return NextResponse.json({ error: "Could not extract text from PDF." }, { status: 400 });
         }
@@ -593,7 +624,7 @@ export async function POST(req: NextRequest) {
       const combinedTranscript = [
         audioText ? `=== AUDIO TRANSCRIPT ===\n${audioText}` : "",
         notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
-        visualText ? `=== VISUAL NOTES ===\n${visualText}` : "",
+        visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
       ].filter(Boolean).join("\n\n");
 
       if (!combinedTranscript.trim()) {
@@ -607,7 +638,7 @@ export async function POST(req: NextRequest) {
       await setProgress({ stage: "creating summary", percent: 84 });
       const summary = await llm(
         [
-          { role: "system", content: "You are a helpful tutor who produces structured study notes." },
+          { role: "system", content: "You are a helpful tutor who produces structured study notes from multimodal inputs." },
           { role: "user", content: buildSummaryPrompt(llmInput) },
         ],
         llmModel
@@ -616,7 +647,7 @@ export async function POST(req: NextRequest) {
       await setProgress({ stage: "creating lecture memory", percent: 90 });
       const memory = await llm(
         [
-          { role: "system", content: "You are a helpful tutor who creates compact lecture memories." },
+          { role: "system", content: "You are a helpful tutor who creates compact lecture memories from multimodal inputs." },
           { role: "user", content: buildMemoryPrompt(llmInput) },
         ],
         llmModel
@@ -651,12 +682,93 @@ export async function POST(req: NextRequest) {
         transcript: combinedTranscript,
         summary,
         memory,
+        chunks,
         sources_used: {
           audio: !!audioText,
           pdf: !!notesText,
           vision: !!visualText,
         },
       });
+    }
+
+    if (action === "chat") {
+      const { lectureId, question, history = [], llmModel = DEFAULT_LLM_MODEL } = body;
+      if (!question) return NextResponse.json({ error: "Missing question" }, { status: 400 });
+
+      const lib = await loadLibrary();
+      const lecture = lib.find((x) => x.lecture_id === lectureId);
+      if (
+        !lecture ||
+        !lecture.memory_path ||
+        !lecture.chunks_path ||
+        !(await fileExists(lecture.memory_path)) ||
+        !(await fileExists(lecture.chunks_path))
+      ) {
+        return NextResponse.json({ error: "Lecture not processed yet" }, { status: 400 });
+      }
+
+      const memory = await fsp.readFile(lecture.memory_path, "utf-8");
+      const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
+      const chunks: string[] = raw.map((x: any) => x.text).filter(Boolean);
+
+      const top = retrieveTopK(question, chunks, 3);
+      const ctx = top.map((x) => `(Chunk ${x.i})\n${x.text}`).join("\n\n---\n\n");
+
+      const messages: ChatMessage[] = [
+        { role: "system", content: "You are a helpful tutor grounded in provided lecture context." },
+        { role: "user", content: `Lecture Memory:\n${memory}\n\nRelevant Excerpts:\n${ctx}` },
+        ...(history as ChatMessage[]).slice(-8),
+        { role: "user", content: question },
+      ];
+
+      const reply = await llm(messages, llmModel);
+      return NextResponse.json({ ok: true, reply });
+    }
+
+    if (action === "mcq" || action === "tf" || action === "derivation") {
+      const { lectureId, focus = "", n = 5, topic = "main lecture concept", llmModel = DEFAULT_LLM_MODEL } = body;
+
+      const lib = await loadLibrary();
+      const lecture = lib.find((x) => x.lecture_id === lectureId);
+      if (
+        !lecture ||
+        !lecture.memory_path ||
+        !lecture.chunks_path ||
+        !(await fileExists(lecture.memory_path)) ||
+        !(await fileExists(lecture.chunks_path))
+      ) {
+        return NextResponse.json({ error: "Lecture not processed yet" }, { status: 400 });
+      }
+
+      const memory = await fsp.readFile(lecture.memory_path, "utf-8");
+      const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
+      const chunks: string[] = raw.map((x: any) => x.text).filter(Boolean);
+
+      const top = retrieveTopK(focus || topic || "overall lecture", chunks, action === "derivation" ? 3 : 2);
+      const ctx = top.map((x) => `(Chunk ${x.i})\n${x.text}`);
+
+      if (action === "derivation") {
+        const output = await llm(
+          [
+            { role: "system", content: "You are a patient tutor who shows steps clearly." },
+            { role: "user", content: derivationPrompt(memory, ctx, topic) },
+          ],
+          llmModel
+        );
+        return NextResponse.json({ ok: true, output });
+      }
+
+      const prompt = action === "mcq" ? mcqPrompt(memory, ctx, n) : tfPrompt(memory, ctx, n);
+      const rawOut = await llm(
+        [
+          { role: "system", content: "You generate strict JSON only." },
+          { role: "user", content: prompt },
+        ],
+        llmModel
+      );
+
+      const items = extractJsonList(rawOut);
+      return NextResponse.json({ ok: true, items });
     }
 
     if (action === "deleteLecture") {

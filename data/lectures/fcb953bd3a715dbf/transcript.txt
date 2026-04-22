@@ -1,0 +1,91 @@
+=== PDF/NOTES TEXT ===
+Title: Design and Evaluation of a Prompting Tool for Token-Efficient, High-Accuracy 
+Responses in Educational LLM Chatbots 
+ 
+Large Language Models (LLMs) are increasingly being deployed in applications such as 
+chatbots to generate natural language responses to user queries. LLMs are statistical sequence 
+models trained with self-supervised learning on massive text corpora and implemented using 
+a transformer-based neural network architecture, which excels at handling sequences and 
+capturing patterns in text [1]. 
+ 
+LLMs process text by breaking it down into smaller units called tokens, which can take the 
+form of words, subwords or characters. These tokens are mapped to multi-dimensional 
+vectors, known as embeddings, which provide numerical representations that place tokens 
+with similar meanings closer together, allowing the model to capture semantic relationships 
+between the words and phrases [2]. Popular LLMs like ChatGPT have billions of parameters 
+enabling them to predict the next token in a sequence with high accuracy [3].  
+ 
+
+The inputs for LLMs, known as prompts, are crucial for the model to produce reliable and 
+robust outputs. Prior work has shown that LLM outputs are highly sensitive to the subtleties 
+of prompts, and even minor alterations can lead to substantial changes or declines in model 
+performance [4]. As LLMs grow in model size it becomes increasingly important to 
+understand prompt sensitivity and how it affects the model’s performance and behaviour [5]. 
+Prompts can be engineered to program an LLM, customizing both its outputs and its 
+interaction patterns within a conversation. Prompt engineering enables users to provide 
+specific guidelines that the model treats as contextual instructions, thereby constraining style, 
+format, and most importantly content to align outputs with the user’s goals [6].  In many 
+applications, such structured prompts can improve the relevance and accuracy of the model’s 
+responses to the user’s task [4,6]. 
+ 
+Certain prompting techniques, notably Automatic Prompt Engineer (APE), have been shown 
+to automatically induce task-specific instructions that improve LLM performance in zero-shot 
+settings (where the model receives only an instruction without task-specific training 
+examples) and can discover more effective zero-shot chain-of-thought (CoT) prompts, 
+leading to higher accuracy on challenging reasoning benchmarks including MultiArith (78.7 
+to 82.0) and GSM8K (40.7 to 43.0) [7]. 
+ 
+In CoT prompting, the model is asked to generate intermediate reasoning steps, and this 
+method has been shown to significantly improve performance on multi-step reasoning tasks 
+compared to standard prompting. Approaches such as Active Prompting further enhance CoT 
+performance by actively selecting informative examples, yielding higher accuracy across 
+different reasoning benchmarks [8]. 
+ 
+
+While the reliability of LLM outputs and the problem of hallucinations have been widely 
+discussed in educational applications, most existing work focuses on high-level analysis or 
+generic mitigation strategies rather than on dedicated prompting tools for educational 
+chatbots. Although prompting techniques have shown significant improvements, many of 
+these techniques require careful manual prompt design which can be inefficient and difficult 
+for non-expert users.  
+ 
+This paper proposes a prompting tool that combines effective methods such as APE and 
+Active CoT within a conversational educational chatbot, with the goal of improving the 
+reliability and robustness of answers, including reducing hallucinations, by automatically 
+refining suboptimal user prompts into more effective formulations that emphasise clear task 
+constraints and step-by-step reasoning, thereby discouraging unsupported or fabricated 
+outputs. 
+ 
+
+References:  
+[1] IBM, “What are large language models (LLMs)?,” Ibm.com, Nov. 02, 2023. Accessed: 
+Feb 24, 2026. [Online]. Available: https://www.ibm.com/think/topics/large-language-
+models 
+ 
+[2] Amazon Web Services, “What are Large Language Models? - LLM AI Explained - 
+AWS,” Amazon Web Services, Inc., 2025. Accessed: Feb 24, 2026. [Online]. Available: 
+https://aws.amazon.com/what-is/large-language-model/ 
+ 
+[3] A. Tamkin, M. Brundage, J. 3, and D. Ganguli, “Understanding the Capabilities, 
+Limitations, and Societal Impact of Large Language Models,” 2021. Accessed: Feb 24, 
+2026. [Online]. Available: https://arxiv.org/pdf/2102.02503 
+ 
+[4] S. Anagnostidis, E. Zürich, J. Bulian, and G. Deepmind, “How Susceptible are LLMs to 
+Influence in Prompts?” Accessed: Feb 24, 2026. [Online]. Available: 
+https://arxiv.org/pdf/2408.11865 
+ 
+[5] J. Zhuo et al., “ProSA: Assessing and Understanding the Prompt Sensitivity of LLMs.” 
+Accessed: Feb 24, 2026. [Online]. Available: https://arxiv.org/pdf/2410.12405.pdf 
+ 
+[6] J. White et al., “A Prompt Pattern Catalog to Enhance Prompt Engineering with 
+ChatGPT,” arXiv:2302.11382, 2023. Accessed: Feb 24, 2026. [Online]. Available: 
+https://omekas-
+test.sba.unipi.it/files/original/9473424cea8d562f876a4bca4bedd9e2336910af.pdf 
+ 
+[7] Y. Zhou et al., “LARGE LANGUAGE MODELS ARE HUMAN-LEVEL PROMPT 
+ENGINEERS.” Accessed: Feb 25, 2026. [Online]. Available: 
+https://arxiv.org/pdf/2211.01910 
+ 
+[8] S. Diao, X. Wang, Z. Pan, H. Zhang, and T. Wang, “Active Prompting with Chain-of-
+Thought for Large Language Models,” arXiv:2302.12246, 2023. Accessed: Feb 25, 2026.  
+[Online]. Available: https://arxiv.org/pdf/2302.12246.pdf.

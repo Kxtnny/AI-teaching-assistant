@@ -1,7 +1,7 @@
 {
-  "lectureId": "b9484ce807edd1a5",
-  "stage": "completed",
+  "lectureId": "87ea0461415f0ee7",
+  "stage": "failed",
   "percent": 100,
   "done": true,
-  "error": ""
+  "error": "Binary not found: pdftoppm."
 }

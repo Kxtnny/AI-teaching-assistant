@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import styles from "./page.module.css";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -23,6 +23,28 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const adjustTextareaHeight = () => {
+    const textarea = inputRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
 
   async function send() {
     if (!input.trim() || loading) return;
@@ -33,49 +55,124 @@ export default function ChatPage() {
     setMessages(next);
     setLoading(true);
 
-    const res = await fetch(apiBase, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "chat", lectureId, question: q, history: next }),
-    }).then((r) => r.json());
+    try {
+      const res = await fetch(apiBase, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "chat", lectureId, question: q, history: next }),
+      }).then((r) => r.json());
 
-    setLoading(false);
-
-    if (!res?.ok) {
-      setMessages((p) => [...p, { role: "assistant", content: `Error: ${res?.error || "Chat failed"}` }]);
-      return;
+      if (!res?.ok) {
+        setMessages((p) => [...p, { role: "assistant", content: `Error: ${res?.error || "Chat failed"}` }]);
+      } else {
+        setMessages((p) => [...p, { role: "assistant", content: res.reply || "No reply" }]);
+      }
+    } catch (error) {
+      setMessages((p) => [...p, { role: "assistant", content: "Error: Failed to connect to server" }]);
+    } finally {
+      setLoading(false);
     }
-
-    setMessages((p) => [...p, { role: "assistant", content: res.reply || "No reply" }]);
   }
 
   return (
-    <div className={styles.page}>
-      <Link href={`/LectureLens/course/${lectureId}?creator=${creator}`} className={styles.back}>
-        ← Back to course
-      </Link>
-
-      <h1 className={styles.title}>Ask the Tutor</h1>
-
-      <div className={styles.chatBox}>
-        {messages.map((m, i) => (
-          <div key={i} className={`${styles.msg} ${m.role === "user" ? styles.user : styles.assistant}`}>
-            <b>{m.role === "user" ? "You" : "Tutor"}:</b> {m.content}
+    <div className={styles.container}>
+      <div className={styles.chatWrapper}>
+        {/* Header */}
+        <div className={styles.header}>
+          <Link href={`/LectureLens/course/${lectureId}?creator=${creator}`} className={styles.backButton}>
+            ← Back to Course
+          </Link>
+          <div className={styles.headerInfo}>
+            <h1 className={styles.title}>Lecture Assistant</h1>
+            <p className={styles.subtitle}>Ask me anything about this lecture</p>
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className={styles.row}>
-        <input
-          className={styles.input}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about this lecture..."
-          onKeyDown={(e) => e.key === "Enter" && send()}
-        />
-        <button className={styles.button} onClick={send} disabled={loading}>
-          {loading ? "Sending..." : "Send"}
-        </button>
+        {/* Messages Area */}
+        <div className={styles.messagesArea}>
+          <div className={styles.messagesContainer}>
+            {messages.length === 0 ? (
+              <div className={styles.welcomeScreen}>
+                <div className={styles.welcomeIcon}>💬</div>
+                <h2>Welcome to the Chat!</h2>
+                <p>Ask me anything about the lecture content</p>
+                <div className={styles.suggestions}>
+                  <button 
+                    className={styles.suggestionBtn}
+                    onClick={() => setInput("Can you summarize the key points?")}
+                  >
+                    📝 Summarize key points
+                  </button>
+                  <button 
+                    className={styles.suggestionBtn}
+                    onClick={() => setInput("What are the main concepts covered?")}
+                  >
+                    🎯 Main concepts
+                  </button>
+                  <button 
+                    className={styles.suggestionBtn}
+                    onClick={() => setInput("Can you explain this in more detail?")}
+                  >
+                    🔍 Explain in detail
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {messages.map((m, i) => (
+                  <div key={i} className={`${styles.messageWrapper} ${m.role === "user" ? styles.userMessage : styles.assistantMessage}`}>
+                    <div className={styles.avatar}>
+                      {m.role === "user" ? "👤" : "🤖"}
+                    </div>
+                    <div className={styles.messageContent}>
+                      <div className={styles.messageText}>{m.content}</div>
+                    </div>
+                  </div>
+                ))}
+                {loading && (
+                  <div className={`${styles.messageWrapper} ${styles.assistantMessage}`}>
+                    <div className={styles.avatar}>🤖</div>
+                    <div className={styles.messageContent}>
+                      <div className={styles.typingIndicator}>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Input Area */}
+        <div className={styles.inputArea}>
+          <div className={styles.inputContainer}>
+            <textarea
+              ref={inputRef}
+              className={styles.input}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask a question about this lecture..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              rows={1}
+            />
+            <button 
+              className={styles.sendButton} 
+              onClick={send} 
+              disabled={loading || !input.trim()}
+            >
+              {loading ? "..." : "Send"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

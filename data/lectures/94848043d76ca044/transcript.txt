@@ -1,0 +1,126 @@
+=== PDF/NOTES TEXT ===
+Implementing Chatbot Architecture for a Feynman-Driven Educational 
+Chatbot 
+Learn • Reason • Collaborate
+HW0288 Assignment 
+Presenter:Stephen
+Matric: U2220740K
+
+Shifting towards Education 4.0
+Active Learning
+Engage students in the learning process 
+( ProjectBasedLearningetc.)[1] 
+Passive Learning
+Relies primarily on listening, observing, 
+and passive information absorption.
+
+Active Learning: Core Benefits
+1
+Improves
+Communication
+2
+Enhances
+Understanding
+3
+Encourages
+Critical Thinking[2] 
+4
+Boosts Academic
+Performance
+(STEM)
+5
+Promotes
+Collaboration
+
+Active Learning: Implementation Challenges
+Knowledge Gap
+Lack of prior 
+knowledge required for 
+meaningful 
+explanation.
+Peer Evaluation
+Ineffective or 
+inaccurate feedback 
+during peer-to-peer 
+assessment.
+Resource Heavy
+Requires significant 
+time investment and 
+active instructor 
+supervision.[2] 
+
+AI in Education: Key Benefits
+AI in
+Education[3] 
+Instant Support
+Provides immediate 
+explanations and content 
+summaries.
+Self-Paced
+Enables customized 
+learning speeds and 
+tailored progression.
+Accessibility
+Improves overall access 
+and learning efficiency.
+Academic Task Support
+Assists with drafting, 
+research, and structuring 
+tasks.
+
+AI in Education: Critical Limitations
+Passive Learning
+Over-reliance encourages students to 
+passively absorb AI-generated 
+answers rather than thinking 
+critically.
+Hallucinations
+Generative models can confidently 
+produce inaccurate, biased, or 
+entirely fabricated information.
+Oversimplification
+Complex, nuanced topics are often 
+reduced to generic summaries, 
+stripping away necessary depth.
+Lack of Validation
+AI often fails to challenge the user's 
+misconceptions or validate the depth 
+of their actual understanding.
+
+The Core Problem
+Active Learning
+✓Highly Effective
+Drives deep cognitive engagement 
+and conceptual mastery.
+✗Hard to Scale
+Requires intense instructor 
+supervision and time.
+AI Assistants
+✓Highly Scalable
+Provides instant, on-demand support 
+for any number of students.
+✗Passive Learning
+Encourages relying on generated 
+answers rather than reasoning.
+VS
+
+Solution: Feynman Technique 
+Pick a concept
+Explain Simply
+Identify gaps
+Simplify & refine
+
+References
+[1] M. Adeoye, "View of from Struggle to Success: The Feynman 
+Techniques’ Revolutionary Impact on Slow Learners," Undiksha.ac.id, 25 
+Oct. 2023. [Online]. Available: 
+https://ejournal.undiksha.ac.id/index.php/TSCJ/article/view/69681/29104. 
+[Accessed: 25-Feb-2026]. 
+[2] A. A. Rahman et al., "Literature Review on the Benefits and Challenges 
+of Active Learning on Students’ Achievement," Cypriot Journal of 
+Educational Sciences, vol. 17, no. 12, 31 Dec. 2022. [Online]. Available: 
+https://doi.org/10.18844/cjes.v17i12.8133 . [Accessed: 24-Feb-2026]. 
+[3] A. Upadhyay et al., "Influence of LLMs on Learning and Teaching in 
+Higher Education," Social Science Research Network, 1 Jan. 2024. [Online]. 
+Available: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4716855, 
+https://doi.org/10.2139/ssrn.4716855. [Accessed: 21-Feb-2026].

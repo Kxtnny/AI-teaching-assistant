@@ -1,0 +1,37 @@
+LECTURE MEMORY: Transforming Digital Experiences
+
+- Past systems were fragmented with multiple logins and non-standard interfaces for customers.
+- Customers had to manually book broadband appointments; enterprises relied on field engineers for site surveys.
+- Channel partners manually booked visits; applications were siloed across portals.
+- Assistance was primarily via phone calls.
+- Present systems feature unified single sign-on with multi-factor authentication (MFA).
+- Customers use self-service portals with service discovery; enterprises have centralized incident tracking.
+- Interfaces for enterprise and customers are aligned in design.
+- Root Cause Analysis (RCA) is performed post-incident.
+- Suggested improvements include AI-driven network log analysis for proactive issue detection.
+- Real-time billing validation is recommended to prevent overcharges.
+- Emphasis on accurate and auditable revenue reporting.
+- Future vision includes AI-based recommender systems tailored to business needs.
+- Integration of AI into automated marketing workflows.
+- Agentic AI to handle large query volumes with intelligent, context-aware responses.
+- Enhanced self-service capabilities powered by AI.
+- Consumer-facing app: MySingtel; Enterprise portal: Empower Portal with 300+ products.
+- Internal teams provide support when self-service is insufficient.
+- Project context involves preparing SWORD analysis slides and conducting market analysis focusing on competitive metrics, customer personas, and innovation.
+
+Formulas/Theorems:
+- None explicitly mentioned.
+
+Pitfalls:
+- Fragmented systems cause poor customer experience and inefficiency.
+- Manual processes increase operational costs and delays.
+- Lack of proactive issue detection leads to reactive customer support.
+- Inaccurate billing and revenue reporting can damage trust and compliance.
+- Over-reliance on human agents limits scalability.
+
+Example Problem Types:
+- Designing unified digital platforms to replace fragmented legacy systems.
+- Implementing AI for proactive network issue detection.
+- Developing self-service portals with integrated AI assistance.
+- Creating AI recommender systems for personalized business suggestions.
+- Conducting market and competitive analysis using frameworks like SWORD.

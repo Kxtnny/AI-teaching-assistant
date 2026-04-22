@@ -1,0 +1,29 @@
+LECTURE MEMORY:  
+- Large Language Models (LLMs) use transformer architectures to generate natural language by predicting tokens sequentially.  
+- Tokens are units of text (words, subwords, characters) mapped to embeddings that capture semantic relationships.  
+- LLMs like ChatGPT have billions of parameters enabling high-accuracy next-token prediction.  
+- Prompts are critical inputs that guide LLM outputs; small changes in prompts can drastically affect performance.  
+- Prompt sensitivity increases with model size, making prompt design crucial for reliable outputs.  
+- Prompt engineering programs LLMs by embedding instructions that constrain style, format, and content to align with user goals.  
+- Structured prompts improve relevance and accuracy in educational chatbot responses.  
+- Automatic Prompt Engineer (APE) techniques automatically generate task-specific instructions, improving zero-shot performance.  
+- Chain-of-Thought (CoT) prompting asks models to generate intermediate reasoning steps, enhancing multi-step reasoning accuracy.  
+- Active Prompting selects informative examples to further boost CoT prompting effectiveness.  
+- Existing work on LLM reliability and hallucinations often lacks dedicated tools for educational chatbot prompting.  
+- Manual prompt design is inefficient and challenging for non-experts; automated tools can help refine suboptimal prompts.  
+- The proposed prompting tool integrates APE and Active CoT to improve answer reliability, reduce hallucinations, and enforce stepwise reasoning in educational chatbots.  
+- Emphasizing clear task constraints and step-by-step reasoning discourages unsupported or fabricated outputs.  
+
+Formulas/Theorems:  
+- No explicit formulas or theorems presented; focus is on conceptual methods and prompting techniques.  
+
+Pitfalls:  
+- Minor prompt changes can cause large performance drops due to prompt sensitivity.  
+- Manual prompt engineering is time-consuming and requires expertise.  
+- Hallucinations (fabricated or unsupported outputs) remain a challenge without proper prompt constraints.  
+- Overly generic prompts reduce accuracy and relevance in educational contexts.  
+
+Example Problem Types:  
+- Multi-step reasoning tasks requiring intermediate steps (e.g., math word problems like MultiArith, GSM8K).  
+- Zero-shot tasks where no training examples are provided, relying solely on prompt instructions.  
+- Educational chatbot queries needing accurate, stepwise explanations and minimal hallucinations.

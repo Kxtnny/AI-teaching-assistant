@@ -20,10 +20,10 @@ export default function QuizPage() {
     | "teacher"
     | "student";
 
-  const apiBase = useMemo(
-    () => (creator === "teacher" ? "/api/teacher-lecture" : "/api/lecture"),
-    [creator]
-  );
+const apiBase = useMemo(
+  () => (creator === "teacher" ? "/api/teacher-lecture" : "/api/lecture"),
+  [creator]
+);
 
   const [focus, setFocus] = useState("");
   const [count, setCount] = useState(5);

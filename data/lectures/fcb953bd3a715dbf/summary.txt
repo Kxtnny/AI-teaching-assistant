@@ -1,0 +1,14 @@
+**Summary:**
+- Large Language Models (LLMs) generate natural language responses using transformer architectures.  
+- Prompts critically influence LLM output quality and model behavior.  
+- Prompt engineering customizes LLM responses by providing contextual instructions.  
+- Techniques like Automatic Prompt Engineer (APE) and Chain-of-Thought (CoT) improve reasoning accuracy.  
+- The paper proposes a tool combining APE and Active CoT to enhance educational chatbot reliability.  
+
+**Key Terms:**
+Large Language Models, transformer architecture, tokens, embeddings, prompt engineering, Automatic Prompt Engineer, Chain-of-Thought, Active Prompting, zero-shot learning, hallucinations, educational chatbots, reasoning benchmarks  
+
+**Action Items:**
+- Review prompt engineering techniques to understand how to improve LLM output quality.  
+- Explore Chain-of-Thought and Active Prompting methods for multi-step reasoning tasks.  
+- Experiment with the proposed prompting tool to observe improvements in chatbot response accuracy.

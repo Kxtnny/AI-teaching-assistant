@@ -1,0 +1,14 @@
+**Summary:**
+- Active learning engages students actively, improving communication and critical thinking skills.  
+- AI in education offers instant support and personalized learning but risks promoting passive learning.  
+- Active learning is effective but hard to scale due to high instructor involvement.  
+- AI assistants are scalable but may encourage over-reliance on generated answers.  
+- The Feynman Technique helps deepen understanding by simplifying concepts and identifying knowledge gaps.  
+
+**Key Terms:**
+Active Learning, Passive Learning, Feynman Technique, AI in Education, Critical Thinking, Peer Evaluation, Academic Performance, Instant Support, Self-Paced Learning, Hallucinations, Oversimplification, Knowledge Gap  
+
+**Action Items:**
+- Practice the Feynman Technique by explaining concepts simply and identifying gaps in understanding.  
+- Use AI tools to supplement learning but critically evaluate AI-generated information.  
+- Engage in active learning methods like project-based learning to enhance collaboration and comprehension.
