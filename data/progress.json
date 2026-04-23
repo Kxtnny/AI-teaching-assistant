@@ -1,12 +1,7 @@
 {
-<<<<<<< HEAD
-  "lectureId": "87ea0461415f0ee7",
-  "stage": "failed",
-=======
-  "lectureId": "d15a4def1fd0575c",
+  "lectureId": "603f2aad0d4ee39b",
   "stage": "completed",
->>>>>>> fdbee7a609dd436a18d42e7284b8418d5360c662
   "percent": 100,
   "done": true,
-  "error": "Binary not found: pdftoppm."
+  "error": ""
 }

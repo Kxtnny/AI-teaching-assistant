@@ -80,16 +80,16 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
           <h3 className={styles.modeHeading}>How would you like to study?</h3>
 
           <div className={styles.actions}>
+            
+
+            {/* <Link href={`/LectureLens/course/${lectureId}/chat${q}`} className={`${styles.card} ${styles.chat}`}>
+              <h4 className={styles.cardTitle}>Ask the Tutor</h4>
+              <p className={styles.cardText}>Ask lecture-specific questions and get guided help.</p>
+            </Link> */}
             <Link href={`/LectureLens/course/${lectureId}/quiz${q}`} className={`${styles.card} ${styles.quiz}`}>
               <h4 className={styles.cardTitle}>Practice Quiz</h4>
               <p className={styles.cardText}>Generate MCQs and test your understanding.</p>
             </Link>
-
-            <Link href={`/LectureLens/course/${lectureId}/chat${q}`} className={`${styles.card} ${styles.chat}`}>
-              <h4 className={styles.cardTitle}>Ask the Tutor</h4>
-              <p className={styles.cardText}>Ask lecture-specific questions and get guided help.</p>
-            </Link>
-
             <Link href={`/LectureLens/course/${lectureId}/adaptive${q}`} className={`${styles.card} ${styles.adaptive}`}>
               <h4 className={styles.cardTitle}>Adaptive Learning</h4>
               <p className={styles.cardText}>Get personalized support based on your learning needs.</p>
