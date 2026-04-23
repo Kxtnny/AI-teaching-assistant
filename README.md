@@ -15,6 +15,89 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# 🚀 Project Setup Guide
+
+Follow these steps to get the project running locally.
+
+---
+
+## 1. Create Environment File
+
+Create a file named:
+
+```
+.env.local
+```
+
+Then copy and paste the following into it:
+
+```
+OPENAI_API_KEY=your_api_key_here
+FFMPEG_PATH=./lib/ffmpeg/ffmpeg.exe
+FFPROBE_PATH=./lib/ffmpeg/ffprobe.exe
+OLLAMA_VISION_MODEL=llama3.2-vision
+VISION_MAX_FRAMES=2
+VISION_CONCURRENCY=1
+VISION_TIMEOUT_MS=10000
+```
+
+---
+
+## 2. Install Ollama Models
+
+Make sure you have Ollama installed. Then run:
+
+```
+ollama pull llama3.2
+ollama pull llama3.2-vision
+```
+
+---
+
+## 3. Install Dependencies
+
+Run the following command in your project directory:
+
+```
+npm install --legacy-peer-deps
+```
+
+---
+
+## 4. (Optional) FFmpeg Setup
+
+Ensure FFmpeg binaries exist at:
+
+```
+./lib/ffmpeg/
+```
+
+Required files:
+
+* ffmpeg.exe
+* ffprobe.exe
+
+---
+
+## 5. Run the Project
+
+Start the development server:
+
+```
+npm run dev
+```
+
+---
+
+## ✅ You're Ready!
+
+Your project should now be running locally.
+
+If you encounter issues:
+
+* Check your API key
+* Ensure Ollama models are installed
+* Verify FFmpeg paths are correct
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
