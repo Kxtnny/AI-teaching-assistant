@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { User, Bot, Send, ArrowLeft, LogOut } from "lucide-react";
+import { User, Bot, Send, ArrowLeft } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
@@ -10,8 +10,6 @@ import styles from "./page.module.css";
 
 type ToneKey = "playful" | "guided" | "accurate";
 
-const LS_NAME_KEY = "drf_student_name";
-const LS_JOINED_KEY = "drf_joined";
 const LS_MODE_KEY = "drf_selected_mode";
 
 const TONE_CONFIG: Record<ToneKey, { label: string; emoji: string; color: string; bg: string; border: string }> = {
@@ -31,8 +29,6 @@ export default function AdaptiveAgentPage() {
   const modeRef = useRef(selectedMode);
   modeRef.current = selectedMode;
 
-  const [studentName, setStudentName] = useState("");
-  const [joined, setJoined] = useState(false);
   const [uiError, setUiError] = useState("");
   const [input, setInput] = useState("");
 
@@ -47,7 +43,6 @@ export default function AdaptiveAgentPage() {
           mode: modeRef.current,
           lectureId,
           creator,
-          studentName: studentName || undefined,
         }),
       })
   );
@@ -61,16 +56,10 @@ export default function AdaptiveAgentPage() {
   });
 
   useEffect(() => {
-    const savedName = localStorage.getItem(LS_NAME_KEY) || "";
-    const savedJoined = localStorage.getItem(LS_JOINED_KEY) === "1";
     const savedMode = (localStorage.getItem(LS_MODE_KEY) as ToneKey | null) || "guided";
-    setStudentName(savedName);
-    setJoined(savedJoined);
     setSelectedMode(savedMode);
   }, []);
 
-  useEffect(() => localStorage.setItem(LS_NAME_KEY, studentName), [studentName]);
-  useEffect(() => localStorage.setItem(LS_JOINED_KEY, joined ? "1" : "0"), [joined]);
   useEffect(() => localStorage.setItem(LS_MODE_KEY, selectedMode), [selectedMode]);
 
   useEffect(() => {
@@ -85,14 +74,6 @@ export default function AdaptiveAgentPage() {
     }
   }, [messages]);
 
-  const handleJoin = () => {
-    setUiError("");
-    if (!studentName.trim()) return setUiError("Please enter your name.");
-    setJoined(true);
-  };
-
-  const leaveRoom = () => setJoined(false);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setUiError("");
@@ -103,33 +84,6 @@ export default function AdaptiveAgentPage() {
     setInput("");
   };
 
-  if (!joined) {
-    return (
-      <div className={styles.joinPage}>
-        <div className={styles.joinCard}>
-          <Link href={`/LectureLens/course/${lectureId}?creator=${creator}`} className={styles.backText}>
-            ← Back
-          </Link>
-          <h1 className={styles.joinTitle}>Adaptive Agent</h1>
-          <p className={styles.joinSubtitle}>Join this lecture’s adaptive tutoring room.</p>
-
-          <input
-            value={studentName}
-            onChange={(e) => setStudentName(e.target.value)}
-            placeholder="Enter your name..."
-            className={styles.input}
-          />
-
-          {uiError && <p className={styles.error}>{uiError}</p>}
-
-          <button onClick={handleJoin} className={styles.joinBtn}>
-            Join Adaptive Agent
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.chatPage}>
       <nav className={styles.navbar}>
@@ -137,7 +91,7 @@ export default function AdaptiveAgentPage() {
           <Link href={`/LectureLens/course/${lectureId}?creator=${creator}`} className={styles.iconBtn}>
             <ArrowLeft size={16} />
           </Link>
-          <h1 className={styles.brand}>Adaptive Agent • {studentName}</h1>
+          <h1 className={styles.brand}>Adaptive Agent</h1>
         </div>
 
         <div className={styles.navRight}>
@@ -158,10 +112,6 @@ export default function AdaptiveAgentPage() {
             ))}
           </select>
 
-          <button onClick={leaveRoom} className={styles.leaveBtn}>
-            <LogOut size={14} />
-            Leave
-          </button>
         </div>
       </nav>
 

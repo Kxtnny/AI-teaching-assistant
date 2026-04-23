@@ -146,7 +146,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   heading: {
     margin: "0 0 10px",
-    fontFamily: "Georgia, serif",
     fontSize: "clamp(44px, 7vw, 72px)",
     lineHeight: 1.05,
     letterSpacing: "-0.02em",
@@ -155,7 +154,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   subheading: {
     margin: "0 0 12px",
-    fontFamily: "Georgia, serif",
     fontSize: "clamp(16px, 2.5vw, 22px)",
     color: "#4c4741",
     fontWeight: 400,
@@ -163,7 +161,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   description: {
     margin: "0 0 32px",
-    fontFamily: "system-ui, sans-serif",
     fontSize: "clamp(13px, 1.6vw, 15px)",
     color: "#6a635a",
     lineHeight: 1.7,

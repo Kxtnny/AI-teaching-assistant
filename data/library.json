@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "lecture_id": "26e46d40598d1e24",
+    "title": "BU5401-Lect12-DecisionAnalysis (1)",
+    "file_hash": "26e46d40598d1e246263a2d392fec0b62bfb29bc2a96af33aeb279351ab57ca2",
+    "creator": "student",
+    "status": "Ready",
+    "time_ago": "Saved",
+    "original_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\26e46d40598d1e24\\original.pdf",
+    "audio_path": null,
+    "transcript_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\26e46d40598d1e24\\transcript.txt",
+    "summary_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\26e46d40598d1e24\\summary.txt",
+    "memory_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\26e46d40598d1e24\\memory.txt",
+    "chunks_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\26e46d40598d1e24\\chunks.json",
+    "created_at": "2026-04-23T09:32:30.518Z",
+    "updated_at": "2026-04-23T09:32:48.365Z"
+  }
+]

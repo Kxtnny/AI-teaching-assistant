@@ -1,0 +1,42 @@
+LECTURE MEMORY:  
+- Decision analysis involves making choices under uncertainty, with or without probabilities.  
+- Decision criteria include maximizing maximum payoff (optimistic), maximizing minimum payoff (pessimistic), minimizing regret, and maximizing expected value.  
+- Payoff tables summarize outcomes for decisions under different states of nature.  
+- Optimistic (maximax) and pessimistic (maximin) criteria guide decision-making based on best and worst payoffs.  
+- Minimax regret criterion minimizes the maximum regret, calculated from a regret table.  
+- Expected value (EV) calculation uses probabilities of states to find weighted average payoffs for decisions.  
+- Decision trees graphically represent sequential decisions and chance events, showing all possible paths and payoffs.  
+- Decision nodes are squares, chance nodes are circles, and payoffs are rectangles in decision trees.  
+- Evaluate decision trees by working backward from end nodes, calculating EVs at chance nodes and choosing max EV at decision nodes.  
+- Bayes theorem updates prior probabilities based on new information (e.g., market research results) and reliability of the information source.  
+- Reliability matrix shows conditional probabilities of research outcomes given true states of nature.  
+- Posterior probabilities are computed using Bayes theorem to revise beliefs after receiving new information.  
+- Expected Value with Perfect Information (EVwPI) is the weighted sum of the best payoffs for each state.  
+- Expected Value of Perfect Information (EVPI) = EVwPI – EV without perfect info; measures value of knowing outcomes in advance.  
+- Expected Value of Sampled Information (EVSI) = EV with sample info – EV without info; measures value of imperfect information.  
+- Efficiency of information = EVSI / EVPI, indicating how valuable the sample information is relative to perfect info.  
+- Optimal strategy depends on cost of information: if survey cost > EVSI, do not conduct survey; else conduct survey and act based on survey outcome.  
+
+Formulas/Theorems:  
+- Expected Value (EV) = Σ [Payoff × Probability]  
+- Bayes Theorem:  
+  P(S_j | I_k) = [P(I_k | S_j) × P(S_j)] / Σ_t [P(I_k | S_t) × P(S_t)]  
+- EVwPI = Σ_j [max payoff for state S_j × P(S_j)]  
+- EVPI = EVwPI – EV (without perfect info)  
+- EVSI = EV (with sample info) – EV (without info)  
+- Efficiency = EVSI / EVPI  
+
+Pitfalls:  
+- Ignoring the reliability of new information when updating probabilities.  
+- Confusing decision nodes and chance nodes in decision trees.  
+- Not working backward properly when evaluating decision trees.  
+- Overlooking the cost of information when deciding whether to conduct research.  
+- Using incorrect probabilities or failing to revise probabilities after new information.  
+
+Example Problem Types:  
+- Constructing and analyzing payoff tables using different decision criteria (maximax, maximin, minimax regret).  
+- Calculating expected values for decisions given state probabilities.  
+- Drawing and evaluating decision trees with multiple stages of decisions and chance events.  
+- Applying Bayes theorem to update probabilities after receiving new market research data.  
+- Computing EVPI, EVSI, and deciding on the value of conducting research based on survey cost.  
+- Determining optimal strategies based on updated probabilities and expected payoffs.

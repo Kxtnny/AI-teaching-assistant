@@ -82,7 +82,7 @@
 .treeCard { padding:16px; }
 .treeHead { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
 .treeHead h2 {
-  margin:0; font-size:40px; font-family:ui-serif, Georgia, serif;
+  margin:0; font-size:40px;
   font-weight:500; color:#2f261f;
 }
 .treeHead span {

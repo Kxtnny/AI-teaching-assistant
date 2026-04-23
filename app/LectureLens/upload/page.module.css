@@ -15,13 +15,13 @@
 
 .main { padding: 28px; display: grid; place-items: center; }
 .panel { width: min(980px, 100%); border: 1px solid #e3dfd9; border-radius: 18px; padding: 20px; background: #fbfaf8; }
-.panel h1 { margin: 0 0 6px; font-size: 50px; line-height: 1.08; font-family: serif; font-weight: 500; }
+.panel h1 { margin: 0 0 6px; font-size: 50px; line-height: 1.08; font-weight: 500; }
 .panel > p { margin: 0 0 16px; color: #5f5951; font-size: 18px; }
 
 .label { margin-bottom: 8px; font-size: 13px; letter-spacing: .14em; color: #6f675d; font-weight: 600; }
 .dropzone { display: grid; place-items: center; text-align: center; border: 1px dashed #bfb8af; border-radius: 16px; padding: 44px 14px; background: #f7f5f2; cursor: pointer; margin-bottom: 14px; }
 .dropzone input { display: none; }
-.dropzone strong { font-size: 40px; font-family: serif; margin-bottom: 6px; font-weight: 600; }
+.dropzone strong { font-size: 40px; margin-bottom: 6px; font-weight: 600; }
 .dropzone span { color: #6f675d; font-size: 16px; }
 
 .fields { border: 1px solid #e3dfd9; border-radius: 14px; background: #fff; padding: 14px; }

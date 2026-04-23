@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type Lecture = {
   lecture_id: string;
@@ -41,11 +41,6 @@ export default function TeacherStudioPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const pollRef = useRef<number | null>(null);
-
-  const currentLecture = useMemo(
-    () => library.find((l) => l.lecture_id === currentLectureId),
-    [library, currentLectureId]
-  );
 
   async function api(action: string, payload: any = {}, isForm = false) {
     if (isForm) {
@@ -439,22 +434,22 @@ export default function TeacherStudioPage() {
         .main { padding: 24px; }
         .heroPlain { margin-bottom: 14px; }
         .eyebrow { letter-spacing: .18em; font-size: 11px; color: #8a8379; margin: 0 0 6px; }
-        h1 { margin: 0; font-size: 52px; line-height: 1.05; font-family: serif; }
+        h1 { margin: 0; font-size: 52px; line-height: 1.05; }
         .sub { margin: 6px 0 0; color: #5f5951; }
 
         .stats, .analyticsStats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
         .card { border: 1px solid #e3dfd9; border-radius: 16px; padding: 16px; background: #f9f7f4; }
         .card h3 { margin: 0 0 8px; color: #7a7268; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
-        .card p { margin: 0; font-size: 34px; font-family: serif; }
+        .card p { margin: 0; font-size: 34px; }
 
         .uploadPanel { border: 1px solid #e3dfd9; border-radius: 18px; padding: 18px; background: #fbfaf8; margin-bottom: 18px; }
-        .uploadPanel h2 { margin: 0 0 4px; font-size: 38px; font-family: serif; }
+        .uploadPanel h2 { margin: 0 0 4px; font-size: 38px; }
         .uploadPanel p { margin: 0 0 14px; color: #5f5951; }
         .fieldLabel { margin: 0 0 10px; font-size: 13px; letter-spacing: .15em; color: #61584d; font-weight: 700; }
 
         .dropzone { display: grid; place-items: center; text-align: center; border: 1px dashed #bfb8af; border-radius: 16px; padding: 34px; background: #f7f5f2; cursor: pointer; margin-bottom: 14px; }
         .dropzone input { display: none; }
-        .dropzone strong { font-size: 34px; font-family: serif; }
+        .dropzone strong { font-size: 34px; }
         .dropzone span { color: #6f675d; font-size: 16px; }
 
         .metaGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -473,7 +468,7 @@ export default function TeacherStudioPage() {
         .track { height: 10px; background: #ece7e2; border-radius: 999px; overflow: hidden; }
         .fill { height: 100%; background: linear-gradient(90deg,#18130f,#5f5750); }
 
-        .sectionHead h2 { margin: 0 0 10px; font-size: 36px; font-family: serif; }
+        .sectionHead h2 { margin: 0 0 10px; font-size: 36px; }
 
         .grid { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 14px; }
         .courseCard { position: relative; border: 1px solid #e1ddd7; border-radius: 16px; overflow: hidden; background: #fff; }
@@ -486,9 +481,9 @@ export default function TeacherStudioPage() {
         .tone4 { background: linear-gradient(135deg, #a72866, #7f1f4e); }
         .tone5 { background: linear-gradient(135deg, #19758d, #13596b); }
         .topBadge { position: absolute; top: 10px; left: 10px; font-size: 11px; border-radius: 999px; padding: 4px 8px; background: rgba(0,0,0,.35); color: #fff; }
-        .centerGlyph { font-family: serif; font-size: 64px; color: rgba(255,255,255,.45); }
+        .centerGlyph { font-size: 64px; color: rgba(255,255,255,.45); }
         .body { padding: 14px; }
-        .body h3 { margin: 0 0 6px; font-size: 24px; font-family: serif; }
+        .body h3 { margin: 0 0 6px; font-size: 24px; }
         .subText { margin: 0 0 8px; color: #7a7268; font-size: 14px; }
         .metaRow { font-size: 12px; color: #665f55; border-top: 1px solid #eee8e1; padding-top: 10px; }
 
@@ -514,8 +509,7 @@ export default function TeacherStudioPage() {
         .figCard h4 {
           margin: 0 0 14px;
           font-size: 19px;
-          font-family: serif;
-        }
+                 }
 
         .bars { display: grid; gap: 10px; }
         .barRow {
@@ -608,7 +602,7 @@ export default function TeacherStudioPage() {
         .dot.low { background: #10b981; }
 
         .analyticsWrap .tableCard { border: 1px solid #e3dfd9; border-radius: 16px; padding: 16px; background: #fff; }
-        .tableCard h3 { margin: 0 0 12px; font-size: 24px; font-family: serif; }
+        .tableCard h3 { margin: 0 0 12px; font-size: 24px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border-bottom: 1px solid #eee8e1; text-align: left; padding: 10px 8px; font-size: 14px; }
 

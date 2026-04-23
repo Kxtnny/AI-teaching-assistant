@@ -1,0 +1,14 @@
+**Summary:**
+- Decision analysis includes criteria like maximax, maximin, minimax regret, and expected value.
+- Decision trees graphically represent decisions, chance events, and payoffs over time.
+- Bayes Theorem updates prior probabilities based on new information like market research.
+- Expected Value of Perfect Information (EVPI) and Sampled Information (EVSI) quantify value of information.
+- Optimal strategies depend on comparing survey costs to EVSI and revising decisions accordingly.
+
+**Key Terms:**
+Decision analysis, decision tree, payoff table, maximax, maximin, minimax regret, expected value, Bayes Theorem, EVPI, EVSI, prior probability, market research
+
+**Action Items:**
+- Practice constructing and evaluating decision trees with different payoff and probability scenarios.
+- Apply Bayes Theorem to update probabilities using new data or research findings.
+- Calculate EVPI and EVSI to determine when acquiring additional information is cost-effective.
