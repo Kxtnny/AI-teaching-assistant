@@ -10,6 +10,7 @@ type Lecture = {
   lecture_id: string;
   title: string;
   creator?: CreatorType;
+  content_kind?: "video" | "document";
   status: "Uploaded" | "Audio Ready" | "Ready";
 };
 
@@ -129,8 +130,8 @@ export default function StudentHomePage() {
     return ready.filter((l) => (l.title || "").toLowerCase().includes(q));
   }, [ready, search]);
 
-  const teacherCourses = filtered.filter((l) => l.creator === "teacher");
-  const studentCourses = filtered.filter((l) => l.creator !== "teacher");
+  const teacherCourses = filtered.filter((l) => l.creator === "teacher" && l.content_kind !== "document");
+  const studentCourses = filtered.filter((l) => l.creator !== "teacher" && l.content_kind !== "document");
 
   const coverTone = (idx: number) =>
     ["tone0", "tone1", "tone2", "tone3", "tone4", "tone5"][idx % 6];

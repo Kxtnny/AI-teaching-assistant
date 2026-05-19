@@ -14,6 +14,7 @@
     "@langchain/community": "^1.1.5",
     "@langchain/core": "^1.1.16",
     "@langchain/ollama": "^1.2.2",
+    "@napi-rs/canvas": "^1.0.0",
     "@supabase/supabase-js": "^2.91.0",
     "ai": "^6.0.86",
     "framer-motion": "^12.38.0",
@@ -25,7 +26,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "reactflow": "^11.11.4",
-    "unpdf": "^1.6.0",
+    "unpdf": "^1.6.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {

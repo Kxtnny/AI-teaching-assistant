@@ -1,1 +1,36 @@
-[]
+[
+  {
+    "lecture_id": "2ef9f4ce97808468",
+    "title": "URECA Video Test",
+    "file_hash": "2ef9f4ce97808468708cb7571f4f388a6142c41adf023fae79d346d2fd706d3a",
+    "creator": "teacher",
+    "content_kind": "video",
+    "status": "Ready",
+    "time_ago": "Saved",
+    "original_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\2ef9f4ce97808468\\original.mp4",
+    "audio_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\2ef9f4ce97808468\\audio.m4a",
+    "transcript_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\2ef9f4ce97808468\\transcript.txt",
+    "summary_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\2ef9f4ce97808468\\summary.txt",
+    "memory_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\2ef9f4ce97808468\\memory.txt",
+    "chunks_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\2ef9f4ce97808468\\chunks.json",
+    "created_at": "2026-05-19T10:37:35.539Z",
+    "updated_at": "2026-05-19T10:39:04.070Z"
+  },
+  {
+    "lecture_id": "a722c2e41ebc3aef",
+    "title": "NTU CS Curriculum",
+    "file_hash": "a722c2e41ebc3aefe2d27fa66e6a7a49253d728868bb67d7651bf99ec1a8c5b9",
+    "creator": "teacher",
+    "status": "Ready",
+    "time_ago": "Saved",
+    "original_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\a722c2e41ebc3aef\\original.pdf",
+    "audio_path": null,
+    "transcript_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\a722c2e41ebc3aef\\transcript.txt",
+    "summary_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\a722c2e41ebc3aef\\summary.txt",
+    "memory_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\a722c2e41ebc3aef\\memory.txt",
+    "chunks_path": "C:\\Users\\Lee_y\\Documents\\Github\\AI-teaching-assistant\\data\\teachersdata\\lectures\\a722c2e41ebc3aef\\chunks.json",
+    "created_at": "2026-05-19T09:03:32.134Z",
+    "updated_at": "2026-05-19T09:09:38.597Z",
+    "content_kind": "document"
+  }
+]

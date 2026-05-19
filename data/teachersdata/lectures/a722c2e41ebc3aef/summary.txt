@@ -1,0 +1,14 @@
+**Summary:**
+- The curriculum outlines courses and academic unit requirements for Bachelor of Computing (Computer Science).  
+- Year 1 includes foundational courses like Calculus, Programming, and Discrete Mathematics.  
+- Year 2 covers core subjects such as Software Engineering, Computer Networks, and Algorithm Design.  
+- Year 3 and 4 focus on Major Prescribed Electives (MPE), Broadening and Deepening Electives (BDE), and Final Year Projects.  
+- Students must complete 9 MPE courses and either a Final Year Project or 3 additional MPEs for graduation.
+
+**Key Terms:**
+Academic Unit, Core Course, Major Prescribed Elective, Broadening and Deepening Elective, Final Year Project, Pre-requisite, Co-requisite, Year Standing, Capstone Project, Professional Internship, Calculus, Software Engineering
+
+**Action Items:**
+- Review the course prerequisites and plan your semester schedule accordingly.  
+- Explore the CSC MPE courses and specializations on the CCDS website for elective choices.  
+- Prepare for the Final Year Project to qualify for the Highest Distinction award.

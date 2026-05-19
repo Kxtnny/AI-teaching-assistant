@@ -23,6 +23,7 @@ type Action =
   | "deleteAll";
 
 type CreatorType = "teacher";
+type ContentKind = "video" | "document";
 type Role = "user" | "assistant" | "system";
 type ChatMessage = { role: Role; content: string };
 
@@ -31,6 +32,7 @@ interface LectureEntry {
   title: string;
   file_hash: string;
   creator: CreatorType;
+  content_kind: ContentKind;
   status: "Uploaded" | "Audio Ready" | "Ready";
   time_ago: string;
   original_path: string | null;
@@ -55,13 +57,12 @@ const FFMPEG_BIN = process.env.FFMPEG_PATH
   ? path.resolve(process.cwd(), process.env.FFMPEG_PATH)
   : "ffmpeg";
 
-const PDFTOPPM_BIN = process.env.PDFTOPPM_PATH
-  ? path.resolve(process.cwd(), process.env.PDFTOPPM_PATH)
-  : "pdftoppm";
-
 const OLLAMA_VISION_MODEL = process.env.OLLAMA_VISION_MODEL || "llama3.2-vision";
+const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || process.env.OLLAMA_MODEL || "llama3.2";
 const DEFAULT_LLM_MODEL = "gpt-4.1-mini";
 const TRANSCRIBE_MODEL = "whisper-1";
+const VIDEO_THUMBNAIL_SECONDS = Number(process.env.VIDEO_THUMBNAIL_SECONDS || 0.5);
+const PDF_PREVIEW_VERSION = 5;
 const WORD_RE = /[A-Za-z0-9']+/g;
 
 // teacher storage
@@ -102,6 +103,16 @@ function withTimeout<T>(p: Promise<T>, ms: number, label = "Operation"): Promise
       reject(e);
     });
   });
+}
+
+function inferContentKindFromExt(ext: string): ContentKind {
+  return VIDEO_EXTS.has(ext) || AUDIO_EXTS.has(ext) ? "video" : "document";
+}
+
+function inferContentKindFromEntry(entry: Partial<LectureEntry>): ContentKind {
+  if (entry.content_kind === "video" || entry.content_kind === "document") return entry.content_kind;
+  const sourcePath = entry.original_path || entry.audio_path || entry.title || "";
+  return inferContentKindFromExt(path.extname(sourcePath).toLowerCase());
 }
 
 // PDF cache
@@ -151,7 +162,11 @@ async function loadLibrary(): Promise<LectureEntry[]> {
     const raw = await fsp.readFile(LIBRARY_PATH, "utf-8");
     const arr = JSON.parse(raw);
     const lib = Array.isArray(arr) ? arr : [];
-    return lib.map((x: any) => ({ ...x, creator: "teacher" as const }));
+    return lib.map((x: any) => ({
+      ...x,
+      creator: "teacher" as const,
+      content_kind: inferContentKindFromEntry(x),
+    }));
   } catch {
     return [];
   }
@@ -186,6 +201,156 @@ async function computeHash(filePath: string): Promise<string> {
 }
 function lectureDir(lectureId: string) { return path.join(LECTURES_DIR, lectureId); }
 function normalizeTokens(text: string) { return (text.match(WORD_RE) || []).map((x) => x.toLowerCase()); }
+function mimeTypeForFile(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".pdf") return "application/pdf";
+  if (ext === ".mp4") return "video/mp4";
+  if (ext === ".mov") return "video/quicktime";
+  if (ext === ".mkv") return "video/x-matroska";
+  if (ext === ".mp3") return "audio/mpeg";
+  if (ext === ".wav") return "audio/wav";
+  if (ext === ".m4a") return "audio/mp4";
+  if (ext === ".flac") return "audio/flac";
+  if (ext === ".png") return "image/png";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".webp") return "image/webp";
+  return "application/octet-stream";
+}
+
+function previewMimeTypeForFile(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".svg") return "image/svg+xml";
+  return mimeTypeForFile(filePath);
+}
+
+function buildAudioPlaceholderSvg(title: string) {
+  const safeTitle = title.replace(/[<&>]/g, "");
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="Audio preview">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2f3136" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" rx="28" fill="url(#g)" />
+  <circle cx="400" cy="170" r="78" fill="#f3f4f6" opacity="0.12" />
+  <path d="M325 170h40l70-56v172l-70-56h-40z" fill="#f9fafb" />
+  <path d="M472 126c18 20 28 46 28 74s-10 54-28 74" fill="none" stroke="#f9fafb" stroke-width="12" stroke-linecap="round" opacity="0.8" />
+  <path d="M505 99c28 31 43 71 43 101s-15 70-43 101" fill="none" stroke="#f9fafb" stroke-width="10" stroke-linecap="round" opacity="0.55" />
+  <text x="400" y="332" text-anchor="middle" fill="#f9fafb" font-family="Arial, sans-serif" font-size="34" font-weight="700">AUDIO</text>
+  <text x="400" y="374" text-anchor="middle" fill="#d1d5db" font-family="Arial, sans-serif" font-size="18">${safeTitle}</text>
+</svg>`;
+}
+
+function escapeSvgText(text: string) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildPdfPreviewSvg(title: string, pageText: string) {
+  const safeTitle = escapeSvgText(title);
+  const lines = pageText
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 10)
+    .map((line) => line.slice(0, 72));
+
+  const textLines = lines.length ? lines : ["No text detected on first page"];
+  const lineEls = textLines
+    .map((line, index) => `<text x="52" y="${140 + index * 30}" fill="#2f2a24" font-family="Arial, sans-serif" font-size="22">${escapeSvgText(line)}</text>`)
+    .join("");
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="PDF preview">
+  <defs>
+    <linearGradient id="paper" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#fffdf7" />
+      <stop offset="100%" stop-color="#f0e9dd" />
+    </linearGradient>
+    <linearGradient id="frame" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7b7469" />
+      <stop offset="100%" stop-color="#4d463e" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" rx="28" fill="url(#frame)" />
+  <rect x="42" y="34" width="716" height="382" rx="20" fill="url(#paper)" />
+  <rect x="42" y="34" width="716" height="58" rx="20" fill="#ece3d6" />
+  <text x="52" y="70" fill="#2a241d" font-family="Arial, sans-serif" font-size="26" font-weight="700">${safeTitle}</text>
+  <rect x="52" y="112" width="696" height="250" rx="14" fill="#ffffff" opacity="0.68" />
+  ${lineEls}
+</svg>`;
+}
+
+async function getLecturePreviewBuffer(lecture: LectureEntry) {
+  if (!lecture.original_path) throw new Error("Missing original_path");
+
+  const sourceExt = path.extname(lecture.original_path).toLowerCase();
+  const previewName = VIDEO_EXTS.has(sourceExt)
+    ? `preview_${String(VIDEO_THUMBNAIL_SECONDS).replace(/\./g, "_")}s.jpg`
+    : `preview_page1_v${PDF_PREVIEW_VERSION}.png`;
+  const previewPath = path.join(path.dirname(lecture.original_path), previewName);
+
+  if (lecture.content_kind === "document") {
+    if (PDF_EXTS.has(sourceExt)) {
+      if (!(await fileExists(previewPath))) {
+        const image = await renderPdfPageToPng(lecture.original_path, 1);
+        await fsp.writeFile(previewPath, image);
+      }
+      return {
+        buffer: await fsp.readFile(previewPath),
+        contentType: previewMimeTypeForFile(previewPath),
+      };
+    }
+
+    if (IMAGE_EXTS.has(sourceExt)) {
+      return {
+        buffer: await fsp.readFile(lecture.original_path),
+        contentType: mimeTypeForFile(lecture.original_path),
+      };
+    }
+  }
+
+  if (VIDEO_EXTS.has(sourceExt)) {
+    if (!(await fileExists(previewPath))) {
+      const result = await runCmd(FFMPEG_BIN, [
+        "-y",
+        "-ss",
+        String(VIDEO_THUMBNAIL_SECONDS),
+        "-i",
+        lecture.original_path,
+        "-frames:v",
+        "1",
+        "-q:v",
+        "2",
+        previewPath,
+      ]);
+      if (result.code !== 0) throw new Error(`Failed to create video preview: ${result.stderr.slice(-400)}`);
+    }
+    return {
+      buffer: await fsp.readFile(previewPath),
+      contentType: previewMimeTypeForFile(previewPath),
+    };
+  }
+
+  if (AUDIO_EXTS.has(sourceExt)) {
+    return {
+      buffer: Buffer.from(buildAudioPlaceholderSvg(lecture.title)),
+      contentType: "image/svg+xml",
+    };
+  }
+
+  return {
+    buffer: await fsp.readFile(lecture.original_path),
+    contentType: mimeTypeForFile(lecture.original_path),
+  };
+}
 function scoreChunk(query: string, chunk: string) {
   const q = normalizeTokens(query);
   const c = normalizeTokens(chunk);
@@ -260,6 +425,35 @@ LECTURE MEMORY:
 Combined Lecture Text:
 ${transcript}`;
 }
+function buildDocumentSummaryPrompt(content: string) {
+  return `You are a local study assistant for class notes and reference files.
+Turn the extracted content into a clean study brief.
+
+Return exactly these sections:
+Summary:
+- 5 concise bullets max, one sentence each.
+
+Key Terms:
+- 8 to 12 terms separated by commas.
+
+Important Details:
+- 3 to 5 bullets covering formulas, definitions, diagrams, or table takeaways.
+
+Extracted Content:
+${content}`;
+}
+function buildDocumentMemoryPrompt(content: string) {
+  return `You are a local study assistant.
+Create a compact lecture memory for this document in the following format:
+LECTURE MEMORY:
+- 10 to 15 short bullets with the main ideas
+- formulas or definitions if present
+- common mistakes or confusing points
+- example question types
+
+Extracted Content:
+${content}`;
+}
 function mcqPrompt(memory: string, context: string[], n = 5) {
   return `Create exactly ${n} MCQs from lecture only. Return strict JSON list.
 Lecture Memory:
@@ -307,6 +501,39 @@ async function runCmd(bin: string, args: string[]) {
     p.on("close", (code) => resolve({ code: code ?? 1, stderr }));
   });
 }
+
+async function renderPdfPageToPng(pdfPath: string, pageNumber: number) {
+  return new Promise<Buffer>((resolve, reject) => {
+    const script = [
+      "const fs = require('fs');",
+      "(async () => {",
+      "  const { renderPageAsImage } = require('unpdf');",
+      "  const pdfPath = process.argv[1];",
+      "  const pageNumber = Number(process.argv[2]);",
+      "  const pdfBuffer = new Uint8Array(fs.readFileSync(pdfPath));",
+      "  const image = await renderPageAsImage(pdfBuffer, pageNumber, { canvasImport: () => import('@napi-rs/canvas') });",
+      "  process.stdout.write(Buffer.from(image).toString('base64'));",
+      "})().catch((error) => {",
+      "  console.error(error && error.stack ? error.stack : String(error));",
+      "  process.exit(1);",
+      "});",
+    ].join(" ");
+
+    const child = spawn(process.execPath, ["-e", script, pdfPath, String(pageNumber)], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (data) => (stdout += data.toString()));
+    child.stderr.on("data", (data) => (stderr += data.toString()));
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code !== 0) return reject(new Error(stderr.trim() || `PDF render failed with code ${code}`));
+      resolve(Buffer.from(stdout.trim(), "base64"));
+    });
+  });
+}
 async function convertVideoToAudio(input: string, out: string) {
   let r = await runCmd(FFMPEG_BIN, ["-y", "-i", input, "-vn", "-acodec", "copy", out]);
   if (r.code !== 0) {
@@ -337,15 +564,21 @@ async function extractFramesSceneBased(inputVideo: string, outDir: string) {
 }
 async function convertPdfToImages(pdfPath: string, outDir: string) {
   await ensureDir(outDir);
-  const prefix = path.join(outDir, "page");
   const maxPages = Number(process.env.PDF_MAX_PAGES || 8);
-  const r = await runCmd(PDFTOPPM_BIN, ["-jpeg", "-f", "1", "-l", String(maxPages), pdfPath, prefix]);
-  if (r.code !== 0) throw new Error(`pdftoppm failed: ${r.stderr.slice(-400)}`);
+  const files: string[] = [];
 
-  return (await fsp.readdir(outDir))
-    .filter((f) => f.toLowerCase().endsWith(".jpg"))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-    .map((f) => path.join(outDir, f));
+  for (let page = 1; page <= maxPages; page += 1) {
+    try {
+      const image = await renderPdfPageToPng(pdfPath, page);
+      const outPath = path.join(outDir, `page_${String(page).padStart(4, "0")}.png`);
+      await fsp.writeFile(outPath, image);
+      files.push(outPath);
+    } catch {
+      break;
+    }
+  }
+
+  return files;
 }
 async function extractPdfTextWithLoader(pdfPath: string): Promise<string> {
   const buffer = await fsp.readFile(pdfPath);
@@ -422,6 +655,13 @@ async function visionExtractFromImages(imagePaths: string[]) {
   await Promise.all(workers);
   return results.join("\n\n");
 }
+async function ollamaText(prompt: string, model = OLLAMA_TEXT_MODEL) {
+  const res = await ollama.chat({
+    model,
+    messages: [{ role: "user", content: prompt }],
+  });
+  return String(res?.message?.content || "").trim();
+}
 async function llm(messages: ChatMessage[], model = DEFAULT_LLM_MODEL) {
   const res = await client.chat.completions.create({
     model,
@@ -429,6 +669,50 @@ async function llm(messages: ChatMessage[], model = DEFAULT_LLM_MODEL) {
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
   });
   return res.choices?.[0]?.message?.content?.trim() || "";
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    await initStorage();
+
+    const lectureId = req.nextUrl.searchParams.get("lectureId") || "";
+    const preview = req.nextUrl.searchParams.get("preview") === "1";
+    if (!lectureId) return NextResponse.json({ error: "Missing lectureId" }, { status: 400 });
+
+    const lib = await loadLibrary();
+    const lecture = lib.find((x) => x.lecture_id === lectureId);
+    if (!lecture || !lecture.original_path) {
+      return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
+    }
+
+    if (!(await fileExists(lecture.original_path))) {
+      return NextResponse.json({ error: "Source file is missing" }, { status: 404 });
+    }
+
+    if (preview) {
+      const previewArtifact = await getLecturePreviewBuffer(lecture);
+      return new NextResponse(previewArtifact.buffer, {
+        status: 200,
+        headers: {
+          "Content-Type": previewArtifact.contentType,
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+
+    const fileBuffer = await fsp.readFile(lecture.original_path);
+    const fileName = path.basename(lecture.original_path);
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": mimeTypeForFile(lecture.original_path),
+        "Content-Disposition": `inline; filename="${fileName}"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Failed to open file" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -480,6 +764,7 @@ export async function POST(req: NextRequest) {
         title: path.basename(file.name, ext),
         file_hash: fileHash,
         creator: "teacher",
+        content_kind: inferContentKindFromExt(ext),
         status: "Uploaded",
         time_ago: "Saved",
         original_path: originalPath,
@@ -549,6 +834,97 @@ export async function POST(req: NextRequest) {
       const ext = path.extname(lecture.original_path).toLowerCase();
       const ldir = lectureDir(lecture.lecture_id);
       await ensureDir(ldir);
+      const contentKind = inferContentKindFromEntry(lecture);
+
+      if (contentKind === "document") {
+        let extractedText = "";
+        let visualText = "";
+        let notesText = "";
+
+        if (PDF_EXTS.has(ext)) {
+          await setProgress({ stage: "extracting PDF text", percent: 35 });
+
+          try {
+            const timeoutMs = Number(process.env.PDF_TEXT_TIMEOUT_MS || 20000);
+            notesText = await withTimeout(extractPdfTextWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
+          } catch (e: any) {
+            console.warn("[PDF] loader extraction failed:", e?.message || e);
+          }
+
+          if (!notesText.trim()) {
+            await setProgress({ stage: "rendering PDF pages", percent: 45 });
+            const pdfPagesDir = path.join(ldir, "pdf_pages");
+            const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
+
+            await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
+            visualText = await visionExtractFromImages(pageImages);
+          }
+
+          extractedText = [
+            notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
+            visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
+          ].filter(Boolean).join("\n\n");
+        } else if (IMAGE_EXTS.has(ext)) {
+          await setProgress({ stage: "reading image notes (vision)", percent: 45 });
+          visualText = await visionExtractFromImages([lecture.original_path]);
+          extractedText = visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "";
+        } else {
+          return NextResponse.json({ error: `Unsupported file type for document processing: ${ext}` }, { status: 400 });
+        }
+
+        if (!extractedText.trim()) {
+          await setProgress({ stage: "failed", percent: 100, done: true, error: "No extractable text found." });
+          return NextResponse.json({ error: "No extractable text found." }, { status: 400 });
+        }
+
+        await setProgress({ stage: "merging extracted content", percent: 75 });
+
+        const chunks = chunkText(extractedText, 3500, 400);
+        const localInput = shortenForLLM(extractedText, 20000);
+
+        await setProgress({ stage: "creating summary", percent: 84 });
+        const summary = await ollamaText(buildDocumentSummaryPrompt(localInput));
+
+        await setProgress({ stage: "creating lecture memory", percent: 90 });
+        const memory = await ollamaText(buildDocumentMemoryPrompt(localInput));
+
+        await setProgress({ stage: "saving outputs", percent: 96 });
+
+        const transcriptPath = path.join(ldir, "transcript.txt");
+        const summaryPath = path.join(ldir, "summary.txt");
+        const memoryPath = path.join(ldir, "memory.txt");
+        const chunksPath = path.join(ldir, "chunks.json");
+
+        await fsp.writeFile(transcriptPath, extractedText, "utf-8");
+        await fsp.writeFile(summaryPath, summary, "utf-8");
+        await fsp.writeFile(memoryPath, memory, "utf-8");
+        await fsp.writeFile(chunksPath, JSON.stringify(chunks.map((text, i) => ({ chunk_id: i, text })), null, 2), "utf-8");
+
+        const updated = await patchByHash(lecture.file_hash, {
+          transcript_path: transcriptPath,
+          summary_path: summaryPath,
+          memory_path: memoryPath,
+          chunks_path: chunksPath,
+          status: "Ready",
+          content_kind: "document",
+        });
+
+        await setProgress({ lectureId, stage: "completed", percent: 100, done: true, error: "" });
+
+        return NextResponse.json({
+          ok: true,
+          lecture: updated,
+          transcript: extractedText,
+          summary,
+          memory,
+          chunks,
+          sources_used: {
+            pdf: !!notesText,
+            vision: !!visualText,
+            local: true,
+          },
+        });
+      }
 
       let audioText = "";
       let visualText = "";
@@ -672,6 +1048,7 @@ export async function POST(req: NextRequest) {
         memory_path: memoryPath,
         chunks_path: chunksPath,
         status: "Ready",
+        content_kind: "video",
       });
 
       await setProgress({ lectureId, stage: "completed", percent: 100, done: true, error: "" });
@@ -799,5 +1176,21 @@ export async function POST(req: NextRequest) {
       error: e?.message || "Server error",
     });
     return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  }
+}
+
+async function extractFirstPageTextFromPdf(pdfPath: string) {
+  const buffer = await fsp.readFile(pdfPath);
+  const tempDir = path.join(tmpdir(), "teacher-pdf-preview");
+  await ensureDir(tempDir);
+  const tempPath = path.join(tempDir, `${crypto.createHash("sha1").update(buffer).digest("hex")}.pdf`);
+  await writeFile(tempPath, buffer);
+
+  try {
+    const loader = new PDFLoader(tempPath);
+    const docs = await loader.load();
+    return String(docs[0]?.pageContent || "").trim().slice(0, 2000);
+  } finally {
+    try { await unlink(tempPath); } catch {}
   }
 }

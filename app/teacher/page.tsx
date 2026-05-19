@@ -6,6 +6,8 @@ type Lecture = {
   lecture_id: string;
   title: string;
   creator?: "teacher" | "student";
+  content_kind?: "video" | "document";
+  original_path?: string | null;
   status: "Uploaded" | "Audio Ready" | "Ready";
 };
 
@@ -17,7 +19,8 @@ type ProcessProgress = {
   error?: string;
 };
 
-type TabKey = "overview" | "upload" | "courses" | "analytics";
+type TabKey = "overview" | "upload" | "content" | "courses" | "analytics";
+type ContentKind = "video" | "document";
 
 export default function TeacherStudioPage() {
   const [library, setLibrary] = useState<Lecture[]>([]);
@@ -39,6 +42,8 @@ export default function TeacherStudioPage() {
   const [publishStatus, setPublishStatus] = useState("Publish to students");
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentContentKind, setCurrentContentKind] = useState<ContentKind | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const pollRef = useRef<number | null>(null);
 
@@ -82,8 +87,7 @@ export default function TeacherStudioPage() {
     return () => stopPolling();
   }, []);
 
-  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
+  async function uploadFile(f?: File | null) {
     if (!f) return;
 
     const fd = new FormData();
@@ -98,6 +102,7 @@ export default function TeacherStudioPage() {
     if (!res?.ok) return alert(res.error || "Upload failed");
     await refreshLibrary();
     setCurrentLectureId(res.lecture.lecture_id);
+    setCurrentContentKind(res.lecture?.content_kind === "document" ? "document" : "video");
 
     if (res.duplicate) {
       setStatusMsg("Duplicate file found. Existing lecture selected.");
@@ -105,6 +110,17 @@ export default function TeacherStudioPage() {
       setStatusMsg("Upload complete. Click Process Lecture.");
       if (!contentName.trim()) setContentName(res.lecture.title || "");
     }
+  }
+
+  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    await uploadFile(e.target.files?.[0]);
+  }
+
+  async function onDrop(e: React.DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    setDragActive(false);
+    if (loading) return;
+    await uploadFile(e.dataTransfer.files?.[0]);
   }
 
   async function processLecture() {
@@ -137,7 +153,7 @@ export default function TeacherStudioPage() {
       percent: 100,
       done: true,
     });
-    setStatusMsg("Lecture processed and ready for students.");
+    setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
   }
 
   async function deleteLecture(lectureId?: string) {
@@ -151,15 +167,28 @@ export default function TeacherStudioPage() {
 
     if (!res?.ok) return alert(res.error || "Delete failed");
     if (currentLectureId === id) setCurrentLectureId("");
+    if (currentLectureId === id) setCurrentContentKind(null);
     setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
     await refreshLibrary();
     setStatusMsg("Lecture deleted.");
   }
 
-  const readyCount = library.filter((l) => l.status === "Ready").length;
+  const teacherVideos = library.filter((l) => l.creator !== "student" && l.content_kind !== "document");
+  const teacherDocuments = library.filter((l) => l.content_kind === "document");
+  const lectureCount = teacherVideos.length;
+  const documentCount = teacherDocuments.length;
+  const readyCount = teacherVideos.filter((l) => l.status === "Ready").length;
   const processingCount = library.filter((l) => l.status !== "Ready").length;
-  const teacherCourses = library.filter((l) => l.creator !== "student");
+  const teacherCourses = teacherVideos;
   const coverTone = (idx: number) => ["tone0", "tone1", "tone2", "tone3", "tone4", "tone5"][idx % 6];
+
+  function openFileUrl(item: Lecture) {
+    return `/api/teacher-lecture?lectureId=${encodeURIComponent(item.lecture_id)}`;
+  }
+
+  function previewUrl(item: Lecture) {
+    return `/api/teacher-lecture?lectureId=${encodeURIComponent(item.lecture_id)}&preview=1`;
+  }
 
   const assistanceRows = [
     {
@@ -225,6 +254,9 @@ export default function TeacherStudioPage() {
           <button className={`navItem ${activeTab === "upload" ? "active" : ""}`} onClick={() => setActiveTab("upload")}>
             Upload Lecture
           </button>
+          <button className={`navItem ${activeTab === "content" ? "active" : ""}`} onClick={() => setActiveTab("content") }>
+            Upload Content
+          </button>
           <button className={`navItem ${activeTab === "courses" ? "active" : ""}`} onClick={() => setActiveTab("courses")}>
             My Lectures
           </button>
@@ -243,31 +275,40 @@ export default function TeacherStudioPage() {
           </div>
         </section>
 
-        {(activeTab === "overview" || activeTab === "upload") && (
+        {(activeTab === "overview" || activeTab === "upload" || activeTab === "content") && (
           <>
             <section className="stats">
-              <div className="card"><h3>Lectures</h3><p>{library.length}</p></div>
+              <div className="card"><h3>Lectures</h3><p>{lectureCount}</p></div>
+              {activeTab === "content" && <div className="card"><h3>Documents</h3><p>{documentCount}</p></div>}
               <div className="card"><h3>Ready</h3><p>{readyCount}</p></div>
               <div className="card"><h3>Processing</h3><p>{processingCount}</p></div>
               <div className="card"><h3>Status</h3><p style={{ fontSize: 14 }}>{statusMsg}</p></div>
             </section>
 
             <section className="uploadPanel">
-              <h2>Upload a lecture</h2>
-              <p>Drop/select file, edit optional fields, then click Process Lecture.</p>
+              <h2>{activeTab === "content" ? "Upload content" : "Upload a lecture"}</h2>
+              <p>Drop/select file, edit optional fields, then click {activeTab === "content" ? "Process Content" : "Process Lecture"}.</p>
 
-              <div className="fieldLabel">LECTURE FILE</div>
+              <div className="fieldLabel">{activeTab === "content" ? "CONTENT FILE" : "LECTURE FILE"}</div>
 
-              <label className="dropzone">
+              <label
+                className={`dropzone ${dragActive ? "dragActive" : ""}`}
+                onDrop={onDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragLeave={() => setDragActive(false)}
+              >
                 <input
                   type="file"
                   accept=".pdf,.mp4,.mov,.mkv,.mp3,.wav,.m4a,.flac,.png,.jpg,.jpeg,.webp"
                   onChange={onUpload}
                   disabled={loading}
                 />
-                <strong>Drop your lecture/video here</strong>
-                <span>Video, Audio, PDF, or Image • Click or drag to upload</span>
+                <strong>{activeTab === "content" ? "Drop your content here" : "Drop your lecture/video here"}</strong>
+                <span>{activeTab === "content" ? "PDF or Image • Click or drag to upload" : "Video, Audio, PDF, or Image • Click or drag to upload"}</span>
               </label>
+
+              <p className="selectionHint">Current selection: {currentContentKind === "document" ? "Document" : currentContentKind === "video" ? "Lecture" : "None"}</p>
 
               <div className="metaGrid">
                 <input placeholder="Name of the content" value={contentName} onChange={(e) => setContentName(e.target.value)} />
@@ -283,7 +324,7 @@ export default function TeacherStudioPage() {
 
               <div className="actionRow">
                 <button onClick={processLecture} disabled={loading || !currentLectureId} className="primary">
-                  {loading ? "Working..." : "Process Lecture"}
+                  {loading ? "Working..." : activeTab === "content" ? "Process Content" : "Process Lecture"}
                 </button>
                 <button onClick={() => deleteLecture()} disabled={!currentLectureId} className="dangerGhost">
                   Delete Current
@@ -303,7 +344,7 @@ export default function TeacherStudioPage() {
           </>
         )}
 
-        {(activeTab === "overview" || activeTab === "courses") && (
+        {(activeTab === "overview" || activeTab === "courses" || activeTab === "content") && (
           <section className="coursesSection">
             <div className="sectionHead"><h2>My lectures</h2></div>
             <div className="grid">
@@ -318,19 +359,54 @@ export default function TeacherStudioPage() {
                     {deletingId === c.lecture_id ? "..." : "🗑"}
                   </button>
 
-                  <div className={`cover ${coverTone(idx)}`}>
-                    <span className="topBadge">TEACHER</span>
-                    <div className="centerGlyph">{c.title?.[0]?.toUpperCase() || "L"}</div>
-                  </div>
+                  <a className="openCardLink" href={openFileUrl(c)} target="_blank" rel="noreferrer">
+                    <div className={`cover ${coverTone(idx)}`}>
+                      <img className="coverPreview" src={previewUrl(c)} alt={`${c.title} preview`} loading="lazy" />
+                      <span className="topBadge">TEACHER</span>
+                    </div>
 
-                  <div className="body">
-                    <h3 title={c.title}>{c.title}</h3>
-                    <p className="subText">Status: {c.status}</p>
-                    <div className="metaRow"><span>ID: {c.lecture_id}</span></div>
-                  </div>
+                    <div className="body">
+                      <h3 title={c.title}>{c.title}</h3>
+                      <p className="subText">Status: {c.status}</p>
+                      <div className="metaRow"><span>ID: {c.lecture_id}</span></div>
+                    </div>
+                  </a>
                 </article>
               ))}
             </div>
+
+            {activeTab === "content" && (
+              <>
+                <div className="sectionHead" style={{ marginTop: 24 }}><h2>Documents</h2></div>
+                <div className="grid">
+                  {teacherDocuments.map((c) => (
+                    <article key={c.lecture_id} className="courseCard documentCard">
+                      <button
+                        className="deleteBtn"
+                        onClick={() => deleteLecture(c.lecture_id)}
+                        disabled={deletingId === c.lecture_id}
+                        title="Delete document"
+                      >
+                        {deletingId === c.lecture_id ? "..." : "🗑"}
+                      </button>
+
+                      <a className="openCardLink" href={openFileUrl(c)} target="_blank" rel="noreferrer">
+                        <div className="cover docCover">
+                          <img className="coverPreview" src={previewUrl(c)} alt={`${c.title} preview`} loading="lazy" />
+                          <span className="topBadge">DOCUMENT</span>
+                        </div>
+
+                        <div className="body">
+                          <h3 title={c.title}>{c.title}</h3>
+                          <p className="subText">Status: {c.status}</p>
+                          <div className="metaRow"><span>ID: {c.lecture_id}</span></div>
+                        </div>
+                      </a>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
         )}
 
@@ -447,10 +523,12 @@ export default function TeacherStudioPage() {
         .uploadPanel p { margin: 0 0 14px; color: #5f5951; }
         .fieldLabel { margin: 0 0 10px; font-size: 13px; letter-spacing: .15em; color: #61584d; font-weight: 700; }
 
-        .dropzone { display: grid; place-items: center; text-align: center; border: 1px dashed #bfb8af; border-radius: 16px; padding: 34px; background: #f7f5f2; cursor: pointer; margin-bottom: 14px; }
+        .dropzone { display: grid; place-items: center; text-align: center; border: 1px dashed #bfb8af; border-radius: 16px; padding: 34px; background: #f7f5f2; cursor: pointer; margin-bottom: 14px; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+        .dropzone.dragActive { border-color: #171310; background: #efebe6; transform: scale(1.01); }
         .dropzone input { display: none; }
         .dropzone strong { font-size: 34px; }
         .dropzone span { color: #6f675d; font-size: 16px; }
+        .selectionHint { margin: 10px 2px 14px; color: #61584d; font-size: 13px; }
 
         .metaGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         .metaGrid input, .metaGrid textarea, .metaGrid select {
@@ -472,14 +550,17 @@ export default function TeacherStudioPage() {
 
         .grid { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 14px; }
         .courseCard { position: relative; border: 1px solid #e1ddd7; border-radius: 16px; overflow: hidden; background: #fff; }
+        .openCardLink { display: block; color: inherit; text-decoration: none; }
         .deleteBtn { position: absolute; top: 10px; right: 10px; z-index: 3; border: 1px solid #ead9d4; background: #fff; color: #8e1f1f; border-radius: 10px; padding: 5px 8px; cursor: pointer; }
         .cover { height: 150px; position: relative; display: grid; place-items: center; }
+        .coverPreview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(0.95) contrast(1.02); }
         .tone0 { background: linear-gradient(135deg, #4658d6, #3346b8); }
         .tone1 { background: linear-gradient(135deg, #9f5a21, #7f451a); }
         .tone2 { background: linear-gradient(135deg, #1f7b65, #165d4d); }
         .tone3 { background: linear-gradient(135deg, #6b2aac, #4f1d84); }
         .tone4 { background: linear-gradient(135deg, #a72866, #7f1f4e); }
         .tone5 { background: linear-gradient(135deg, #19758d, #13596b); }
+        .docCover { background: linear-gradient(135deg, #6f6a63, #4f4943); }
         .topBadge { position: absolute; top: 10px; left: 10px; font-size: 11px; border-radius: 999px; padding: 4px 8px; background: rgba(0,0,0,.35); color: #fff; }
         .centerGlyph { font-size: 64px; color: rgba(255,255,255,.45); }
         .body { padding: 14px; }

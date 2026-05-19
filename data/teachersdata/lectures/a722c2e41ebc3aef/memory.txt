@@ -1,0 +1,32 @@
+LECTURE MEMORY:
+
+- The document outlines the curriculum structure for the Bachelor of Computing (Computer Science) program for AY2024-25.
+- The curriculum is divided by year and semester, specifying course codes, course types, academic units (AU), and pre-requisites.
+- Year 1 focuses on foundational courses such as Calculus, Discrete Mathematics, Linear Algebra, Programming (C and C++), Digital Logic, and introductory computing courses.
+- Year 2 includes core courses like Software Engineering, Computer Networks, Operating Systems, Automata, Computability and Complexity, Algorithm Design & Analysis, and electives.
+- Year 3 advances to more specialized core courses, major prescribed electives (MPE), and includes a Capstone Project and Professional Internship.
+- Year 4 emphasizes Major Prescribed Electives, Broadening and Deepening Electives (BDE), Final Year Project (Part 1 and 2), and continued specialization.
+- Total academic units per year range roughly between 35-47 AU.
+- Major Prescribed Electives (MPE) must be chosen from SC3xxx/SC4xxx courses, with at least 4 at the 4000-level.
+- Students must complete 9 MPE courses in total.
+- To be eligible for Highest Distinction, students must complete a Final Year Project.
+- Broadening and Deepening Electives (BDE) are included to enhance interdisciplinary knowledge.
+- Some courses have co-requisites or pre-requisites, e.g., SC1003 is a pre-requisite for SC1004 and SC1008.
+- There are special courses for students who failed QET or have not done Calculus (HW0001, HW0002).
+- The curriculum includes courses on ethics, communication, and sustainability to provide a holistic education.
+- Internship and capstone projects are integral parts of the later years to provide practical experience.
+- The curriculum is structured to progressively build knowledge from foundational to advanced topics in computer science.
+
+Formulas/Theorems:
+- Not applicable (curriculum overview document).
+
+Pitfalls:
+- Not meeting pre-requisite or co-requisite requirements can delay progression.
+- Failure to complete the Final Year Project disqualifies students from Highest Distinction.
+- Insufficient selection of MPE courses or failure to meet the 4000-level course requirement may affect graduation eligibility.
+- Ignoring the recommended course schedule may lead to an unbalanced workload or missed prerequisites.
+
+Example Problem Types:
+- Not applicable (curriculum overview document).
+
+This summary provides a compact overview of the Bachelor of Computing (Computer Science) curriculum structure, course progression, and requirements.
