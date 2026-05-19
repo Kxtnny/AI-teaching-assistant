@@ -434,6 +434,8 @@ export default function TeacherStudioPage() {
             <section className="stats">
               <div className="card"><h3>Lectures</h3><p>{lectureCount}</p></div>
               {activeTab === "content" && <div className="card"><h3>Documents</h3><p>{documentCount}</p></div>}
+              {activeTab !== "content" && <div className="card"><h3>Ready</h3><p>{readyCount}</p></div>}
+              {activeTab !== "content" && <div className="card"><h3>Processing</h3><p>{processingCount}</p></div>}
               <div className="card"><h3>Status</h3><p style={{ fontSize: 14 }}>{statusMsg}</p></div>
             </section>
 
