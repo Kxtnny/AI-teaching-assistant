@@ -21,6 +21,7 @@ type ProcessProgress = {
 
 type TabKey = "overview" | "upload" | "content" | "courses" | "analytics";
 type ContentKind = "video" | "document";
+type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export default function TeacherStudioPage() {
   const [library, setLibrary] = useState<Lecture[]>([]);
@@ -40,6 +41,11 @@ export default function TeacherStudioPage() {
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("");
   const [publishStatus, setPublishStatus] = useState("Publish to students");
+  const [pendingContentFile, setPendingContentFile] = useState<File | null>(null);
+  const [contentMode, setContentMode] = useState<"upload" | "chat">("upload");
+  const [processedContentOutput, setProcessedContentOutput] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentContentKind, setCurrentContentKind] = useState<ContentKind | null>(null);
@@ -87,15 +93,16 @@ export default function TeacherStudioPage() {
     return () => stopPolling();
   }, []);
 
-  async function uploadFile(f?: File | null) {
+  async function uploadFile(f?: File | null, options?: { silent?: boolean }) {
     if (!f) return;
+    const silent = !!options?.silent;
 
     const fd = new FormData();
     fd.append("action", "upload");
     fd.append("file", f);
 
     setLoading(true);
-    setStatusMsg("Uploading...");
+    if (!silent) setStatusMsg("Uploading...");
     const res = await api("upload", fd, true);
     setLoading(false);
 
@@ -104,56 +111,200 @@ export default function TeacherStudioPage() {
     setCurrentLectureId(res.lecture.lecture_id);
     setCurrentContentKind(res.lecture?.content_kind === "document" ? "document" : "video");
 
-    if (res.duplicate) {
-      setStatusMsg("Duplicate file found. Existing lecture selected.");
-    } else {
-      setStatusMsg("Upload complete. Click Process Lecture.");
-      if (!contentName.trim()) setContentName(res.lecture.title || "");
+    if (!silent) {
+      if (res.duplicate) {
+        setStatusMsg("Duplicate file found. Existing lecture selected.");
+      } else {
+        setStatusMsg("Upload complete. Click Process Lecture.");
+        if (!contentName.trim()) setContentName(res.lecture.title || "");
+      }
     }
+
+    return res;
   }
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    await uploadFile(e.target.files?.[0]);
+    const file = e.target.files?.[0] || null;
+    if (activeTab === "content") {
+      setPendingContentFile(file);
+      setCurrentLectureId("");
+      setCurrentContentKind(null);
+      setProcessedContentOutput("");
+      setChatMessages([]);
+      setContentMode("upload");
+      if (file && !contentName.trim()) {
+        const base = file.name.replace(/\.[^/.]+$/, "");
+        setContentName(base);
+      }
+      setStatusMsg(file ? `Selected ${file.name}. Click Process Content to continue.` : "Ready for a content upload.");
+      return;
+    }
+    await uploadFile(file);
   }
 
   async function onDrop(e: React.DragEvent<HTMLLabelElement>) {
     e.preventDefault();
     setDragActive(false);
     if (loading) return;
-    await uploadFile(e.dataTransfer.files?.[0]);
+    const file = e.dataTransfer.files?.[0] || null;
+    if (activeTab === "content") {
+      setPendingContentFile(file);
+      setCurrentLectureId("");
+      setCurrentContentKind(null);
+      setProcessedContentOutput("");
+      setChatMessages([]);
+      setContentMode("upload");
+      if (file && !contentName.trim()) {
+        const base = file.name.replace(/\.[^/.]+$/, "");
+        setContentName(base);
+      }
+      setStatusMsg(file ? `Selected ${file.name}. Click Process Content to continue.` : "Ready for a content upload.");
+      return;
+    }
+    await uploadFile(file);
   }
 
   async function processLecture() {
-    if (!currentLectureId) return alert("Upload/select lecture first.");
+    if (activeTab === "content") {
+      // If we're in content mode and there's a pending file, switch to chat view immediately
+      if (!currentLectureId && !pendingContentFile) return alert("Upload/select content first.");
 
-    setLoading(true);
-    setProgress({
-      lectureId: currentLectureId,
-      stage: "starting",
-      percent: 1,
-      done: false,
-    });
-    setStatusMsg("Processing started...");
-    startPolling(currentLectureId);
+      setContentMode("chat");
+      // initialize progress UI for upload
+      setProgress({ lectureId: null, stage: "uploading", percent: 0, done: false });
+      setStatusMsg("Uploading...");
 
-    const res = await api("process", { lectureId: currentLectureId, language: "en" });
-    setLoading(false);
+      let lectureIdToProcess = currentLectureId;
 
-    if (!res?.ok) {
+      if (!currentLectureId && pendingContentFile) {
+        // upload via XHR to get progress events
+        try {
+          setLoading(true);
+          const uploadRes = await new Promise<any>((resolve, reject) => {
+            const fd = new FormData();
+            fd.append("action", "upload");
+            fd.append("file", pendingContentFile as File);
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "/api/teacher-lecture");
+            xhr.upload.onprogress = (ev) => {
+              if (ev.lengthComputable) {
+                const pct = Math.round((ev.loaded / ev.total) * 100);
+                setProgress((p) => ({ ...p, stage: "uploading", percent: pct, done: false }));
+              }
+            };
+            xhr.onload = () => {
+              try {
+                const json = JSON.parse(xhr.responseText);
+                if (!json?.ok) return reject(new Error(json?.error || 'Upload failed'));
+                resolve(json);
+              } catch (e) {
+                reject(e);
+              }
+            };
+            xhr.onerror = () => reject(new Error('Upload network error'));
+            xhr.send(fd);
+          });
+
+          lectureIdToProcess = uploadRes.lecture?.lecture_id;
+          setCurrentLectureId(lectureIdToProcess || "");
+          setCurrentContentKind(uploadRes.lecture?.content_kind === "document" ? "document" : "video");
+          setStatusMsg("Upload complete. Processing will start...");
+        } catch (err: any) {
+          setLoading(false);
+          setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
+          return alert(err?.message || "Upload failed");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // start polling using lecture id if available
+      if (lectureIdToProcess) startPolling(lectureIdToProcess);
+
+      // now trigger processing on server
+      setLoading(true);
+      setProgress((p) => ({ ...p, stage: "starting", percent: 1, done: false }));
+      setStatusMsg("Processing started...");
+      const res = await api("process", { lectureId: lectureIdToProcess, language: "en" });
+      setLoading(false);
+
+      if (!res?.ok) {
+        stopPolling();
+        setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
+        return alert(res.error || "Processing failed");
+      }
+
+      await refreshLibrary();
       stopPolling();
-      setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
-      return alert(res.error || "Processing failed");
-    }
+      setProgress({ lectureId: lectureIdToProcess || null, stage: "completed", percent: 100, done: true });
+      if (activeTab === "content") {
+        setContentMode("chat");
+        setProcessedContentOutput(
+          res.parserOutput || res.transcript || res.summary || res.memory || "Processing completed, but no parser output was returned."
+        );
+        setChatMessages([
+          {
+            role: "assistant",
+            content:
+              "The content is indexed and ready for questions. Ask anything about the uploaded file, and I will answer using the parsed material.",
+          },
+        ]);
+        setStatusMsg("Content processed, indexed in RAG, and ready for chat.");
+        return;
+      }
 
-    await refreshLibrary();
-    stopPolling();
-    setProgress({
-      lectureId: currentLectureId,
-      stage: "completed",
-      percent: 100,
-      done: true,
-    });
-    setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
+      setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
+  }
+
+  async function sendContentChat() {
+    const question = chatInput.trim();
+    if (!question || !currentLectureId) return;
+
+    const nextMessages: ChatMessage[] = [...chatMessages, { role: "user", content: question }];
+    setChatMessages(nextMessages);
+    setChatInput("");
+    setLoading(true);
+
+    try {
+      const res = await api("chat", {
+        lectureId: currentLectureId,
+        question,
+        history: chatMessages,
+      });
+
+      if (!res?.ok) {
+        alert(res.error || "Chat failed");
+        setChatMessages(nextMessages);
+        return;
+      }
+
+      setChatMessages([...nextMessages, { role: "assistant", content: res.reply || "No response returned." }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function resetContentFlow() {
+    setPendingContentFile(null);
+    setCurrentLectureId("");
+    setCurrentContentKind(null);
+    setContentMode("upload");
+    setProcessedContentOutput("");
+    setChatInput("");
+    setChatMessages([]);
+    setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
+    setStatusMsg("Ready for another content upload.");
+  }
+
+  function clearPendingContentFile() {
+    setPendingContentFile(null);
+    setCurrentLectureId("");
+    setCurrentContentKind(null);
+    setProcessedContentOutput("");
+    setChatMessages([]);
+    setChatInput("");
+    setContentMode("upload");
+    setStatusMsg("Ready for a content upload.");
   }
 
   async function deleteLecture(lectureId?: string) {
@@ -287,58 +438,112 @@ export default function TeacherStudioPage() {
 
             <section className="uploadPanel">
               <h2>{activeTab === "content" ? "Upload content" : "Upload a lecture"}</h2>
-              <p>Drop/select file, edit optional fields, then click {activeTab === "content" ? "Process Content" : "Process Lecture"}.</p>
-
-              <div className="fieldLabel">{activeTab === "content" ? "CONTENT FILE" : "LECTURE FILE"}</div>
-
-              <label
-                className={`dropzone ${dragActive ? "dragActive" : ""}`}
-                onDrop={onDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
-                onDragLeave={() => setDragActive(false)}
-              >
-                <input
-                  type="file"
-                  accept=".pdf,.mp4,.mov,.mkv,.mp3,.wav,.m4a,.flac,.png,.jpg,.jpeg,.webp"
-                  onChange={onUpload}
-                  disabled={loading}
-                />
-                <strong>{activeTab === "content" ? "Drop your content here" : "Drop your lecture/video here"}</strong>
-                <span>{activeTab === "content" ? "PDF or Image • Click or drag to upload" : "Video, Audio, PDF, or Image • Click or drag to upload"}</span>
-              </label>
-
-              <p className="selectionHint">Current selection: {currentContentKind === "document" ? "Document" : currentContentKind === "video" ? "Lecture" : "None"}</p>
-
-              <div className="metaGrid">
-                <input placeholder="Name of the content" value={contentName} onChange={(e) => setContentName(e.target.value)} />
-                <input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
-                <input placeholder="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} />
-                <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-                <input placeholder="Duration (minutes)" value={duration} onChange={(e) => setDuration(e.target.value)} />
-                <select value={publishStatus} onChange={(e) => setPublishStatus(e.target.value)}>
-                  <option>Publish to students</option>
-                  <option>Draft</option>
-                </select>
-              </div>
-
-              <div className="actionRow">
-                <button onClick={processLecture} disabled={loading || !currentLectureId} className="primary">
-                  {loading ? "Working..." : activeTab === "content" ? "Process Content" : "Process Lecture"}
-                </button>
-                <button onClick={() => deleteLecture()} disabled={!currentLectureId} className="dangerGhost">
-                  Delete Current
-                </button>
-              </div>
-
-              {progress.lectureId === currentLectureId && !progress.done && (
-                <div className="progressWrap">
-                  <div className="progressTop">
-                    <span>{progress.stage}</span>
-                    <span>{progress.percent}%</span>
+              {activeTab === "content" && contentMode === "chat" ? (
+                <div className="contentChatShell">
+                  <div className="chatIntro">
+                    <div>
+                      <div className="fieldLabel">RAG OUTPUT</div>
+                      <h3>{pendingContentFile?.name || contentName || "Processed content"}</h3>
+                    </div>
+                    <button onClick={resetContentFlow} className="dangerGhost">Done</button>
                   </div>
-                  <div className="track"><div className="fill" style={{ width: `${progress.percent}%` }} /></div>
+
+                  <div className="parserOutputPanel">
+                    <div className="sectionMiniTitle">Parsed content extracted from the file</div>
+                    <pre className="parserOutput">{processedContentOutput}</pre>
+                  </div>
+
+                  <div className="chatPanel">
+                    <div className="sectionMiniTitle">Ask questions about this file</div>
+                    <div className="chatHistory">
+                      {chatMessages.map((msg, idx) => (
+                        <div key={idx} className={`chatBubble ${msg.role}`}>
+                          <span>{msg.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="chatComposer">
+                      <input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask about key concepts, formulas, or specific sections..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void sendContentChat();
+                          }
+                        }}
+                        disabled={loading}
+                      />
+                      <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim()}>
+                        {loading ? "Thinking..." : "Send"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <p>Drop/select file, edit optional fields, then click {activeTab === "content" ? "Process Content" : "Process Lecture"}.</p>
+
+                  <div className="fieldLabel">{activeTab === "content" ? "CONTENT FILE" : "LECTURE FILE"}</div>
+
+                  <label
+                    className={`dropzone ${dragActive ? "dragActive" : ""}`}
+                    onDrop={onDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+                    onDragLeave={() => setDragActive(false)}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,.mp4,.mov,.mkv,.mp3,.wav,.m4a,.flac,.png,.jpg,.jpeg,.webp"
+                      onChange={onUpload}
+                      disabled={loading}
+                    />
+                    <strong>{activeTab === "content" ? "Drop your content here" : "Drop your lecture/video here"}</strong>
+                    <span>{activeTab === "content" ? "PDF or Image • Click or drag to upload" : "Video, Audio, PDF, or Image • Click or drag to upload"}</span>
+                  </label>
+
+                  {activeTab === "content" && pendingContentFile && (
+                    <div className="selectedFileChip" title={pendingContentFile.name}>
+                      <button type="button" className="fileRemoveBtn" onClick={clearPendingContentFile} aria-label="Remove selected file">
+                        ×
+                      </button>
+                      <span className="fileIcon" aria-hidden="true">📄</span>
+                      <span className="fileName">{pendingContentFile.name}</span>
+                    </div>
+                  )}
+
+                  <div className="metaGrid">
+                    <input placeholder="Name of the content" value={contentName} onChange={(e) => setContentName(e.target.value)} />
+                    <input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                    <input placeholder="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} />
+                    <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+                    {activeTab !== "content" && <input placeholder="Duration (minutes)" value={duration} onChange={(e) => setDuration(e.target.value)} />}
+                    {activeTab !== "content" && (
+                      <select value={publishStatus} onChange={(e) => setPublishStatus(e.target.value)}>
+                        <option>Publish to students</option>
+                        <option>Draft</option>
+                      </select>
+                    )}
+                  </div>
+
+                  <div className="actionRow">
+                    <button onClick={processLecture} disabled={loading || (activeTab === "content" ? !pendingContentFile && !currentLectureId : !currentLectureId)} className="primary">
+                      {loading ? "Working..." : activeTab === "content" ? "Process Content" : "Process Lecture"}
+                    </button>
+                  </div>
+
+                  {progress.lectureId === currentLectureId && !progress.done && (
+                    <div className="progressWrap">
+                      <div className="progressTop">
+                        <span>{progress.stage}</span>
+                        <span>{progress.percent}%</span>
+                      </div>
+                      <div className="track"><div className="fill" style={{ width: `${progress.percent}%` }} /></div>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </>
@@ -377,7 +582,7 @@ export default function TeacherStudioPage() {
 
             {activeTab === "content" && (
               <>
-                <div className="sectionHead" style={{ marginTop: 24 }}><h2>Documents</h2></div>
+                <div className="sectionHead" style={{ marginTop: 24 }}><h2>My documents</h2></div>
                 <div className="grid">
                   {teacherDocuments.map((c) => (
                     <article key={c.lecture_id} className="courseCard documentCard">
@@ -522,6 +727,52 @@ export default function TeacherStudioPage() {
         .uploadPanel h2 { margin: 0 0 4px; font-size: 38px; }
         .uploadPanel p { margin: 0 0 14px; color: #5f5951; }
         .fieldLabel { margin: 0 0 10px; font-size: 13px; letter-spacing: .15em; color: #61584d; font-weight: 700; }
+        .contentChatShell { display: grid; gap: 14px; }
+        .chatIntro { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+        .chatIntro h3 { margin: 2px 0 0; font-size: 26px; }
+        .sectionMiniTitle { margin-bottom: 10px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #756b61; font-weight: 700; }
+        .parserOutputPanel, .chatPanel { border: 1px solid #e5dfd7; border-radius: 16px; background: #fff; padding: 14px; }
+        .parserOutput { margin: 0; max-height: 240px; overflow: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.55; color: #1f1a16; }
+        .chatHistory { display: grid; gap: 10px; max-height: 320px; overflow: auto; padding-right: 4px; margin-bottom: 12px; }
+        .chatBubble { display: flex; }
+        .chatBubble span { max-width: min(88%, 760px); border-radius: 16px; padding: 10px 12px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+        .chatBubble.user { justify-content: flex-end; }
+        .chatBubble.user span { background: #1f1a16; color: #fff; }
+        .chatBubble.assistant span { background: #f2ede7; color: #1f1a16; }
+        .chatComposer { display: flex; gap: 10px; align-items: center; }
+        .chatComposer input { flex: 1; border: 1px solid #ddd7cf; border-radius: 12px; background: #fff; padding: 12px 14px; font-size: 14px; }
+        .selectedFileChip {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          margin: 0 0 14px;
+          padding: 10px 12px;
+          border: 1px solid #ddd7cf;
+          border-radius: 999px;
+          background: #fff;
+          max-width: 100%;
+        }
+        .fileRemoveBtn {
+          width: 24px;
+          height: 24px;
+          border: 0;
+          border-radius: 999px;
+          background: #f3ece6;
+          color: #6e6458;
+          font-size: 18px;
+          line-height: 1;
+          cursor: pointer;
+          flex: 0 0 auto;
+        }
+        .fileRemoveBtn:hover { background: #e9dfd6; color: #1f1a16; }
+        .fileIcon { font-size: 16px; flex: 0 0 auto; }
+        .fileName {
+          font-size: 14px;
+          color: #1f1a16;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
 
         .dropzone { display: grid; place-items: center; text-align: center; border: 1px dashed #bfb8af; border-radius: 16px; padding: 34px; background: #f7f5f2; cursor: pointer; margin-bottom: 14px; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
         .dropzone.dragActive { border-color: #171310; background: #efebe6; transform: scale(1.01); }

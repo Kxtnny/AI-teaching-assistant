@@ -9,6 +9,8 @@ import { writeFile, unlink } from "fs/promises";
 import OpenAI from "openai";
 import ollama from "ollama";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { Document } from "@langchain/core/documents";
+import { getVectorStore } from "@/lib/vectorStore";
 
 type Action =
   | "upload"
@@ -655,6 +657,50 @@ async function visionExtractFromImages(imagePaths: string[]) {
   await Promise.all(workers);
   return results.join("\n\n");
 }
+async function indexContentChunksToVectorStore(params: {
+  lectureId: string;
+  fileName: string;
+  fileType: string;
+  parserModel: string;
+  contentKind: ContentKind;
+  parserOutput: string;
+  chunks: string[];
+}) {
+  const vectorStore = await getVectorStore();
+  const docs = params.chunks.map((text, chunkIndex) => new Document({
+    pageContent: text,
+    metadata: {
+      lectureId: params.lectureId,
+      fileName: params.fileName,
+      fileType: params.fileType,
+      parserModel: params.parserModel,
+      contentKind: params.contentKind,
+      source: "teacher-upload-chunk",
+      chunkIndex,
+      uploadDate: new Date().toISOString(),
+    },
+  }));
+
+  if (params.parserOutput.trim()) {
+    docs.push(new Document({
+      pageContent: `File parser output (${params.parserModel}) for ${params.fileName}:\n\n${params.parserOutput}`,
+      metadata: {
+        lectureId: params.lectureId,
+        fileName: params.fileName,
+        fileType: params.fileType,
+        parserModel: params.parserModel,
+        contentKind: params.contentKind,
+        source: "teacher-upload-summary",
+        chunkIndex: -1,
+        uploadDate: new Date().toISOString(),
+      },
+    }));
+  }
+
+  if (docs.length) {
+    await vectorStore.addDocuments(docs);
+  }
+}
 async function ollamaText(prompt: string, model = OLLAMA_TEXT_MODEL) {
   const res = await ollama.chat({
     model,
@@ -840,6 +886,7 @@ export async function POST(req: NextRequest) {
         let extractedText = "";
         let visualText = "";
         let notesText = "";
+        let parserOutput = "";
 
         if (PDF_EXTS.has(ext)) {
           await setProgress({ stage: "extracting PDF text", percent: 35 });
@@ -864,10 +911,12 @@ export async function POST(req: NextRequest) {
             notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
             visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
           ].filter(Boolean).join("\n\n");
+          parserOutput = extractedText;
         } else if (IMAGE_EXTS.has(ext)) {
           await setProgress({ stage: "reading image notes (vision)", percent: 45 });
           visualText = await visionExtractFromImages([lecture.original_path]);
           extractedText = visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "";
+          parserOutput = visualText;
         } else {
           return NextResponse.json({ error: `Unsupported file type for document processing: ${ext}` }, { status: 400 });
         }
@@ -900,6 +949,16 @@ export async function POST(req: NextRequest) {
         await fsp.writeFile(memoryPath, memory, "utf-8");
         await fsp.writeFile(chunksPath, JSON.stringify(chunks.map((text, i) => ({ chunk_id: i, text })), null, 2), "utf-8");
 
+        await indexContentChunksToVectorStore({
+          lectureId,
+          fileName: path.basename(lecture.original_path),
+          fileType: path.extname(lecture.original_path).toLowerCase(),
+          parserModel: OLLAMA_VISION_MODEL,
+          contentKind: "document",
+          parserOutput,
+          chunks,
+        });
+
         const updated = await patchByHash(lecture.file_hash, {
           transcript_path: transcriptPath,
           summary_path: summaryPath,
@@ -918,6 +977,7 @@ export async function POST(req: NextRequest) {
           summary,
           memory,
           chunks,
+          parserOutput,
           sources_used: {
             pdf: !!notesText,
             vision: !!visualText,
@@ -1074,22 +1134,38 @@ export async function POST(req: NextRequest) {
 
       const lib = await loadLibrary();
       const lecture = lib.find((x) => x.lecture_id === lectureId);
-      if (
-        !lecture ||
-        !lecture.memory_path ||
-        !lecture.chunks_path ||
-        !(await fileExists(lecture.memory_path)) ||
-        !(await fileExists(lecture.chunks_path))
-      ) {
+      if (!lecture) {
+        return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
+      }
+
+      let memory = "";
+      if (lecture.memory_path && (await fileExists(lecture.memory_path))) {
+        memory = await fsp.readFile(lecture.memory_path, "utf-8");
+      }
+
+      const vectorStore = await getVectorStore();
+      let retrieved = await vectorStore.similaritySearch(question, 4, { lectureId });
+
+      if (!retrieved.length && lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
+        const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
+        const chunks: string[] = raw.map((x: any) => x.text).filter(Boolean);
+        const top = retrieveTopK(question, chunks, 3);
+        retrieved = top.map((x) => new Document({
+          pageContent: x.text,
+          metadata: { lectureId, chunkIndex: x.i, source: "local-fallback" },
+        }));
+      }
+
+      if (!retrieved.length) {
         return NextResponse.json({ error: "Lecture not processed yet" }, { status: 400 });
       }
 
-      const memory = await fsp.readFile(lecture.memory_path, "utf-8");
-      const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
-      const chunks: string[] = raw.map((x: any) => x.text).filter(Boolean);
-
-      const top = retrieveTopK(question, chunks, 3);
-      const ctx = top.map((x) => `(Chunk ${x.i})\n${x.text}`).join("\n\n---\n\n");
+      const ctx = retrieved
+        .map((doc, index) => {
+          const chunkIndex = typeof doc.metadata?.chunkIndex === "number" ? doc.metadata.chunkIndex : index;
+          return `(Chunk ${chunkIndex})\n${doc.pageContent}`;
+        })
+        .join("\n\n---\n\n");
 
       const messages: ChatMessage[] = [
         { role: "system", content: "You are a helpful tutor grounded in provided lecture context." },
