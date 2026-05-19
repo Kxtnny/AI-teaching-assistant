@@ -320,9 +320,15 @@ export default function TeacherStudioPage() {
     setDeletingId(null);
 
     if (!res?.ok) return alert(res.error || "Delete failed");
-    if (currentLectureId === id) setCurrentLectureId("");
-    if (currentLectureId === id) setCurrentContentKind(null);
-    setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
+    // If the deleted lecture is the one currently in the chat flow, fully reset the content flow
+    if (currentLectureId === id || contentMode === "chat") {
+      resetContentFlow();
+    } else {
+      if (currentLectureId === id) setCurrentLectureId("");
+      if (currentLectureId === id) setCurrentContentKind(null);
+      setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
+    }
+
     await refreshLibrary();
     setStatusMsg("Lecture deleted.");
   }
@@ -531,12 +537,12 @@ export default function TeacherStudioPage() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
-                            void sendContentChat();
+                            if (currentLectureId && contentMode === "chat") void sendContentChat();
                           }
                         }}
-                        disabled={loading}
+                        disabled={loading || !currentLectureId || contentMode !== "chat"}
                       />
-                      <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim()}>
+                      <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim() || !currentLectureId || contentMode !== "chat"}>
                         {loading ? "Thinking..." : "Send"}
                       </button>
                     </div>
