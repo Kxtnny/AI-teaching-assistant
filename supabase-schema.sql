@@ -29,12 +29,13 @@ create index on documents using ivfflat (embedding vector_cosine_ops)
   with (lists = 100);
 
 -- Create the match_documents function for similarity search
+-- Note: return id as text to support either bigint or uuid primary keys.
 create or replace function match_documents (
-  filter jsonb default '{}',
-  match_count int default 5,
+  filter jsonb,
+  match_count int,
   query_embedding vector(768)
 ) returns table (
-  id bigint,
+  id text,
   content text,
   metadata jsonb,
   similarity float
@@ -44,7 +45,7 @@ as $$
 begin
   return query
   select
-    documents.id,
+    documents.id::text,
     documents.content,
     documents.metadata,
     1 - (documents.embedding <=> query_embedding) as similarity

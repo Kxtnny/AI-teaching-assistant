@@ -1,22 +1,21 @@
-Here is the extracted content transformed into a clean study brief:
+Here is the extracted content rewritten as a clean study brief:
 
 **Summary**
 
-* The course "Bachelor of Computing (Computer Science)" has a total of 47 AU.
-* The curriculum includes Core, Foundational, and Major Prescribed Elective courses.
-* Students must complete a Final Year Project to be eligible for Highest Distinction.
-* The program requires 9 Major Prescribed Elective (MPE) courses, including at least 4 Broadening and Deepening Electives.
+• Bachelor of Computing (Computer Science) is a 3-year degree program.
+• The program has various core courses, foundational courses, and major prescribed electives.
+• Students are required to complete 9 MPE courses in Year 4, including at least 4 Broadening and Deepening Electives.
+• Final Year Project (FYP) is an essential component of the program.
 
 **Key Terms**
 
-AU, SC1003F-Core, SC1004Core, MH1812Core, CC0003U-Core, SC2000Core, SC2002Core, SC2001Core, SC2203Core, BDE, MPE, F/Core, ICC, SC3xxx/SC4xxx
+SC1003F-Core, SC1004Core, SC1005Core, MH1812Core, CC0003U-Core, CC0005U_CORE, SC2000Core, SC2002Core, SC1003, SC1008Core, SC1006Core, SC1007Core, SC2001Core, SC2203Core, SC2006Core, SC2008Core, BDE, MPE, F-Core, ICC, Year 3 Standing.
 
 **Important Details**
 
-* **Formulas and Definitions:**
- + Calculus (Linear Algebra for Computing)
- + Probability & Statistics for Computing
- + Discrete Mathematics
- + Computer Organisation & Architecture
-* 
- + Final Year Project (FYP) - Students must complete a FYP to be eligible for Highest Distinction.
+* Formula/Definition/Diagram/Takeaway:
+  • The program requires 9 MPE courses in Year 4, including at least 4 Broadening and Deepening Electives.
+  • Students must complete a Final Year Project (FYP) to be eligible for Highest Distinction.
+  • The program has various core courses, foundational courses, and major prescribed electives.
+
+Note: Please refer to the CSC MPE Courses and Specialization on CCDS website for more information.

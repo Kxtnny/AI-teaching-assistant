@@ -17,6 +17,7 @@ type Action =
   | "upload"
   | "process"
   | "progress"
+  | "healthCheck"
   | "load"
   | "chat"
   | "mcq"
@@ -1019,6 +1020,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, progress: defaultProgress });
     }
 
+    if (action === "healthCheck") {
+      let vectorRpcOk = false;
+      let vectorRpcError: string | null = null;
+
+      try {
+        const vectorStore = await getVectorStore();
+        // Use a non-existent lecture filter to avoid exposing content while still validating RPC wiring.
+        await vectorStore.similaritySearch("health check", 1, { lectureId: "__healthcheck__" });
+        vectorRpcOk = true;
+      } catch (err: any) {
+        vectorRpcError = normalizeInsertionErrorMessage(err);
+      }
+
+      return NextResponse.json(
+        {
+          ok: vectorRpcOk,
+          checks: {
+            vectorRpcOk,
+            vectorRpcError,
+          },
+        },
+        { status: vectorRpcOk ? 200 : 503 }
+      );
+    }
+
     if (action === "load") {
       const lib = await loadLibrary();
 
@@ -1149,7 +1175,7 @@ export async function POST(req: NextRequest) {
           lectureId,
           fileName: path.basename(lecture.original_path),
           fileType: path.extname(lecture.original_path).toLowerCase(),
-          parserModel: OLLAMA_VISION_MODEL,
+          parserModel: visionModel,
           contentKind: "document",
           parserOutput,
           chunks,
@@ -1367,35 +1393,57 @@ export async function POST(req: NextRequest) {
         }
       };
 
-      // Prefer LLM-generated summaries/captions for higher-quality retrieval, fall back to raw chunks
-      let retrieved = await trySimilaritySearch({ lectureId, source: "teacher-upload-llm-summary" }, 4);
-      if (!retrieved.length) retrieved = await trySimilaritySearch({ lectureId, source: "teacher-upload-caption" }, 4);
-      if (!retrieved.length) retrieved = await trySimilaritySearch({ lectureId }, 6);
+      // Hybrid retrieval: combine vector matches with lexical local chunk matches, then rerank.
+      const vectorCandidates: Document[] = [];
+      vectorCandidates.push(...await trySimilaritySearch({ lectureId, source: "teacher-upload-llm-summary" }, 3));
+      vectorCandidates.push(...await trySimilaritySearch({ lectureId, source: "teacher-upload-caption" }, 3));
+      vectorCandidates.push(...await trySimilaritySearch({ lectureId }, 6));
 
-      if (!retrieved.length && lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
+      let localCandidates: Document[] = [];
+      if (lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
         const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
         const chunks: string[] = raw.map((x: any) => x.text).filter(Boolean);
-        const top = retrieveTopK(question, chunks, 3);
-        retrieved = top.map((x) => new Document({
+        const top = retrieveTopK(question, chunks, 4);
+        localCandidates = top.map((x) => new Document({
           pageContent: x.text,
-          metadata: { lectureId, chunkIndex: x.i, source: "local-fallback" },
+          metadata: { lectureId, chunkIndex: x.i, source: "local-lexical" },
         }));
       }
 
-      if (!retrieved.length && lecture.description_path && (await fileExists(lecture.description_path))) {
+      const dedupe = new Set<string>();
+      const retrieved = [...vectorCandidates, ...localCandidates]
+        .filter((doc) => {
+          const key = String(doc.pageContent || "").replace(/\s+/g, " ").trim().slice(0, 240);
+          if (!key || dedupe.has(key)) return false;
+          dedupe.add(key);
+          return true;
+        })
+        .map((doc) => {
+          const lexicalScore = scoreChunk(question, doc.pageContent || "");
+          const source = String(doc.metadata?.source || "");
+          const sourceBoost = source === "local-lexical" || source === "teacher-upload-chunk" ? 0.75 : 0;
+          return { doc, score: lexicalScore + sourceBoost };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 6)
+        .map((x) => x.doc);
+
+      let finalRetrieved = retrieved;
+
+      if (!finalRetrieved.length && lecture.description_path && (await fileExists(lecture.description_path))) {
         const description = await fsp.readFile(lecture.description_path, "utf-8");
-        retrieved = [new Document({
+        finalRetrieved = [new Document({
           pageContent: description,
           metadata: { lectureId, source: "local-description-fallback", chunkIndex: -1 },
         })];
         retrievalNotice = retrievalNotice || "Vector search unavailable, using the saved document description as fallback context.";
       }
 
-      if (!retrieved.length) {
+      if (!finalRetrieved.length) {
         return NextResponse.json({ error: "Lecture not processed yet" }, { status: 400 });
       }
 
-      const ctx = retrieved
+      const ctx = finalRetrieved
         .map((doc, index) => {
           const chunkIndex = typeof doc.metadata?.chunkIndex === "number" ? doc.metadata.chunkIndex : index;
           return `(Chunk ${chunkIndex})\n${doc.pageContent}`;
