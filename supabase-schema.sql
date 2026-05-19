@@ -30,9 +30,9 @@ create index on documents using ivfflat (embedding vector_cosine_ops)
 
 -- Create the match_documents function for similarity search
 create or replace function match_documents (
-  query_embedding vector(768),
+  filter jsonb default '{}',
   match_count int default 5,
-  filter jsonb default '{}'
+  query_embedding vector(768)
 ) returns table (
   id bigint,
   content text,

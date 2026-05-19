@@ -44,6 +44,11 @@ export default function TeacherStudioPage() {
   const [pendingContentFile, setPendingContentFile] = useState<File | null>(null);
   const [contentMode, setContentMode] = useState<"upload" | "chat">("upload");
   const [processedContentOutput, setProcessedContentOutput] = useState("");
+  const [rawContent, setRawContent] = useState("");
+  const [indexingOk, setIndexingOk] = useState<boolean | null>(null);
+  const [indexingError, setIndexingError] = useState<string | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
+  const [retrievalNotice, setRetrievalNotice] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
@@ -165,95 +170,90 @@ export default function TeacherStudioPage() {
   }
 
   async function processLecture() {
-    if (activeTab === "content") {
-      // If we're in content mode and there's a pending file, switch to chat view immediately
-      if (!currentLectureId && !pendingContentFile) return alert("Upload/select content first.");
+    let lectureId = currentLectureId;
+
+    if (activeTab === "content" && !lectureId) {
+      if (!pendingContentFile) return alert("Upload/select content first.");
 
       setContentMode("chat");
-      // initialize progress UI for upload
-      setProgress({ lectureId: null, stage: "uploading", percent: 0, done: false });
-      setStatusMsg("Uploading...");
-
-      let lectureIdToProcess = currentLectureId;
-
-      if (!currentLectureId && pendingContentFile) {
-        // upload via XHR to get progress events
-        try {
-          setLoading(true);
-          const uploadRes = await new Promise<any>((resolve, reject) => {
-            const fd = new FormData();
-            fd.append("action", "upload");
-            fd.append("file", pendingContentFile as File);
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", "/api/teacher-lecture");
-            xhr.upload.onprogress = (ev) => {
-              if (ev.lengthComputable) {
-                const pct = Math.round((ev.loaded / ev.total) * 100);
-                setProgress((p) => ({ ...p, stage: "uploading", percent: pct, done: false }));
-              }
-            };
-            xhr.onload = () => {
-              try {
-                const json = JSON.parse(xhr.responseText);
-                if (!json?.ok) return reject(new Error(json?.error || 'Upload failed'));
-                resolve(json);
-              } catch (e) {
-                reject(e);
-              }
-            };
-            xhr.onerror = () => reject(new Error('Upload network error'));
-            xhr.send(fd);
-          });
-
-          lectureIdToProcess = uploadRes.lecture?.lecture_id;
-          setCurrentLectureId(lectureIdToProcess || "");
-          setCurrentContentKind(uploadRes.lecture?.content_kind === "document" ? "document" : "video");
-          setStatusMsg("Upload complete. Processing will start...");
-        } catch (err: any) {
-          setLoading(false);
-          setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
-          return alert(err?.message || "Upload failed");
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      // start polling using lecture id if available
-      if (lectureIdToProcess) startPolling(lectureIdToProcess);
-
-      // now trigger processing on server
       setLoading(true);
-      setProgress((p) => ({ ...p, stage: "starting", percent: 1, done: false }));
-      setStatusMsg("Processing started...");
-      const res = await api("process", { lectureId: lectureIdToProcess, language: "en" });
+      setProgress({
+        lectureId: null,
+        stage: "uploading content",
+        percent: 1,
+        done: false,
+      });
+      setStatusMsg("Uploading content...");
+
+      const uploadRes = await uploadFile(pendingContentFile, { silent: true });
       setLoading(false);
 
-      if (!res?.ok) {
-        stopPolling();
+      if (!uploadRes?.ok) {
         setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
-        return alert(res.error || "Processing failed");
-      }
-
-      await refreshLibrary();
-      stopPolling();
-      setProgress({ lectureId: lectureIdToProcess || null, stage: "completed", percent: 100, done: true });
-      if (activeTab === "content") {
-        setContentMode("chat");
-        setProcessedContentOutput(
-          res.parserOutput || res.transcript || res.summary || res.memory || "Processing completed, but no parser output was returned."
-        );
-        setChatMessages([
-          {
-            role: "assistant",
-            content:
-              "The content is indexed and ready for questions. Ask anything about the uploaded file, and I will answer using the parsed material.",
-          },
-        ]);
-        setStatusMsg("Content processed, indexed in RAG, and ready for chat.");
         return;
       }
 
-      setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
+      lectureId = uploadRes.lecture.lecture_id;
+      setCurrentLectureId(lectureId);
+      setCurrentContentKind(uploadRes.lecture?.content_kind === "document" ? "document" : "video");
+      setProgress({
+        lectureId,
+        stage: "uploaded",
+        percent: 14,
+        done: false,
+      });
+    }
+
+    if (!lectureId) return alert("Upload/select lecture first.");
+
+    setLoading(true);
+    setProgress({
+      lectureId,
+      stage: "starting",
+      percent: activeTab === "content" ? 18 : 1,
+      done: false,
+    });
+    setStatusMsg("Processing started...");
+    startPolling(lectureId);
+
+    const res = await api("process", { lectureId, language: "en" });
+    setLoading(false);
+
+    if (!res?.ok) {
+      stopPolling();
+      setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
+      return alert(res.error || "Processing failed");
+    }
+
+    await refreshLibrary();
+    stopPolling();
+    setProgress({
+      lectureId,
+      stage: "completed",
+      percent: 100,
+      done: true,
+    });
+    if (activeTab === "content") {
+      setContentMode("chat");
+      setProcessedContentOutput(
+        res.parserOutput || res.transcript || res.summary || res.memory || "Processing completed, but no parser output was returned."
+      );
+      setRawContent(res.transcript || (res.chunks ? (Array.isArray(res.chunks) ? res.chunks.join("\n\n---\n\n") : String(res.chunks)) : ""));
+      setIndexingOk(res.indexing_ok === undefined ? null : Boolean(res.indexing_ok));
+      setIndexingError(res.indexing_error || null);
+      setRetrievalNotice(null);
+      setChatMessages([
+        {
+          role: "assistant",
+          content:
+            "The content is indexed and ready for questions. Ask anything about the uploaded file, and I will answer using the parsed material.",
+        },
+      ]);
+      setStatusMsg("Content processed, indexed in RAG, and ready for chat.");
+      return;
+    }
+
+    setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
   }
 
   async function sendContentChat() {
@@ -278,6 +278,7 @@ export default function TeacherStudioPage() {
         return;
       }
 
+      setRetrievalNotice(res.retrieval_notice || null);
       setChatMessages([...nextMessages, { role: "assistant", content: res.reply || "No response returned." }]);
     } finally {
       setLoading(false);
@@ -292,6 +293,7 @@ export default function TeacherStudioPage() {
     setProcessedContentOutput("");
     setChatInput("");
     setChatMessages([]);
+    setRetrievalNotice(null);
     setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
     setStatusMsg("Ready for another content upload.");
   }
@@ -303,6 +305,7 @@ export default function TeacherStudioPage() {
     setProcessedContentOutput("");
     setChatMessages([]);
     setChatInput("");
+    setRetrievalNotice(null);
     setContentMode("upload");
     setStatusMsg("Ready for a content upload.");
   }
@@ -440,6 +443,16 @@ export default function TeacherStudioPage() {
               <h2>{activeTab === "content" ? "Upload content" : "Upload a lecture"}</h2>
               {activeTab === "content" && contentMode === "chat" ? (
                 <div className="contentChatShell">
+                  {!progress.done && progress.stage !== "idle" && (
+                    <div className="progressWrap contentProgressWrap">
+                      <div className="progressTop">
+                        <span>{progress.stage}</span>
+                        <span>{progress.percent}%</span>
+                      </div>
+                      <div className="track"><div className="fill" style={{ width: `${progress.percent}%` }} /></div>
+                    </div>
+                  )}
+
                   <div className="chatIntro">
                     <div>
                       <div className="fieldLabel">RAG OUTPUT</div>
@@ -448,9 +461,57 @@ export default function TeacherStudioPage() {
                     <button onClick={resetContentFlow} className="dangerGhost">Done</button>
                   </div>
 
+                  {indexingOk === false && (
+                    <div className="indexingWarning">
+                      <strong>Indexing warning:</strong> The content was processed but indexing to the vector store failed.
+                      {indexingError ? ` (${indexingError})` : ""}
+                      <div style={{ marginTop: 8 }}>
+                        <button className="primary" onClick={async () => {
+                          setLoading(true);
+                          try {
+                            const res = await api("retryIndex", { lectureId: currentLectureId });
+                            if (res?.ok) {
+                              setIndexingOk(true);
+                              setIndexingError(null);
+                              setStatusMsg("Indexing retried and succeeded.");
+                            } else {
+                              setIndexingOk(false);
+                              setIndexingError(res?.error || "Retry failed");
+                              setStatusMsg("Indexing retry failed.");
+                              alert("Indexing retry failed: " + (res?.error || "unknown"));
+                            }
+                          } catch (e: any) {
+                            setIndexingOk(false);
+                            setIndexingError(String(e?.message || e));
+                            alert("Indexing retry error: " + String(e?.message || e));
+                          } finally {
+                            setLoading(false);
+                          }
+                        }} disabled={loading || !currentLectureId}>
+                          {loading ? "Retrying..." : "Retry indexing"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {retrievalNotice && (
+                    <div className="retrievalNotice">
+                      <strong>Search notice:</strong> {retrievalNotice}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                    <div style={{ color: '#6b645b', fontSize: 13 }} />
+                    <div>
+                      <button className="dangerGhost" onClick={() => setShowRaw((s) => !s)} style={{ marginRight: 8 }}>
+                        {showRaw ? "Show summary" : "Show raw text"}
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="parserOutputPanel">
-                    <div className="sectionMiniTitle">Parsed content extracted from the file</div>
-                    <pre className="parserOutput">{processedContentOutput}</pre>
+                    <div className="sectionMiniTitle">Document description</div>
+                    <pre className="parserOutput">{showRaw ? rawContent || processedContentOutput : processedContentOutput}</pre>
                   </div>
 
                   <div className="chatPanel">
@@ -732,6 +793,8 @@ export default function TeacherStudioPage() {
         .chatIntro h3 { margin: 2px 0 0; font-size: 26px; }
         .sectionMiniTitle { margin-bottom: 10px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #756b61; font-weight: 700; }
         .parserOutputPanel, .chatPanel { border: 1px solid #e5dfd7; border-radius: 16px; background: #fff; padding: 14px; }
+        .indexingWarning { border: 1px solid #f5c6cb; background: #fff1f2; color: #6b1b1b; padding: 8px 12px; border-radius: 10px; margin-top: 8px; font-size: 13px; }
+        .retrievalNotice { border: 1px solid #d6d0c8; background: #f8f6f2; color: #5d5349; padding: 8px 12px; border-radius: 10px; margin-top: 8px; font-size: 13px; }
         .parserOutput { margin: 0; max-height: 240px; overflow: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.55; color: #1f1a16; }
         .chatHistory { display: grid; gap: 10px; max-height: 320px; overflow: auto; padding-right: 4px; margin-bottom: 12px; }
         .chatBubble { display: flex; }

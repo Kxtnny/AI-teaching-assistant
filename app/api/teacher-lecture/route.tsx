@@ -11,6 +11,7 @@ import ollama from "ollama";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document } from "@langchain/core/documents";
 import { getVectorStore } from "@/lib/vectorStore";
+import { supabase } from "@/lib/supabase";
 
 type Action =
   | "upload"
@@ -22,7 +23,8 @@ type Action =
   | "tf"
   | "derivation"
   | "deleteLecture"
-  | "deleteAll";
+  | "deleteAll"
+  | "retryIndex";
 
 type CreatorType = "teacher";
 type ContentKind = "video" | "document";
@@ -40,6 +42,7 @@ interface LectureEntry {
   original_path: string | null;
   audio_path: string | null;
   transcript_path: string | null;
+  description_path: string | null;
   summary_path: string | null;
   memory_path: string | null;
   chunks_path: string | null;
@@ -398,6 +401,10 @@ function shortenForLLM(text: string, maxChars = 20000) {
   const tail = t.slice(-(maxChars / 2));
   return `${h}\n\n[...TRUNCATED...]\n\n${tail}`;
 }
+function normalizeInsertionErrorMessage(error: unknown) {
+  const message = String(error instanceof Error ? error.message : error || "unknown error");
+  return message.replace(/^Error inserting:\s*/i, "");
+}
 function buildSummaryPrompt(transcript: string) {
   return `You are helping a student learn from multi-modal lecture content.
 Task:
@@ -455,6 +462,26 @@ LECTURE MEMORY:
 
 Extracted Content:
 ${content}`;
+}
+function buildDocumentDescriptionPrompt(pages: Array<{ label: string; content: string }>) {
+  const serializedPages = pages
+    .map((page) => `[${page.label}]\n${shortenForLLM(page.content, 5000)}`)
+    .join("\n\n---\n\n");
+
+  return `You are writing a detailed reading guide for a student.
+Create a structured description that starts with a whole-document summary and then goes page by page in order from top to bottom.
+
+Rules:
+- Start with the heading "Document Summary:".
+- Write 4 to 6 concise bullet sentences summarizing the whole document.
+- Then write one section per page using the heading "Page X:".
+- For each page, describe the content from top to bottom.
+- Mention headings, diagrams, tables, formulas, labels, and any visually important items.
+- Keep the language concrete and factual.
+- Do not add commentary about missing information.
+
+Input pages:
+${serializedPages}`;
 }
 function mcqPrompt(memory: string, context: string[], n = 5) {
   return `Create exactly ${n} MCQs from lecture only. Return strict JSON list.
@@ -583,12 +610,22 @@ async function convertPdfToImages(pdfPath: string, outDir: string) {
   return files;
 }
 async function extractPdfTextWithLoader(pdfPath: string): Promise<string> {
+  const pages = await extractPdfPagesWithLoader(pdfPath);
+  return pages.map((p) => p.pageContent).join("\n\n").trim();
+}
+
+async function extractPdfPagesWithLoader(pdfPath: string): Promise<Array<{ pageNumber: number; pageContent: string }>> {
   const buffer = await fsp.readFile(pdfPath);
   const hash = crypto.createHash("sha1").update(buffer).digest("hex");
 
   const cache = globalForPdf.pdfTextCache!;
   const cached = cache.get(hash);
-  if (cached) return cached;
+  if (cached) {
+    return cached
+      .split("\n\n---PAGE---\n\n")
+      .map((pageContent, index) => ({ pageNumber: index + 1, pageContent }))
+      .filter((page) => page.pageContent.trim());
+  }
 
   const tempDir = path.join(tmpdir(), "teacher-pdf");
   await ensureDir(tempDir);
@@ -598,10 +635,12 @@ async function extractPdfTextWithLoader(pdfPath: string): Promise<string> {
   try {
     const loader = new PDFLoader(tempPath);
     const docs = await loader.load();
-    const text = docs.map((d) => d.pageContent).join("\n\n").trim();
-    const trimmed = text.slice(0, 120000);
-    if (trimmed) upsertPdfCache(hash, trimmed);
-    return trimmed;
+    const pages = docs
+      .map((d, index) => ({ pageNumber: index + 1, pageContent: String(d.pageContent || "").trim().slice(0, 20000) }))
+      .filter((page) => page.pageContent);
+    const serialised = pages.map((page) => page.pageContent).join("\n\n---PAGE---\n\n");
+    if (serialised) upsertPdfCache(hash, serialised);
+    return pages;
   } finally {
     try { await unlink(tempPath); } catch {}
   }
@@ -657,6 +696,48 @@ async function visionExtractFromImages(imagePaths: string[]) {
   await Promise.all(workers);
   return results.join("\n\n");
 }
+async function visionExtractFromImagesDetailed(imagePaths: string[]) {
+  const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
+  const concurrency = Number(process.env.VISION_CONCURRENCY || 2);
+  const perImageTimeoutMs = Number(process.env.VISION_TIMEOUT_MS || 20000);
+
+  const limited = imagePaths.slice(0, maxFrames);
+  const results: Array<{ label: string; content: string }> = [];
+  if (!limited.length) return results;
+
+  async function processOne(imgPath: string, idx: number) {
+    try {
+      const b64 = await fsp.readFile(imgPath, { encoding: "base64" });
+      const res = await withTimeout(
+        ollama.chat({
+          model: OLLAMA_VISION_MODEL,
+          messages: [{
+            role: "user",
+            content: "Describe this page from top to bottom in complete sentences. Mention headings, diagrams, tables, formulas, labels, and any key visual structure. Keep the description factual and detailed.",
+            images: [b64],
+          }],
+        }),
+        perImageTimeoutMs,
+        `Vision page ${idx + 1}`
+      );
+      const txt = String(res?.message?.content || "").trim();
+      if (txt) results.push({ label: `Page ${idx + 1}`, content: txt });
+    } catch (err: any) {
+      console.warn(`[VISION] page ${idx + 1} skipped: ${err?.message || err}`);
+    }
+  }
+
+  let cursor = 0;
+  const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
+    while (cursor < limited.length) {
+      const i = cursor++;
+      await processOne(limited[i], i);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
 async function indexContentChunksToVectorStore(params: {
   lectureId: string;
   fileName: string;
@@ -666,39 +747,138 @@ async function indexContentChunksToVectorStore(params: {
   parserOutput: string;
   chunks: string[];
 }) {
-  const vectorStore = await getVectorStore();
-  const docs = params.chunks.map((text, chunkIndex) => new Document({
-    pageContent: text,
-    metadata: {
-      lectureId: params.lectureId,
-      fileName: params.fileName,
-      fileType: params.fileType,
-      parserModel: params.parserModel,
-      contentKind: params.contentKind,
-      source: "teacher-upload-chunk",
-      chunkIndex,
-      uploadDate: new Date().toISOString(),
-    },
-  }));
-
-  if (params.parserOutput.trim()) {
-    docs.push(new Document({
-      pageContent: `File parser output (${params.parserModel}) for ${params.fileName}:\n\n${params.parserOutput}`,
+  try {
+    const vectorStore = await getVectorStore();
+    const docs = params.chunks.map((text, chunkIndex) => new Document({
+      pageContent: text,
       metadata: {
         lectureId: params.lectureId,
         fileName: params.fileName,
         fileType: params.fileType,
         parserModel: params.parserModel,
         contentKind: params.contentKind,
-        source: "teacher-upload-summary",
-        chunkIndex: -1,
+        source: "teacher-upload-chunk",
+        chunkIndex,
         uploadDate: new Date().toISOString(),
       },
     }));
-  }
 
-  if (docs.length) {
-    await vectorStore.addDocuments(docs);
+    // Index the raw parser output as a summary doc as before
+    if (params.parserOutput.trim()) {
+      docs.push(new Document({
+        pageContent: `File parser output (${params.parserModel}) for ${params.fileName}:\n\n${params.parserOutput}`,
+        metadata: {
+          lectureId: params.lectureId,
+          fileName: params.fileName,
+          fileType: params.fileType,
+          parserModel: params.parserModel,
+          contentKind: params.contentKind,
+          source: "teacher-upload-summary",
+          chunkIndex: -1,
+          uploadDate: new Date().toISOString(),
+        },
+      }));
+
+      // Attempt to generate sentence-level page captions and an overall summary for better RAG
+      try {
+        const captionPrompt = buildCaptionPrompt(params.parserOutput);
+        const captionsRaw = await ollamaText(captionPrompt, OLLAMA_TEXT_MODEL);
+        try {
+          const parsed = JSON.parse(captionsRaw);
+          if (Array.isArray(parsed.pages)) {
+            for (const p of parsed.pages) {
+              if (p && p.summary) {
+                docs.push(new Document({
+                  pageContent: String(p.summary),
+                  metadata: {
+                    lectureId: params.lectureId,
+                    fileName: params.fileName,
+                    fileType: params.fileType,
+                    parserModel: params.parserModel,
+                    contentKind: params.contentKind,
+                    source: "teacher-upload-caption",
+                    page: Number(p.page) || -1,
+                    chunkIndex: -1,
+                    uploadDate: new Date().toISOString(),
+                  },
+                }));
+              }
+            }
+          }
+          if (parsed && parsed.overall) {
+            docs.push(new Document({
+              pageContent: String(parsed.overall),
+              metadata: {
+                lectureId: params.lectureId,
+                fileName: params.fileName,
+                fileType: params.fileType,
+                parserModel: params.parserModel,
+                contentKind: params.contentKind,
+                source: "teacher-upload-llm-summary",
+                chunkIndex: -1,
+                uploadDate: new Date().toISOString(),
+              },
+            }));
+          }
+        } catch (e) {
+          // If parsing JSON fails, still index the raw caption text as a helpful doc
+          docs.push(new Document({
+            pageContent: `LLM captions for ${params.fileName}:\n\n${captionsRaw}`,
+            metadata: {
+              lectureId: params.lectureId,
+              fileName: params.fileName,
+              fileType: params.fileType,
+              parserModel: params.parserModel,
+              contentKind: params.contentKind,
+              source: "teacher-upload-llm-summary-raw",
+              chunkIndex: -1,
+              uploadDate: new Date().toISOString(),
+            },
+          }));
+        }
+      } catch (err) {
+        console.warn(`[RAG] Caption generation failed for ${params.fileName}: ${String(err)}`);
+      }
+    }
+
+    if (docs.length) {
+      // Add documents in small batches with retries to avoid large single requests failing
+      const batchSize = Number(process.env.RAG_INDEX_BATCH_SIZE || 8);
+      const maxAttempts = Number(process.env.RAG_INDEX_MAX_ATTEMPTS || 3);
+      let anyFailed = false;
+      let lastErr: any = null;
+
+      for (let i = 0; i < docs.length; i += batchSize) {
+        const batch = docs.slice(i, i + batchSize);
+        let succeeded = false;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            await vectorStore.addDocuments(batch);
+            succeeded = true;
+            break;
+          } catch (err: any) {
+            lastErr = err;
+            console.warn(`[RAG] addDocuments attempt ${attempt} failed for batch ${i}/${docs.length}: ${String(err?.message || err)}`);
+            // exponential backoff
+            await new Promise((res) => setTimeout(res, 250 * attempt));
+          }
+        }
+        if (!succeeded) {
+          anyFailed = true;
+          // continue attempting remaining batches but record failure
+        }
+      }
+
+      if (anyFailed) {
+        throw new Error(`Error inserting: ${normalizeInsertionErrorMessage(lastErr)}`);
+      }
+    }
+    return { ok: true };
+  } catch (error: any) {
+    console.warn(
+      `[RAG] Skipping vector indexing for ${params.fileName}: ${normalizeInsertionErrorMessage(error)}`
+    );
+    return { ok: false, error: `Error inserting: ${normalizeInsertionErrorMessage(error)}` };
   }
 }
 async function ollamaText(prompt: string, model = OLLAMA_TEXT_MODEL) {
@@ -816,6 +996,7 @@ export async function POST(req: NextRequest) {
         original_path: originalPath,
         audio_path: null,
         transcript_path: null,
+        description_path: null,
         summary_path: null,
         memory_path: null,
         chunks_path: null,
@@ -851,6 +1032,9 @@ export async function POST(req: NextRequest) {
         const summary = lecture.summary_path && (await fileExists(lecture.summary_path))
           ? await fsp.readFile(lecture.summary_path, "utf-8")
           : "";
+        const description = lecture.description_path && (await fileExists(lecture.description_path))
+          ? await fsp.readFile(lecture.description_path, "utf-8")
+          : "";
         const memory = lecture.memory_path && (await fileExists(lecture.memory_path))
           ? await fsp.readFile(lecture.memory_path, "utf-8")
           : "";
@@ -861,7 +1045,7 @@ export async function POST(req: NextRequest) {
           chunks = Array.isArray(raw) ? raw.map((x: any) => x.text).filter(Boolean) : [];
         }
 
-        return NextResponse.json({ ok: true, lecture, transcript, summary, memory, chunks });
+        return NextResponse.json({ ok: true, lecture, transcript, summary, description, memory, chunks });
       }
 
       return NextResponse.json({ ok: true, library: lib });
@@ -887,13 +1071,16 @@ export async function POST(req: NextRequest) {
         let visualText = "";
         let notesText = "";
         let parserOutput = "";
+        let descriptionPages: Array<{ label: string; content: string }> = [];
 
         if (PDF_EXTS.has(ext)) {
           await setProgress({ stage: "extracting PDF text", percent: 35 });
 
           try {
             const timeoutMs = Number(process.env.PDF_TEXT_TIMEOUT_MS || 20000);
-            notesText = await withTimeout(extractPdfTextWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
+            const pages = await withTimeout(extractPdfPagesWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
+            notesText = pages.map((page) => page.pageContent).join("\n\n");
+            descriptionPages = pages.map((page) => ({ label: `Page ${page.pageNumber}`, content: page.pageContent }));
           } catch (e: any) {
             console.warn("[PDF] loader extraction failed:", e?.message || e);
           }
@@ -904,19 +1091,21 @@ export async function POST(req: NextRequest) {
             const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
 
             await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
-            visualText = await visionExtractFromImages(pageImages);
+            const visionPages = await visionExtractFromImagesDetailed(pageImages);
+            visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
+            descriptionPages = visionPages;
           }
 
           extractedText = [
             notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
             visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
           ].filter(Boolean).join("\n\n");
-          parserOutput = extractedText;
         } else if (IMAGE_EXTS.has(ext)) {
           await setProgress({ stage: "reading image notes (vision)", percent: 45 });
-          visualText = await visionExtractFromImages([lecture.original_path]);
+          const visionPages = await visionExtractFromImagesDetailed([lecture.original_path]);
+          visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
           extractedText = visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "";
-          parserOutput = visualText;
+          descriptionPages = visionPages;
         } else {
           return NextResponse.json({ error: `Unsupported file type for document processing: ${ext}` }, { status: 400 });
         }
@@ -930,6 +1119,11 @@ export async function POST(req: NextRequest) {
 
         const chunks = chunkText(extractedText, 3500, 400);
         const localInput = shortenForLLM(extractedText, 20000);
+        const descriptionInput = descriptionPages.length ? descriptionPages : [{ label: "Page 1", content: extractedText }];
+
+        await setProgress({ stage: "creating document description", percent: 82 });
+        parserOutput = await ollamaText(buildDocumentDescriptionPrompt(descriptionInput));
+        if (!parserOutput.trim()) parserOutput = extractedText;
 
         await setProgress({ stage: "creating summary", percent: 84 });
         const summary = await ollamaText(buildDocumentSummaryPrompt(localInput));
@@ -940,16 +1134,18 @@ export async function POST(req: NextRequest) {
         await setProgress({ stage: "saving outputs", percent: 96 });
 
         const transcriptPath = path.join(ldir, "transcript.txt");
+        const descriptionPath = path.join(ldir, "description.txt");
         const summaryPath = path.join(ldir, "summary.txt");
         const memoryPath = path.join(ldir, "memory.txt");
         const chunksPath = path.join(ldir, "chunks.json");
 
         await fsp.writeFile(transcriptPath, extractedText, "utf-8");
+        await fsp.writeFile(descriptionPath, parserOutput, "utf-8");
         await fsp.writeFile(summaryPath, summary, "utf-8");
         await fsp.writeFile(memoryPath, memory, "utf-8");
         await fsp.writeFile(chunksPath, JSON.stringify(chunks.map((text, i) => ({ chunk_id: i, text })), null, 2), "utf-8");
 
-        await indexContentChunksToVectorStore({
+        const indexingResult = await indexContentChunksToVectorStore({
           lectureId,
           fileName: path.basename(lecture.original_path),
           fileType: path.extname(lecture.original_path).toLowerCase(),
@@ -961,6 +1157,7 @@ export async function POST(req: NextRequest) {
 
         const updated = await patchByHash(lecture.file_hash, {
           transcript_path: transcriptPath,
+          description_path: descriptionPath,
           summary_path: summaryPath,
           memory_path: memoryPath,
           chunks_path: chunksPath,
@@ -974,6 +1171,7 @@ export async function POST(req: NextRequest) {
           ok: true,
           lecture: updated,
           transcript: extractedText,
+          description: parserOutput,
           summary,
           memory,
           chunks,
@@ -983,6 +1181,8 @@ export async function POST(req: NextRequest) {
             vision: !!visualText,
             local: true,
           },
+          indexing_ok: Boolean(indexingResult && indexingResult.ok),
+          indexing_error: indexingResult && (indexingResult.error || null),
         });
       }
 
@@ -1100,6 +1300,16 @@ export async function POST(req: NextRequest) {
       await fsp.writeFile(summaryPath, summary, "utf-8");
       await fsp.writeFile(memoryPath, memory, "utf-8");
       await fsp.writeFile(chunksPath, JSON.stringify(chunks.map((text, i) => ({ chunk_id: i, text })), null, 2), "utf-8");
+      // attempt to index transcript/chunks for RAG
+      const indexingResult2 = await indexContentChunksToVectorStore({
+        lectureId,
+        fileName: path.basename(lecture.original_path),
+        fileType: path.extname(lecture.original_path).toLowerCase(),
+        parserModel: OLLAMA_TEXT_MODEL,
+        contentKind: contentKind,
+        parserOutput: combinedTranscript,
+        chunks,
+      });
 
       const updated = await patchByHash(lecture.file_hash, {
         audio_path: audioPath || null,
@@ -1125,6 +1335,8 @@ export async function POST(req: NextRequest) {
           pdf: !!notesText,
           vision: !!visualText,
         },
+        indexing_ok: Boolean(indexingResult2 && indexingResult2.ok),
+        indexing_error: indexingResult2 && (indexingResult2.error || null),
       });
     }
 
@@ -1143,8 +1355,22 @@ export async function POST(req: NextRequest) {
         memory = await fsp.readFile(lecture.memory_path, "utf-8");
       }
 
-      const vectorStore = await getVectorStore();
-      let retrieved = await vectorStore.similaritySearch(question, 4, { lectureId });
+      let retrievalNotice = "";
+      const trySimilaritySearch = async (filter: Record<string, any>, k: number) => {
+        try {
+          const vectorStore = await getVectorStore();
+          return await vectorStore.similaritySearch(question, k, filter);
+        } catch (err: any) {
+          console.warn(`[RAG] similaritySearch failed for ${lectureId}: ${String(err?.message || err)}`);
+          retrievalNotice = `Vector search unavailable, using fallback document lookup. (${normalizeInsertionErrorMessage(err)})`;
+          return [];
+        }
+      };
+
+      // Prefer LLM-generated summaries/captions for higher-quality retrieval, fall back to raw chunks
+      let retrieved = await trySimilaritySearch({ lectureId, source: "teacher-upload-llm-summary" }, 4);
+      if (!retrieved.length) retrieved = await trySimilaritySearch({ lectureId, source: "teacher-upload-caption" }, 4);
+      if (!retrieved.length) retrieved = await trySimilaritySearch({ lectureId }, 6);
 
       if (!retrieved.length && lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
         const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
@@ -1154,6 +1380,15 @@ export async function POST(req: NextRequest) {
           pageContent: x.text,
           metadata: { lectureId, chunkIndex: x.i, source: "local-fallback" },
         }));
+      }
+
+      if (!retrieved.length && lecture.description_path && (await fileExists(lecture.description_path))) {
+        const description = await fsp.readFile(lecture.description_path, "utf-8");
+        retrieved = [new Document({
+          pageContent: description,
+          metadata: { lectureId, source: "local-description-fallback", chunkIndex: -1 },
+        })];
+        retrievalNotice = retrievalNotice || "Vector search unavailable, using the saved document description as fallback context.";
       }
 
       if (!retrieved.length) {
@@ -1175,7 +1410,7 @@ export async function POST(req: NextRequest) {
       ];
 
       const reply = await llm(messages, llmModel);
-      return NextResponse.json({ ok: true, reply });
+      return NextResponse.json({ ok: true, reply, retrieval_notice: retrievalNotice || undefined });
     }
 
     if (action === "mcq" || action === "tf" || action === "derivation") {
@@ -1228,10 +1463,23 @@ export async function POST(req: NextRequest) {
       const { lectureId } = body;
       if (!lectureId) return NextResponse.json({ error: "Missing lectureId" }, { status: 400 });
 
+      // Delete from library and file system
       const lib = await loadLibrary();
       const filtered = lib.filter((x) => x.lecture_id !== lectureId);
       await saveLibrary(filtered);
       await removeIfExists(lectureDir(lectureId));
+
+      // Delete from Supabase RAG vector store (best-effort)
+      try {
+        await supabase
+          .from('documents')
+          .delete()
+          .filter('metadata->>lectureId', 'eq', lectureId);
+      } catch (err: any) {
+        console.warn(`[RAG] Failed to delete Supabase documents for ${lectureId}: ${String(err?.message || err)}`);
+        // Don't fail the delete operation if Supabase cleanup fails
+      }
+
       return NextResponse.json({ ok: true });
     }
 
@@ -1241,6 +1489,56 @@ export async function POST(req: NextRequest) {
       await saveLibrary([]);
       await setProgress(defaultProgress);
       return NextResponse.json({ ok: true });
+    }
+
+    if (action === "retryIndex") {
+      const { lectureId } = body;
+      if (!lectureId) return NextResponse.json({ error: "Missing lectureId" }, { status: 400 });
+
+      const lib = await loadLibrary();
+      const lecture = lib.find((x) => x.lecture_id === lectureId);
+      if (!lecture) return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
+
+      // Load chunks and parser output if available
+      let chunks: string[] = [];
+      try {
+        if (lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
+          const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
+          chunks = Array.isArray(raw) ? raw.map((x: any) => x.text).filter(Boolean) : [];
+        }
+      } catch (e: any) {
+        console.warn(`[RAG] Failed to read chunks.json for ${lectureId}: ${String(e?.message || e)}`);
+      }
+
+      let parserOutput = "";
+      try {
+        if (lecture.summary_path && (await fileExists(lecture.summary_path))) {
+          parserOutput = await fsp.readFile(lecture.summary_path, "utf-8");
+        } else if (lecture.transcript_path && (await fileExists(lecture.transcript_path))) {
+          parserOutput = await fsp.readFile(lecture.transcript_path, "utf-8");
+        }
+      } catch (e: any) {
+        console.warn(`[RAG] Failed to read summary/transcript for ${lectureId}: ${String(e?.message || e)}`);
+      }
+
+      if (!chunks.length && !parserOutput.trim()) {
+        return NextResponse.json({ error: "No chunks or parser output available to index" }, { status: 400 });
+      }
+
+      const resIndex = await indexContentChunksToVectorStore({
+        lectureId,
+        fileName: lecture.original_path ? path.basename(lecture.original_path) : lecture.title,
+        fileType: lecture.original_path ? path.extname(lecture.original_path).toLowerCase() : ".txt",
+        parserModel: OLLAMA_TEXT_MODEL,
+        contentKind: lecture.content_kind || "document",
+        parserOutput: parserOutput || "",
+        chunks: chunks,
+      });
+
+      if (resIndex && resIndex.ok) {
+        return NextResponse.json({ ok: true });
+      }
+      return NextResponse.json({ ok: false, error: resIndex?.error || "Indexing failed" }, { status: 500 });
     }
 
     return NextResponse.json({ error: `Unsupported action: ${action}` }, { status: 400 });
@@ -1269,4 +1567,15 @@ async function extractFirstPageTextFromPdf(pdfPath: string) {
   } finally {
     try { await unlink(tempPath); } catch {}
   }
+}
+function buildCaptionPrompt(extractedContent: string) {
+  return `You are a precise document describer. The input contains extracted text from pages or image frames of a document. For each logical page or frame, produce 1-3 short, complete declarative sentences that describe what is visible (headings, main idea, figures, formulas, and important labels). Also produce a short overall 2-4 sentence summary for the entire input.
+
+Return strict JSON with this shape:
+{ "pages": [{ "page": 1, "summary": "..." }, ...], "overall": "..." }
+
+Be concise and factual. Do not include extraneous commentary.
+
+ExtractedContent:
+${extractedContent}`;
 }
