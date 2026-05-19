@@ -22,6 +22,7 @@ type ProcessProgress = {
 type TabKey = "overview" | "upload" | "content" | "courses" | "analytics";
 type ContentKind = "video" | "document";
 type ChatMessage = { role: "user" | "assistant"; content: string };
+type VisionModel = "llava" | "gemma3" | "llama3.2-vision";
 
 export default function TeacherStudioPage() {
   const [library, setLibrary] = useState<Lecture[]>([]);
@@ -38,6 +39,7 @@ export default function TeacherStudioPage() {
   const [contentName, setContentName] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
+  const [visionModel, setVisionModel] = useState<VisionModel>("llama3.2-vision");
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("");
   const [publishStatus, setPublishStatus] = useState("Publish to students");
@@ -55,8 +57,10 @@ export default function TeacherStudioPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentContentKind, setCurrentContentKind] = useState<ContentKind | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [visionMenuOpen, setVisionMenuOpen] = useState(false);
 
   const pollRef = useRef<number | null>(null);
+  const visionMenuRef = useRef<HTMLDivElement | null>(null);
 
   async function api(action: string, payload: any = {}, isForm = false) {
     if (isForm) {
@@ -96,6 +100,25 @@ export default function TeacherStudioPage() {
   useEffect(() => {
     refreshLibrary();
     return () => stopPolling();
+  }, []);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (visionMenuRef.current && !visionMenuRef.current.contains(event.target as Node)) {
+        setVisionMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setVisionMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   async function uploadFile(f?: File | null, options?: { silent?: boolean }) {
@@ -216,7 +239,7 @@ export default function TeacherStudioPage() {
     setStatusMsg("Processing started...");
     startPolling(lectureId);
 
-    const res = await api("process", { lectureId, language: "en" });
+    const res = await api("process", { lectureId, language: "en", visionModel });
     setLoading(false);
 
     if (!res?.ok) {
@@ -310,6 +333,11 @@ export default function TeacherStudioPage() {
     setRetrievalNotice(null);
     setContentMode("upload");
     setStatusMsg("Ready for a content upload.");
+  }
+
+  function chooseVisionModel(model: VisionModel) {
+    setVisionModel(model);
+    setVisionMenuOpen(false);
   }
 
   async function deleteLecture(lectureId?: string) {
@@ -587,6 +615,37 @@ export default function TeacherStudioPage() {
                     <input placeholder="Name of the content" value={contentName} onChange={(e) => setContentName(e.target.value)} />
                     <input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
                     <input placeholder="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} />
+                    {activeTab === "content" && (
+                      <div className="selectField" ref={visionMenuRef}>
+                        <button
+                          type="button"
+                          className={`selectButton ${visionMenuOpen ? "open" : ""}`}
+                          aria-haspopup="listbox"
+                          aria-expanded={visionMenuOpen}
+                          onClick={() => setVisionMenuOpen((open) => !open)}
+                        >
+                          <span className="selectLabel">{visionModel}</span>
+                          <span className="selectCaret" aria-hidden="true">▾</span>
+                        </button>
+
+                        {visionMenuOpen && (
+                          <div className="selectMenu" role="listbox" aria-label="Vision language model">
+                            {(["llava", "gemma3", "llama3.2-vision"] as VisionModel[]).map((model) => (
+                              <button
+                                key={model}
+                                type="button"
+                                role="option"
+                                aria-selected={visionModel === model}
+                                className={`selectOption ${visionModel === model ? "selected" : ""}`}
+                                onClick={() => chooseVisionModel(model)}
+                              >
+                                {model}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
                     {activeTab !== "content" && <input placeholder="Duration (minutes)" value={duration} onChange={(e) => setDuration(e.target.value)} />}
                     {activeTab !== "content" && (
@@ -855,6 +914,78 @@ export default function TeacherStudioPage() {
         .metaGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         .metaGrid input, .metaGrid textarea, .metaGrid select {
           width: 100%; border: 1px solid #ddd7cf; border-radius: 12px; background: #fff; padding: 10px 12px; font-size: 14px;
+        }
+        .selectField {
+          position: relative;
+          width: 100%;
+        }
+        .selectButton {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          border: 1px solid #ddd7cf;
+          border-radius: 14px;
+          background: linear-gradient(180deg, #fff, #faf7f3);
+          color: #1f1a16;
+          padding: 10px 14px;
+          font-size: 14px;
+          font-family: inherit;
+          cursor: pointer;
+          box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+        }
+        .selectButton:hover {
+          border-color: #cdbfb1;
+          background: linear-gradient(180deg, #fff, #f7f3ee);
+        }
+        .selectButton.open {
+          border-color: #b9aa9a;
+          box-shadow: 0 0 0 3px rgba(143, 129, 114, 0.12);
+        }
+        .selectLabel {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .selectCaret {
+          flex: 0 0 auto;
+          color: #7b7268;
+          font-size: 12px;
+          line-height: 1;
+        }
+        .selectMenu {
+          position: absolute;
+          z-index: 20;
+          top: calc(100% + 6px);
+          left: 0;
+          right: 0;
+          padding: 6px;
+          border: 1px solid #ddd7cf;
+          border-radius: 18px;
+          background: rgba(255, 252, 248, 0.98);
+          box-shadow: 0 12px 30px rgba(31, 26, 22, 0.12);
+          backdrop-filter: blur(10px);
+        }
+        .selectOption {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          border: 0;
+          border-radius: 12px;
+          background: transparent;
+          color: #1f1a16;
+          padding: 10px 12px;
+          font-size: 14px;
+          text-align: left;
+          cursor: pointer;
+        }
+        .selectOption:hover {
+          background: #f2ece5;
+        }
+        .selectOption.selected {
+          background: #e9dfd4;
+          font-weight: 700;
         }
         .metaGrid textarea { grid-column: span 2; min-height: 90px; }
 

@@ -654,7 +654,7 @@ async function transcribeAudio(audioPath: string, language: string) {
   });
   return String(tx || "").trim();
 }
-async function visionExtractFromImages(imagePaths: string[]) {
+async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL) {
   const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
   const concurrency = Number(process.env.VISION_CONCURRENCY || 2);
   const perImageTimeoutMs = Number(process.env.VISION_TIMEOUT_MS || 20000);
@@ -668,7 +668,7 @@ async function visionExtractFromImages(imagePaths: string[]) {
       const b64 = await fsp.readFile(imgPath, { encoding: "base64" });
       const res = await withTimeout(
         ollama.chat({
-          model: OLLAMA_VISION_MODEL,
+          model: visionModel,
           messages: [{
             role: "user",
             content: "Extract lecture text, formulas, headings, and key bullet points from this image. Keep output concise and factual.",
@@ -696,7 +696,7 @@ async function visionExtractFromImages(imagePaths: string[]) {
   await Promise.all(workers);
   return results.join("\n\n");
 }
-async function visionExtractFromImagesDetailed(imagePaths: string[]) {
+async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL) {
   const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
   const concurrency = Number(process.env.VISION_CONCURRENCY || 2);
   const perImageTimeoutMs = Number(process.env.VISION_TIMEOUT_MS || 20000);
@@ -710,7 +710,7 @@ async function visionExtractFromImagesDetailed(imagePaths: string[]) {
       const b64 = await fsp.readFile(imgPath, { encoding: "base64" });
       const res = await withTimeout(
         ollama.chat({
-          model: OLLAMA_VISION_MODEL,
+          model: visionModel,
           messages: [{
             role: "user",
             content: "Describe this page from top to bottom in complete sentences. Mention headings, diagrams, tables, formulas, labels, and any key visual structure. Keep the description factual and detailed.",
@@ -1052,7 +1052,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "process") {
-      const { lectureId, language = "en", llmModel = DEFAULT_LLM_MODEL } = body;
+      const { lectureId, language = "en", llmModel = DEFAULT_LLM_MODEL, visionModel = OLLAMA_VISION_MODEL } = body;
 
       await setProgress({ lectureId, stage: "starting", percent: 3, done: false, error: "" });
 
@@ -1091,7 +1091,7 @@ export async function POST(req: NextRequest) {
             const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
 
             await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
-            const visionPages = await visionExtractFromImagesDetailed(pageImages);
+            const visionPages = await visionExtractFromImagesDetailed(pageImages, visionModel);
             visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
             descriptionPages = visionPages;
           }
@@ -1102,7 +1102,7 @@ export async function POST(req: NextRequest) {
           ].filter(Boolean).join("\n\n");
         } else if (IMAGE_EXTS.has(ext)) {
           await setProgress({ stage: "reading image notes (vision)", percent: 45 });
-          const visionPages = await visionExtractFromImagesDetailed([lecture.original_path]);
+          const visionPages = await visionExtractFromImagesDetailed([lecture.original_path], visionModel);
           visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
           extractedText = visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "";
           descriptionPages = visionPages;
@@ -1208,7 +1208,7 @@ export async function POST(req: NextRequest) {
         const frames = await extractFramesSceneBased(lecture.original_path, framesDir);
 
         await setProgress({ stage: "reading slide content (vision)", percent: 68 });
-        visualText = await visionExtractFromImages(frames);
+        visualText = await visionExtractFromImages(frames, visionModel);
       } else if (AUDIO_EXTS.has(ext)) {
         await setProgress({ stage: "preparing audio", percent: 20 });
 
@@ -1236,7 +1236,7 @@ export async function POST(req: NextRequest) {
           const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
 
           await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
-          notesText = await visionExtractFromImages(pageImages);
+          notesText = await visionExtractFromImages(pageImages, visionModel);
         }
 
         if (!notesText.trim()) {
@@ -1250,7 +1250,7 @@ export async function POST(req: NextRequest) {
         }
       } else if (IMAGE_EXTS.has(ext)) {
         await setProgress({ stage: "reading image notes (vision)", percent: 45 });
-        visualText = await visionExtractFromImages([lecture.original_path]);
+        visualText = await visionExtractFromImages([lecture.original_path], visionModel);
       } else {
         return NextResponse.json({ error: `Unsupported file type for process: ${ext}` }, { status: 400 });
       }
