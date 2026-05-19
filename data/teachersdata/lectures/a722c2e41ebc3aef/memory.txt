@@ -1,0 +1,51 @@
+LECTURE MEMORY:
+
+**Year 1**
+
+* AU Code: SC1003F-Core, SC1004Core, SC1005Core, MH1812Core, CC0003U-Core, CC0005U-Core
+* Pre-requisites:
+ + Nil for SC1003F-Core
+ + SC1004Core (co-requisite) for SC1005Core and MH1812Core
+ + Nil for CC0003U-Core and CC0005U-Core
+* MPE: 3 courses in SC3xxx/SC4xxx
+
+**Year 2**
+
+* AU Code: SC2001Core, SC2005Core, SC2203Core, SC2006Core, SC2008Core, CC0007U-Core
+* Pre-requisites:
+ + SC1007 & MH1812 for SC2001Core
+ + SC1006 & SC1007 for SC2005Core
+ + SC2001 (co-requisite) for SC2203Core and SC2006Core
+ + SC2002 (co-requisite) for SC2008Core
+* MPE: 3 courses in SC3xxx/SC4xxx
+
+**Year 3**
+
+* AU Code: SC3099F-Core, SC3920F-Core, SC4079MPE (Year 3), SC4xxxMPE (Year 3)
+* Pre-requisites:
+ + Nil for SC3099F-Core and SC3920F-Core
+ + SC1003 (co-requisite) for SC4079MPE (Year 3)
+ + Year 3 standing for all AU codes
+* MPE: 3 courses in SC4xxx
+
+**Year 4**
+
+* AU Code: SC4xxxMPE, CC0006U-Core, ML0004C CORE, any other MPE courses
+* Pre-requisites:
+ + Year 3 standing for all AU codes
+ + Nil for CC0006U_CORE and ML0004C_CORE
+* MPE: 9 courses in SC3xxx/SC4xxx (including at least 4 Broadening and Deepening Elective courses)
+
+**Common Mistakes**
+
+1. Failing to complete the required MPE courses.
+2. Not meeting the pre-requisites for certain AU codes.
+
+**Example Question Types**
+
+1. Course selection and scheduling.
+2. MPE course requirements and restrictions.
+3. Year-specific AU code requirements and pre-requisites.
+4. Calculating total Australian Units (AU) for each year.
+
+Note: This lecture memory is a condensed version of the extracted content, focusing on key points, pre-requisites, and common mistakes.

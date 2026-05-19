@@ -1,0 +1,27 @@
+Document Summary:
+
+* The Bachelor of Computing (Computer Science) program has two main components: Core courses and Major Prescribed Electives (MPE).
+* Core courses include SC1003F-Core, SC1004Core, SC1005Core, MH1812Core, CC0003U-Core, CC0001U-Core, CC0002U CORE, and others.
+* MPE courses are categorized into two groups: SC3xxx/SC4xxx (Major Prescribe Elective) and MPE (Choose within SC4xxx).
+* Students must complete 9 MPE courses, including at least 4 Broadening and Deepening Electives.
+* The program also includes a Final Year Project (FYP), which is required for Highest Distinction.
+
+Page 1:
+
+The first page lists the Core courses for both Year 1 and Year 2. From top to bottom:
+- Course CodeType AU
+- Pre-requisite SC1003F-Core, SC1004Core, etc.
+- Number of credits awarded (e.g., 3)
+- Whether it is a co-requisite with other courses (e.g., SC1003 & MH1812)
+- The list continues for several pages.
+
+Page 2:
+
+The second page lists the Core courses continued from Page 1. From top to bottom:
+- Course CodeType AU
+- Pre-requisite SC3099Core, SC3920F-Core, etc.
+- Number of credits awarded (e.g., 4)
+- Whether it is a co-requisite with other courses (e.g., CC0001 & Year 3 standing)
+- The list continues listing various Core courses.
+
+Note: Some information may be missing from the pages provided.

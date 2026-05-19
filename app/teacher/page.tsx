@@ -291,6 +291,7 @@ export default function TeacherStudioPage() {
     setCurrentContentKind(null);
     setContentMode("upload");
     setProcessedContentOutput("");
+    setContentName("");
     setChatInput("");
     setChatMessages([]);
     setRetrievalNotice(null);
@@ -303,6 +304,7 @@ export default function TeacherStudioPage() {
     setCurrentLectureId("");
     setCurrentContentKind(null);
     setProcessedContentOutput("");
+    setContentName("");
     setChatMessages([]);
     setChatInput("");
     setRetrievalNotice(null);

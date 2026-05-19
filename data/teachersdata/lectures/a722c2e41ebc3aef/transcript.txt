@@ -1,0 +1,302 @@
+=== PDF/NOTES TEXT ===
+1
+250
+93
+0
+37
+2
+186
+80
+3
+35
+3
+46
+012
+6
+28
+4
+023
+00
+12
+35
+Total
+47
+35
+1715
+21
+135
+Course CodeType
+AU
+Pre-requisite
+SC1003F-Core
+3
+Nil
+SC1004Core
+4
+SC1003 (co-requisite)
+SC1005Core
+3
+Nil
+MH1812Core
+3
+Nil
+CC0003U-Core
+2
+Nil
+CC0005
+U-Core
+3
+Nil
+HW0001-
+-
+For student failed QET
+HW0002-
+-
+For student not done Calculus
+18
+Course CodeType
+AU
+Pre-requisite
+SC1006Core
+3
+SC1005 (co-requisite)
+SC1007Core
+3
+SC1003
+SC1008Core
+3
+SC1003
+SC2000Core
+3
+Nil
+SC2002Core
+3
+SC1003 OR SC1007
+CC0001U-Core
+2
+Nil
+CC0002U-Core
+2
+Nil
+19
+37
+Course CodeType
+AU
+Pre-requisite
+SC2001Core
+3
+SC1007 & MH1812
+SC2005Core
+3
+SC1006 & SC1007
+SC2203Core
+3
+SC2001 (co-requisite)
+SC2006Core
+3
+SC2002 (co-requisite)
+SC2008Core3SC2000 & SC1004
+CC0007U-Core
+3
+Nil
+18
+Course CodeType
+AU
+Pre-requisite
+SC2207Core
+3
+SC2001 (co-requisite)
+CC0006U-Core
+3
+Nil
+ML0004C-Core
+2
+Nil
+SC3xxx/SC4xxx
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+MPE
+3Year 3 Standing
+SC3xxx/SC4xxx
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+MPE
+3Year 3 Standing
+BDE
+3
+Refer to Class Schedule
+17
+35
+Year 2 Total AU
+Career & Innovative Enterprise for the Future World
+Broadening and Deepening Elective
+Introduction to Databases
+Sustainability: Society, Economy & Environment
+YEAR 2 SEMESTER 2
+Course Title
+Science & Technology for Humanity
+Software Engineering 
+Computer Network
+Operating Systems
+Automata. Computability and Complexity
+Course Title
+Algorithm Design & Analysis
+Year 1 Total AU
+YEAR 2 SEMESTER 1
+Navigating the Digital World
+Object Oriented Design & Programming
+Inquiry & Communication in an Interdisciplinary World
+C and C++ Programming
+Probability & Statistics for Computing  
+Computer Organisation & Architecture
+Data Structures & Algorithms
+YEAR 1 SEMESTER 2
+Course Title
+Calculus
+Healthy Living & Wellbeing
+Introduction to Academic Communication
+Discrete Mathematics
+Ethics & Civics in a Multicultural World
+Linear Algebra for Computing
+Digital Logic
+Course Title
+Introduction to Computational Thinking & Programming
+Recommended Course Schedule
+YEAR 1 SEMESTER 1
+Year of Study
+CoreMPE
+ICC
+BDE
+Total AU
+Common - Core
+Foundational - 
+Core
+SUMMARY OF ACADEMIC UNIT REQUIREMENT
+AY2024-25
+Curriculum for Bachelor of Computing (Computer Science)
+
+Course CodeType
+AU
+Pre-requisite
+SC3099Core 
+4
+Year 3 Standing
+HW0288
+Engineering Communication
+F-Core
+2
+CC0001 & Year 3 standing
+SC3xxx/SC4xxx
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+MPE
+3Year 3 Standing
+SC3xxx/SC4xxx
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+MPE
+3
+Year 3 Standing
+BDE
+3
+Refer to Class Schedule
+BDE
+3
+Refer to Class Schedule
+18
+Course CodeType
+AU
+Pre-requisite
+SC3920F-Core
+10
+Year 3 Standing
+10
+28
+Course CodeType
+AU
+Pre-requisite
+SC4079MPE
+4
+Year 4 Standing
+SC3xxx/SC4xxx
+MPE
+3
+Year 3 Standing
+SC4xxxMPE
+3Year 3 Standing
+SC4xxx
+Major Prescribe Elective (Choose within SC4xxx)
+MPE
+3Year 3 Standing
+BDE
+3
+Refer to Class Schedule
+BDE
+3
+Refer to Class Schedule
+19
+Course CodeType
+AU
+Pre-requisite
+SC4079MPE4Year 4 Standing
+SC4xxxMPE
+3
+Year 3 Standing
+SC4xxxMPE
+3
+Year 3 Standing
+BDE
+3
+Refer to Class Schedule
+BDE
+3
+Refer to Class Schedule
+16
+35
+Note:
+Course CodeTypeAU
+SC3xxx/SC4xxxMPE-13
+SC3xxx/SC4xxxMPE-23
+SC3xxx/SC4xxxMPE-33
+SC3xxx/SC4xxxMPE-43
+SC3xxx/SC4xxxMPE-53
+SC4xxxMPE-63
+SC4xxxMPE-73
+SC4xxxMPE-83
+SC4xxxMPE-93
+Total27
+2. Students may choose to fulfill this requirement by either completing a Final Year Project (FYP) or by taking 3 additional MPE 
+Please refer the CSC MPE Courses and Specialization on CCDS website.
+MPE (Choose within SC4xxx)
+MPE (Choose within SC4xxx)
+MPE (Choose within SC4xxx)
+Any MPE
+MPE (Choose within SC4xxx)
+Any MPE
+Any MPE
+Any MPE
+Any MPE
+MPE Structure of Computer Science (U24 and after)
+Remarks
+  3. To be eligible for Highest Distinction, students must complete a Final Year Project.
+Year 4 Total AU
+1. Students are required to complete 9 Major Prescribed Elective (MPE) courses (SC3xxx or SC4xxx), including at least 4 courses at the 
+Broadening and Deepening Elective
+Major Prescribe Elective (Choose within SC4xxx)
+Broadening and Deepening Elective
+Final Year Project (Part 2)
+Major Prescribe Elective (Choose within SC4xxx)
+YEAR 4 SEMESTER 2
+Course Title
+Broadening and Deepening Elective
+Broadening and Deepening Elective
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+Major Prescribe Elective (Choose within SC4xxx)
+Course Title
+Final Year Project (Part 1)
+Year 3 Total AU
+YEAR 4 SEMESTER 1
+Course Title
+Professional Internship (Graded)
+YEAR 3 SEMESTER 2
+Broadening and Deepening Elective
+Broadening and Deepening Elective
+Course Title
+Capstone Project
+YEAR 3 SEMESTER 1
