@@ -1,28 +1,33 @@
 Document Summary:
 
-* The document outlines the academic unit requirements for a Bachelor of Computing (Computer Science) degree.
-* It includes course prerequisites, core courses, major prescribed electives (MPE), broadening and deepening electives, and final year projects.
-* Students are required to complete 9 MPE courses, including at least 4 courses in the broadening and deepening elective category.
-* The document also provides information on course structure, credit values, and eligibility for highest distinction.
+* The document outlines the curriculum requirements for a Bachelor of Computing (Computer Science) degree.
+* Students must complete core courses, foundational courses, and major prescribed electives (MPEs).
+* MPEs are required in both Year 3 and Year 4, with a total of 9 courses needed by the end of Year 4.
+* Final year projects are also mandatory for students aiming for Highest Distinction.
+* The document provides details on course prerequisites, credit points, and program structure.
 
-Page X:
+Page 1:
 
-[Page 1]
-
-The page starts with a series of numbers (1-3) and then lists different codes for Course CodeType, Pre-requisite, and Major Prescribe Elective (MPE). These codes appear to be unique identifiers for each course.
-
-* From top to bottom, the page contains:
-	+ A series of numbers (93-47) that seem to be randomly generated.
-	+ A section listing various courses and their corresponding Course CodeType, Pre-requisite, and MPE requirements.
-	+ A total number (1715) that appears to be a cumulative total.
+The first page lists various course codes, type (AU), pre-requisites, and credits. From top to bottom, the content includes:
+- Course CodeType AU
+- Pre-requisite SC1003F-Core
+- Credits 4
+- Year 3 Standing
+- MPE SC3xxx/SC4xxx
+- BDE Refer to Class Schedule
 
 Page 2:
 
-The page continues with the same structure as Page 1, listing different codes for Course CodeType, Pre-requisite, and Major Prescribe Elective (MPE). These codes appear to be unique identifiers for each course.
-
-* From top to bottom, the page contains:
-	+ A series of numbers (28-16) that seem to be randomly generated.
-	+ A section listing various courses and their corresponding Course CodeType, Pre-requisite, and MPE requirements.
-	+ A total number (27) that appears to be a cumulative total.
-
-Note: The rest of the pages follow the same structure as Page 1 and Page 2.
+From top to bottom, the content includes:
+- Course CodeType AU
+- Pre-requisite SC3099Core 
+- Credits 4
+- Year 3 Standing
+- MPE SC3xxx/SC4xxx
+- BDE Refer to Class Schedule
+- Course CodeType AU
+- Pre-requisite SC3920F-Core
+- Credits 10
+- Year 3 Standing
+- MPE SC4079MPE
+- BDE Refer to Class Schedule

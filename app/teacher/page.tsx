@@ -19,7 +19,7 @@ type ProcessProgress = {
   error?: string;
 };
 
-type TabKey = "overview" | "upload" | "content" | "courses" | "analytics";
+type TabKey = "overview" | "upload" | "content" | "courses" | "yourCourses" | "analytics";
 type ContentKind = "video" | "document";
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type VisionModel = "llava" | "gemma3" | "llama3.2-vision";
@@ -369,7 +369,12 @@ export default function TeacherStudioPage() {
   const documentCount = teacherDocuments.length;
   const readyCount = teacherVideos.filter((l) => l.status === "Ready").length;
   const processingCount = library.filter((l) => l.status !== "Ready").length;
-  const teacherCourses = teacherVideos;
+  const teacherLectureVideos = teacherVideos;
+  const featuredCourse = {
+    title: "Introduction to Programming",
+    description: "Start here with variables, conditionals, loops, and problem-solving fundamentals.",
+    href: "/teacher/course/introduction-to-programming",
+  };
   const coverTone = (idx: number) => ["tone0", "tone1", "tone2", "tone3", "tone4", "tone5"][idx % 6];
 
   function openFileUrl(item: Lecture) {
@@ -441,11 +446,14 @@ export default function TeacherStudioPage() {
           <button className={`navItem ${activeTab === "overview" ? "active" : ""}`} onClick={() => setActiveTab("overview")}>
             Overview
           </button>
-          <button className={`navItem ${activeTab === "upload" ? "active" : ""}`} onClick={() => setActiveTab("upload")}>
-            Upload Lecture
+          <button className={`navItem ${activeTab === "yourCourses" ? "active" : ""}`} onClick={() => setActiveTab("yourCourses")}>
+            Your Courses
           </button>
           <button className={`navItem ${activeTab === "content" ? "active" : ""}`} onClick={() => setActiveTab("content") }>
             Upload Content
+          </button>
+          <button className={`navItem ${activeTab === "upload" ? "active" : ""}`} onClick={() => setActiveTab("upload")}>
+            Upload Lecture
           </button>
           <button className={`navItem ${activeTab === "courses" ? "active" : ""}`} onClick={() => setActiveTab("courses")}>
             My Lectures
@@ -677,11 +685,33 @@ export default function TeacherStudioPage() {
           </>
         )}
 
-        {(activeTab === "overview" || activeTab === "courses" || activeTab === "content") && (
+        {activeTab === "yourCourses" && (
+          <section className="coursesSection">
+            <div className="sectionHead"><h2>Your Courses</h2></div>
+            <div className="grid">
+              <article className="courseCard">
+                <a className="openCardLink" href={featuredCourse.href}>
+                  <div className="cover tone2">
+                    <span className="topBadge">FEATURED COURSE</span>
+                    <span className="centerGlyph">⌘</span>
+                  </div>
+
+                  <div className="body">
+                    <h3 title={featuredCourse.title}>{featuredCourse.title}</h3>
+                    <p className="subText">{featuredCourse.description}</p>
+                    <div className="metaRow"><span>Open course page</span></div>
+                  </div>
+                </a>
+              </article>
+            </div>
+          </section>
+        )}
+
+        {(activeTab === "overview" || activeTab === "courses" || activeTab === "content" || activeTab === "upload") && (
           <section className="coursesSection">
             <div className="sectionHead"><h2>My lectures</h2></div>
             <div className="grid">
-              {teacherCourses.map((c, idx) => (
+              {teacherLectureVideos.map((c, idx) => (
                 <article key={c.lecture_id} className="courseCard">
                   <button
                     className="deleteBtn"

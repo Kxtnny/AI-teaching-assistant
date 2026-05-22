@@ -1,23 +1,26 @@
 LECTURE MEMORY:
 
-- Bachelor of Computing (Computer Science) curriculum
-- 10 Major Prescribed Electives (MPE) courses required
-- 4 MPE courses at Broadening and Deepening Elective
-- Final Year Project (FYP) required for Highest Distinction
-- Professional Internship (Graded) in Year 4 Semester 1
-- Capstone Project in Year 3 Semester 2
-- 9 MPE courses, including at least 4 at Broadening and Deepening Elective
+- Course structure:
+  • Core courses: SC1003F, SC1004, SC1005, MH1812, CC0003U, CC0005
+  • Pre-requisite courses: SC1006, SC2000, SC2001, SC2002, SC2005, SC2203
+  • Major Prescribed Elective (MPE) courses: SC3xxx/SC4xxx
 
-Formulas/Definitions:
+- Core and pre-requisite course requirements:
+  • Year 1: Core - SCC1003F, SCC1004, MH1812; Pre-requisites - Nil; Total AU - 36
+  • Year 2: Core - SCC2000, SCC2002; Pre-requisites - SC1003, SC1007; Total AU - 33
+  • Year 3: Core - SCC2001, SCC2005, SCC2203; Pre-requisites - SC2002, SC1006, SC1007; Total AU - 36
 
-- None explicitly stated
+- MPE course requirements:
+  • Year 4: 9 MPE courses (SC3xxx/SC4xxx); Broadening and Deepening Elective courses; Final Year Project
 
-Common Mistakes/Confusing Points:
-- Not clearly defined which MPE courses are required for each semester
-- No clear guidelines on how to fulfill the requirement of completing a Final Year Project (FYP) or taking additional MPE courses
+- Recommended course schedule:
 
-Example Question Types:
+Example question types:
+- Multiple choice questions
+- Short answer questions
+- Essay questions
 
-- Identify and explain the requirements for the Major Prescribed Elective (MPE) courses
-- Describe the difference between FYP and Capstone Project
-- Explain the significance of Broadening and Deepening Elective in the curriculum
+Common mistakes or confusing points:
+- Not meeting pre-requisite requirements for core courses
+- Failing to complete required MPE courses in year 4
+- Incorrectly scheduling classes due to course dependencies
