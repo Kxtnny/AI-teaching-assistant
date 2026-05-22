@@ -1,26 +1,41 @@
 LECTURE MEMORY:
 
-- Course structure:
-  • Core courses: SC1003F, SC1004, SC1005, MH1812, CC0003U, CC0005
-  • Pre-requisite courses: SC1006, SC2000, SC2001, SC2002, SC2005, SC2203
-  • Major Prescribed Elective (MPE) courses: SC3xxx/SC4xxx
+**Core Requirements**
 
-- Core and pre-requisite course requirements:
-  • Year 1: Core - SCC1003F, SCC1004, MH1812; Pre-requisites - Nil; Total AU - 36
-  • Year 2: Core - SCC2000, SCC2002; Pre-requisites - SC1003, SC1007; Total AU - 33
-  • Year 3: Core - SCC2001, SCC2005, SCC2203; Pre-requisites - SC2002, SC1006, SC1007; Total AU - 36
+* SC1003F-Core, SC1004Core, MH1812Core, CC0003U-Core are core courses for Year 1
+* SC3099Core and SC3920F-Core are core courses for Year 3
+* Students must complete a Final Year Project (FYP) to be eligible for Highest Distinction
 
-- MPE course requirements:
-  • Year 4: 9 MPE courses (SC3xxx/SC4xxx); Broadening and Deepening Elective courses; Final Year Project
+**Major Prescribed Elective (MPE)**
 
-- Recommended course schedule:
+* Students must complete 9 MPE courses, including at least 4 Broadening and Deepening Electives
+* MPE courses can be chosen from SC3xxx or SC4xxx
+* Students can choose to fulfill the requirement by completing a FYP or taking 3 additional MPE courses
 
-Example question types:
-- Multiple choice questions
-- Short answer questions
-- Essay questions
+**Pre-requisites**
 
-Common mistakes or confusing points:
-- Not meeting pre-requisite requirements for core courses
-- Failing to complete required MPE courses in year 4
-- Incorrectly scheduling classes due to course dependencies
+* SC1003 (co-requisite) with SC1004Core for Year 1
+* SC1005Core and SC2000Core for Year 2
+* SC2001Core and SC2002Core for Year 2
+* SC2007 is a co-requisite for SC2203Core in Year 2
+
+**Career and Innovative Enterprise**
+
+* Students can choose from Broadening and Deepening Electives, such as Introduction to Databases, Sustainability: Society, Economy & Environment, and Year 2 Semester 2 courses
+
+**Common Mistakes**
+
+* Not completing a Final Year Project (FYP) for Highest Distinction
+* Failing to complete the required number of Major Prescribed Elective (MPE) courses
+
+**Example Question Types**
+
+* Multiple choice questions on core requirements and MPE courses
+* Short-answer questions on pre-requisites and Career and Innovative Enterprise
+* Essay questions on the importance of FYP for Highest Distinction
+
+Common mistakes include:
+
+* Not completing a Final Year Project (FYP) for Highest Distinction
+* Failing to complete the required number of Major Prescribed Elective (MPE) courses
+* Not meeting the pre-requisites for certain courses

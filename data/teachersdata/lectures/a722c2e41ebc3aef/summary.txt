@@ -1,29 +1,18 @@
-Here is the extracted content transformed into a clean study brief:
+Here is the extracted content reformatted into a clean study brief:
 
 **Summary**
 
-* Bachelor of Computing (Computer Science) curriculum.
-* Course requirements include Core, Foundational, and Major Prescribed Electives (MPE).
-* Students must complete 9 MPE courses in Year 4, including at least 4 Broadening and Deepening Electives.
-* Final Year Project (FYP) is required for Highest Distinction.
+• Bachelor of Computing (Computer Science) requires completion of core courses, foundational courses, and major prescribed electives.
+• Students must complete at least 4 broadening and deepening elective courses within SC3xxx/SC4xxx.
+• Final Year Project (FYP) is required for Highest Distinction.
+• Course CodeType AU specifies the type of course.
 
 **Key Terms**
 
-SC3xxx/SC4xxx, MPE, BDE, F-Core, U-Core, CC0001U-Core, CC0002U_CORE, SC1003, SC1005, SC1006, SC1007, SC2000, SC2002, SC2203, SC2207, ML0004C
+SC1003F, SC1004, SC1005, SC1006, SC1007, SC2000, SC2001, SC2002, SC2008, SC2201, SC2203, CC0001U, CC0002U, ML0004C, MPE (Major Prescribe Elective), F-Core, AU (Academic Unit)
 
 **Important Details**
 
-* Formula: 
- + 9 MPE courses in Year 4.
- + At least 4 Broadening and Deepening Electives (BDE) included.
-* Definition: 
- + Major Prescribed Elective (MPE): a course that students must complete as part of their degree requirements.
- + Broadening and Deepening Elective (BDE): an elective course that allows students to explore topics beyond the core curriculum.
-* Diagram/Table Takeaways:
- + Course structure:
- - Core courses
- - Foundational courses
- - Major Prescribed Electives (MPE)
- - Broadening and Deepening Electives (BDE)
- + FYP requirements: 
- - Final Year Project is required for Highest Distinction.
+• **Course Structure**: The Bachelor of Computing (Computer Science) consists of core courses, foundational courses, and major prescribed electives.
+• **Broadening and Deepening Electives**: Students must complete at least 4 broadening and deepening elective courses within SC3xxx/SC4xxx.
+• **Final Year Project (FYP)**: Completion of FYP is required for Highest Distinction.

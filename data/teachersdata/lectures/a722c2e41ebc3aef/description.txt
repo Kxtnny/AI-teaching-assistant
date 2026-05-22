@@ -1,33 +1,60 @@
 Document Summary:
 
-* The document outlines the curriculum requirements for a Bachelor of Computing (Computer Science) degree.
-* Students must complete core courses, foundational courses, and major prescribed electives (MPEs).
-* MPEs are required in both Year 3 and Year 4, with a total of 9 courses needed by the end of Year 4.
-* Final year projects are also mandatory for students aiming for Highest Distinction.
-* The document provides details on course prerequisites, credit points, and program structure.
+* The document outlines the academic requirements for a Bachelor of Computing (Computer Science) degree.
+* It lists various course codes, pre-requisites, and credit values for different courses in each year of study.
+* Students must complete CoreMPE, ICC, BDE, and Total AU credits throughout their studies.
+* The curriculum includes various electives, including Major Prescribed Elective (MPE) courses and Broadening and Deepening Elective courses.
 
 Page 1:
 
-The first page lists various course codes, type (AU), pre-requisites, and credits. From top to bottom, the content includes:
-- Course CodeType AU
-- Pre-requisite SC1003F-Core
-- Credits 4
-- Year 3 Standing
-- MPE SC3xxx/SC4xxx
-- BDE Refer to Class Schedule
+Visible Text:
+- Course Code
+- Type
+- Pre-requisite
+- Credit Value
+- Year of Study
+
+Tables:
+| Course Code | Type | Pre-requisite | Credit Value |
+|-------------|------|-----------------|---------------|
+| AU          |      | Nil             | 3             |
+| SC1003F-Core| Core | Nil             | 4             |
+| ...         | ...  | ...              | ...            |
+
+Other Important Details:
+- The total number of credits for Year 1 is listed at the bottom, with the values of various courses.
 
 Page 2:
 
-From top to bottom, the content includes:
-- Course CodeType AU
-- Pre-requisite SC3099Core 
-- Credits 4
-- Year 3 Standing
-- MPE SC3xxx/SC4xxx
-- BDE Refer to Class Schedule
-- Course CodeType AU
-- Pre-requisite SC3920F-Core
-- Credits 10
-- Year 3 Standing
-- MPE SC4079MPE
-- BDE Refer to Class Schedule
+Visible Text:
+- Course Code
+- Type
+- Pre-requisite
+- Credit Value
+- Year of Study
+
+Tables:
+| Course Code | Type | Pre-requisite | Credit Value |
+|-------------|------|-----------------|---------------|
+| SC3920F-Core | Core | Nil             | 10            |
+| ...         | ...  | ...              | ...            |
+
+Images:
+- None
+
+Diagrams:
+- None
+
+Formulas:
+None
+
+Definitions:
+- The term "MPE" refers to Major Prescribed Elective courses, which are a required part of the curriculum.
+- The term "BDE" refers to Broadening and Deepening Elective courses, which are also a required part of the curriculum.
+
+Examples:
+- Examples of MPE courses include SC3xxx/SC4xxx.
+- Examples of BDE courses include SC3xxx/SC4xxx.
+
+Other Important Details:
+- Students can choose to fulfill certain requirements by completing a Final Year Project (FYP) or taking additional courses.

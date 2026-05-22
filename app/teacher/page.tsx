@@ -484,7 +484,14 @@ export default function TeacherStudioPage() {
             </section>
 
             <section className="uploadPanel">
-              <h2>{activeTab === "content" ? "Upload content" : "Upload a lecture"}</h2>
+              <div className="uploadPanelHeader">
+                <h2>{activeTab === "content" ? "Upload content" : "Upload a lecture"}</h2>
+                {activeTab === "content" && (
+                  <a className="panelLink" href="/teacher/upload-content">
+                    Open dedicated page
+                  </a>
+                )}
+              </div>
               {activeTab === "content" && contentMode === "chat" ? (
                 <div className="contentChatShell">
                   {!progress.done && progress.stage !== "idle" && (
@@ -882,7 +889,23 @@ export default function TeacherStudioPage() {
         .card p { margin: 0; font-size: 34px; }
 
         .uploadPanel { border: 1px solid #e3dfd9; border-radius: 18px; padding: 18px; background: #fbfaf8; margin-bottom: 18px; }
+        .uploadPanelHeader { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 4px; }
         .uploadPanel h2 { margin: 0 0 4px; font-size: 38px; }
+        .panelLink {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #ddd7cf;
+          border-radius: 999px;
+          padding: 9px 12px;
+          background: #fff;
+          color: #171310;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .panelLink:hover { background: #f3ece4; border-color: #cdbfb1; }
         .uploadPanel p { margin: 0 0 14px; color: #5f5951; }
         .fieldLabel { margin: 0 0 10px; font-size: 13px; letter-spacing: .15em; color: #61584d; font-weight: 700; }
         .contentChatShell { display: grid; gap: 14px; }

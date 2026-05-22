@@ -40,6 +40,7 @@ interface LectureEntry {
   content_kind: ContentKind;
   status: "Uploaded" | "Audio Ready" | "Ready";
   time_ago: string;
+  temporary?: boolean;
   original_path: string | null;
   audio_path: string | null;
   transcript_path: string | null;
@@ -125,6 +126,11 @@ function inferContentKindFromEntry(entry: Partial<LectureEntry>): ContentKind {
 const MAX_PDF_CACHE_ENTRIES = 12;
 const globalForPdf = globalThis as unknown as { pdfTextCache?: Map<string, string> };
 if (!globalForPdf.pdfTextCache) globalForPdf.pdfTextCache = new Map();
+const globalForTeacherTempCleanup = globalThis as unknown as {
+  teacherTempCleanupInstalled?: boolean;
+  teacherTempCleanupOnStartRan?: boolean;
+  teacherTempCleanupRunning?: boolean;
+};
 function upsertPdfCache(key: string, value: string) {
   const cache = globalForPdf.pdfTextCache!;
   if (cache.has(key)) cache.delete(key);
@@ -144,6 +150,57 @@ async function fileExists(p: string) {
 async function removeIfExists(p: string) {
   if (await fileExists(p)) await fsp.rm(p, { recursive: true, force: true });
 }
+async function deleteLectureVectors(lectureId: string) {
+  try {
+    await supabase
+      .from('documents')
+      .delete()
+      .filter('metadata->>lectureId', 'eq', lectureId);
+  } catch (err: any) {
+    console.warn(`[RAG] Failed to delete Supabase documents for ${lectureId}: ${String(err?.message || err)}`);
+  }
+}
+async function removeLectureArtifacts(lectureId: string) {
+  await removeIfExists(lectureDir(lectureId));
+  await deleteLectureVectors(lectureId);
+}
+async function purgeTemporaryLectures() {
+  const lib = await loadLibrary();
+  const tempLectures = lib.filter((entry) => Boolean(entry.temporary));
+  if (!tempLectures.length) return;
+
+  for (const entry of tempLectures) {
+    await removeLectureArtifacts(entry.lecture_id);
+  }
+
+  await saveLibrary(lib.filter((entry) => !entry.temporary));
+  const progress = await loadProgress();
+  if (progress.lectureId && tempLectures.some((entry) => entry.lecture_id === progress.lectureId)) {
+    await setProgress(defaultProgress);
+  }
+}
+function installTempCleanupHandlers() {
+  if (globalForTeacherTempCleanup.teacherTempCleanupInstalled) return;
+  globalForTeacherTempCleanup.teacherTempCleanupInstalled = true;
+
+  if (process.env.NODE_ENV === "production") return;
+
+  const cleanupAndExit = async (code = 0) => {
+    if (globalForTeacherTempCleanup.teacherTempCleanupRunning) return;
+    globalForTeacherTempCleanup.teacherTempCleanupRunning = true;
+    try {
+      await purgeTemporaryLectures();
+    } catch (err) {
+      console.warn(`[TEMP] Cleanup on shutdown failed: ${String(err)}`);
+    } finally {
+      globalForTeacherTempCleanup.teacherTempCleanupRunning = false;
+      process.exit(code);
+    }
+  };
+
+  process.once("SIGINT", () => { void cleanupAndExit(0); });
+  process.once("SIGTERM", () => { void cleanupAndExit(0); });
+}
 async function initStorage() {
   await ensureDir(DATA_DIR);
   await ensureDir(LECTURES_DIR);
@@ -151,6 +208,11 @@ async function initStorage() {
   if (!(await fileExists(LIBRARY_PATH))) await fsp.writeFile(LIBRARY_PATH, "[]", "utf-8");
   if (!(await fileExists(PROGRESS_PATH))) {
     await fsp.writeFile(PROGRESS_PATH, JSON.stringify(defaultProgress, null, 2), "utf-8");
+  }
+
+  if (process.env.NODE_ENV !== "production" && !globalForTeacherTempCleanup.teacherTempCleanupOnStartRan) {
+    globalForTeacherTempCleanup.teacherTempCleanupOnStartRan = true;
+    await purgeTemporaryLectures();
   }
 }
 async function loadProgress(): Promise<ProgressState> {
@@ -466,20 +528,29 @@ ${content}`;
 }
 function buildDocumentDescriptionPrompt(pages: Array<{ label: string; content: string }>) {
   const serializedPages = pages
-    .map((page) => `[${page.label}]\n${shortenForLLM(page.content, 5000)}`)
+    .map((page) => `[${page.label}]\n${shortenForLLM(page.content, 8000)}`)
     .join("\n\n---\n\n");
 
   return `You are writing a detailed reading guide for a student.
-Create a structured description that starts with a whole-document summary and then goes page by page in order from top to bottom.
+Create a structured page-by-page extraction that preserves the page content in reading order and explains all important visible elements.
 
 Rules:
 - Start with the heading "Document Summary:".
-- Write 4 to 6 concise bullet sentences summarizing the whole document.
+- Write 4 to 8 concise bullet sentences summarizing the whole document.
 - Then write one section per page using the heading "Page X:".
-- For each page, describe the content from top to bottom.
-- Mention headings, diagrams, tables, formulas, labels, and any visually important items.
-- Keep the language concrete and factual.
+- For each page, describe the content from top to bottom in the order a reader would encounter it.
+- First narrate the visible text in reading order.
+- Then add component-specific subsections only if they exist on the page.
+- Use these subsection headings exactly when relevant: "Tables:", "Images:", "Diagrams:", "Formulas:", "Definitions:", "Examples:", "Other Important Details:".
+- For tables, output a markdown table row by row with clear column headers and values. Include every row you can infer.
+- For images and diagrams, give a thorough and complete description of what is shown, including labels, arrows, shapes, relationships, legends, captions, and likely purpose.
+- For formulas, transcribe them carefully and explain visible symbols if possible.
+- For definitions, explain the term and surrounding context from the page.
+- Preserve important wording, names, numbers, and labels exactly when possible.
+- Keep the language concrete, factual, and complete.
+- Do not mention a component section if that component does not appear on the page.
 - Do not add commentary about missing information.
+- If the page is dense, prioritize completeness over brevity.
 
 Input pages:
 ${serializedPages}`;
@@ -714,7 +785,7 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
           model: visionModel,
           messages: [{
             role: "user",
-            content: "Describe this page from top to bottom in complete sentences. Mention headings, diagrams, tables, formulas, labels, and any key visual structure. Keep the description factual and detailed.",
+            content: "Extract this page in reading order from top to bottom. First preserve all visible text. Then, if the page contains tables, output them as markdown tables row by row with clear columns. If the page contains images or diagrams, describe them thoroughly and completely, including labels, arrows, captions, shapes, and relationships. Mention formulas, definitions, headings, and important labels exactly when visible. Be exhaustive, factual, and do not omit important details.",
             images: [b64],
           }],
         }),
@@ -944,6 +1015,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    installTempCleanupHandlers();
     await initStorage();
 
     const contentType = req.headers.get("content-type") || "";
@@ -960,6 +1032,8 @@ export async function POST(req: NextRequest) {
       if (!file || !(file instanceof File)) {
         return NextResponse.json({ error: "file is required" }, { status: 400 });
       }
+
+      const tempMode = String(form.get("tempMode") || "") === "1";
 
       const ext = path.extname(file.name).toLowerCase();
       if (!SUPPORTED_EXTS.has(ext)) {
@@ -994,6 +1068,7 @@ export async function POST(req: NextRequest) {
         content_kind: inferContentKindFromExt(ext),
         status: "Uploaded",
         time_ago: "Saved",
+        temporary: tempMode || undefined,
         original_path: originalPath,
         audio_path: null,
         transcript_path: null,
@@ -1515,18 +1590,7 @@ export async function POST(req: NextRequest) {
       const lib = await loadLibrary();
       const filtered = lib.filter((x) => x.lecture_id !== lectureId);
       await saveLibrary(filtered);
-      await removeIfExists(lectureDir(lectureId));
-
-      // Delete from Supabase RAG vector store (best-effort)
-      try {
-        await supabase
-          .from('documents')
-          .delete()
-          .filter('metadata->>lectureId', 'eq', lectureId);
-      } catch (err: any) {
-        console.warn(`[RAG] Failed to delete Supabase documents for ${lectureId}: ${String(err?.message || err)}`);
-        // Don't fail the delete operation if Supabase cleanup fails
-      }
+      await removeLectureArtifacts(lectureId);
 
       return NextResponse.json({ ok: true });
     }
