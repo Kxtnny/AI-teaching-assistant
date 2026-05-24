@@ -14,6 +14,11 @@ type ProcessProgress = {
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type VisionModel = "llava" | "gemma3" | "llama3.2-vision";
 
+function isVideoFile(file: File) {
+  const ext = file.name.toLowerCase().replace(/^.*\./, "");
+  return ["mp4", "mov", "mkv"].includes(ext) || ["video/mp4", "video/quicktime", "video/x-matroska"].includes(file.type.toLowerCase());
+}
+
 export default function UploadContentPage() {
   const [currentLectureId, setCurrentLectureId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -125,20 +130,56 @@ export default function UploadContentPage() {
     };
   }, []);
 
-  async function uploadFile(f?: File | null) {
+  async function uploadFile(f?: File | null, options?: { silent?: boolean }) {
     if (!f) return;
+    const silent = !!options?.silent;
+    const videoFile = isVideoFile(f);
+
+    if (!videoFile) {
+      const fd = new FormData();
+      fd.append("file", f);
+      fd.append("visionModel", visionModel);
+
+      setLoading(true);
+      if (!silent) setStatusMsg("Uploading and parsing content...");
+      const res = await fetch("/api/upload", { method: "POST", body: fd }).then((r) => r.json());
+      setLoading(false);
+
+      if (!res?.success) return alert(res.error || "Upload failed");
+      setCurrentLectureId(res.lecture.lecture_id);
+
+      if (!silent) {
+        if (res.duplicate) {
+          setStatusMsg("Duplicate file found. Existing lecture selected.");
+        } else {
+          setStatusMsg("Content parsed. Click Process Content.");
+          if (!contentName.trim()) setContentName(res.lecture.title || "");
+        }
+      }
+
+      return res;
+    }
 
     const fd = new FormData();
+    fd.append("action", "upload");
     fd.append("file", f);
-    fd.append("visionModel", visionModel);
+    fd.append("tempMode", "1");
 
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: fd,
-    }).then((r) => r.json());
+    setLoading(true);
+    if (!silent) setStatusMsg("Uploading...");
+    const res = await api("upload", fd, true);
+    setLoading(false);
 
-    if (!res?.success) {
-      throw new Error(res?.error || "Upload failed");
+    if (!res?.ok) return alert(res.error || "Upload failed");
+    setCurrentLectureId(res.lecture.lecture_id);
+
+    if (!silent) {
+      if (res.duplicate) {
+        setStatusMsg("Duplicate file found. Existing lecture selected.");
+      } else {
+        setStatusMsg("Upload complete. Click Process Content.");
+        if (!contentName.trim()) setContentName(res.lecture.title || "");
+      }
     }
 
     return res;
@@ -181,38 +222,69 @@ export default function UploadContentPage() {
     if (!lectureId) {
       if (!pendingContentFile) return alert("Upload/select content first.");
 
+      if (!isVideoFile(pendingContentFile)) {
+        setContentMode("chat");
+        setLoading(true);
+        setProgress({ lectureId: null, stage: "parsing content", percent: 1, done: false });
+        setStatusMsg("Uploading and parsing content...");
+
+        try {
+          const uploadRes = await uploadFile(pendingContentFile, { silent: true });
+          setLoading(false);
+
+          if (!uploadRes?.ok && !uploadRes?.success) {
+            setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
+            return;
+          }
+
+          const lecture = uploadRes.lecture;
+          lectureId = lecture.lecture_id;
+          setCurrentLectureId(lectureId);
+          setProcessedContentOutput(uploadRes.parserOutput || uploadRes.transcript || uploadRes.summary || uploadRes.memory || "Parsed and indexed.");
+          setRawContent(uploadRes.transcript || uploadRes.parserOutput || "");
+          setIndexingOk(true);
+          setIndexingError(null);
+          setRetrievalNotice(null);
+          setChatMessages([
+            {
+              role: "assistant",
+              content: "The content was parsed by the dedicated non-video upload route and is ready for questions.",
+            },
+          ]);
+          setProgress({ lectureId, stage: "parsed", percent: 100, done: true });
+          setStatusMsg("Content parsed and ready for chat.");
+          return;
+        } catch (error: any) {
+          setLoading(false);
+          setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
+          alert(String(error?.message || error));
+          return;
+        }
+      }
+
       setContentMode("chat");
       setLoading(true);
-      setProgress({ lectureId: null, stage: "parsing content", percent: 1, done: false });
-      setStatusMsg("Parsing content with the paper-aligned upload route...");
+      setProgress({ lectureId: null, stage: "uploading content", percent: 1, done: false });
+      setStatusMsg("Uploading content...");
 
-      let uploadRes: any;
       try {
-        uploadRes = await uploadFile(pendingContentFile);
+        const uploadRes = await uploadFile(pendingContentFile, { silent: true });
+        setLoading(false);
+
+        if (!uploadRes?.ok) {
+          setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
+          return;
+        }
+
+        lectureId = uploadRes.lecture.lecture_id;
+        setCurrentLectureId(lectureId);
+        setProgress({ lectureId, stage: "uploaded", percent: 14, done: false });
       } catch (error: any) {
         setLoading(false);
         setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
         alert(String(error?.message || error));
         return;
       }
-
-      setLoading(false);
-
-      setProcessedContentOutput(uploadRes.parserOutput || uploadRes.message || "Parsed and indexed with the upload route.");
-      setRawContent(uploadRes.parserOutput || "");
-      setIndexingOk(true);
-      setIndexingError(null);
-      setRetrievalNotice(null);
-      setChatMessages([
-        {
-          role: "assistant",
-          content:
-            "This content was parsed with the paper-aligned upload route and indexed. Chat on this page still relies on the teacher lecture workflow, so the detailed parser output is shown here instead.",
-        },
-      ]);
-      setProgress({ lectureId: null, stage: "parsed", percent: 100, done: true });
-      setStatusMsg("Content parsed and indexed with the paper-aligned upload route.");
-      return;
     }
 
     setLoading(true);
@@ -463,12 +535,12 @@ export default function UploadContentPage() {
             >
               <input
                 type="file"
-                accept=".pdf,.mp4,.mov,.mkv,.mp3,.wav,.m4a,.flac,.png,.jpg,.jpeg,.webp"
+                accept=".pdf,.png,.jpg,.jpeg,.webp"
                 onChange={onUpload}
                 disabled={loading}
               />
               <strong>Drop your content here</strong>
-              <span>PDF or Image • Click or drag to upload</span>
+              <span>PDF or Image only • Click or drag to upload</span>
             </label>
 
             {pendingContentFile && (
