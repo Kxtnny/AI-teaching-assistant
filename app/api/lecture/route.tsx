@@ -60,6 +60,7 @@ const PDFTOPPM_BIN = process.env.PDFTOPPM_PATH
   : "pdftoppm";
 
 const OLLAMA_VISION_MODEL = process.env.OLLAMA_VISION_MODEL || "llama3.2-vision";
+const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || process.env.OLLAMA_MODEL || "llama3.2";
 const DEFAULT_LLM_MODEL = "gpt-4.1-mini";
 const TRANSCRIBE_MODEL = "whisper-1";
 const WORD_RE = /[A-Za-z0-9']+/g;
@@ -403,6 +404,13 @@ async function transcribeAudio(audioPath: string, language: string) {
   });
   return String(tx || "").trim();
 }
+async function ollamaText(prompt: string, model = OLLAMA_TEXT_MODEL) {
+  const res = await ollama.chat({
+    model,
+    messages: [{ role: "user", content: prompt }],
+  });
+  return String(res?.message?.content || "").trim();
+}
 async function visionExtractFromImages(imagePaths: string[]) {
   const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
   const concurrency = Number(process.env.VISION_CONCURRENCY || 2);
@@ -674,22 +682,10 @@ export async function POST(req: NextRequest) {
       const llmInput = shortenForLLM(combinedTranscript, 20000);
 
       await setProgress({ stage: "creating summary", percent: 84 });
-      const summary = await llm(
-        [
-          { role: "system", content: "You are a helpful tutor who produces structured study notes from multimodal inputs." },
-          { role: "user", content: buildSummaryPrompt(llmInput) },
-        ],
-        llmModel
-      );
+        const summary = await ollamaText(buildSummaryPrompt(llmInput), OLLAMA_TEXT_MODEL);
 
       await setProgress({ stage: "creating lecture memory", percent: 90 });
-      const memory = await llm(
-        [
-          { role: "system", content: "You are a helpful tutor who creates compact lecture memories from multimodal inputs." },
-          { role: "user", content: buildMemoryPrompt(llmInput) },
-        ],
-        llmModel
-      );
+        const memory = await ollamaText(buildMemoryPrompt(llmInput), OLLAMA_TEXT_MODEL);
 
       await setProgress({ stage: "saving outputs", percent: 96 });
 

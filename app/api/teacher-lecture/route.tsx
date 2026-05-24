@@ -14,7 +14,9 @@ import { getVectorStore } from "@/lib/vectorStore";
 import { supabase } from "@/lib/supabase";
 import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, ocrExtractTablesFromImage } from "@/lib/tableUtils";
 import { saveTableEvalReport } from "@/lib/tableEval";
+import { summarizeTableMetrics } from "@/lib/tableMetrics";
 import { extractTablesFromPdfNative } from "@/lib/pdfTableExtractor";
+import { extractPdfBlocksFromPdfNative } from "@/lib/pdfBlockExtractor";
 
 type Action =
   | "upload"
@@ -827,7 +829,7 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
   const perImageTimeoutMs = Number((mode === "pdf" ? process.env.PDF_VISION_TIMEOUT_MS : process.env.VISION_TIMEOUT_MS) || (mode === "pdf" ? 60000 : 20000));
 
   const limited = imagePaths.slice(0, maxFrames);
-  const results: Array<{ label: string; content: string }> = [];
+  const results: Array<{ label: string; content: string; parsedTables?: any; tableExtractionMethod?: string }> = [];
   if (!limited.length) return results;
 
   for (let idx = 0; idx < limited.length; idx++) {
@@ -900,7 +902,7 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
         console.warn(`[VISION] table extraction fallback failed on page ${idx + 1}: ${String(e)}`);
       }
 
-      results.push({ label: `Page ${idx + 1}`, content: finalText });
+      results.push({ label: `Page ${idx + 1}`, content: finalText, parsedTables: extractedTables || undefined, tableExtractionMethod });
     } catch (err: any) {
       console.warn(`[VISION] page ${idx + 1} skipped: ${err?.message || err}`);
     }
@@ -955,29 +957,30 @@ async function indexContentChunksToVectorStore(params: {
         const captionsRaw = await ollamaText(captionPrompt, OLLAMA_TEXT_MODEL);
         try {
           const parsedCaptions = JSON.parse(captionsRaw);
-            if (Array.isArray(parsedCaptions.pages)) {
-              for (const p of parsedCaptions.pages) {
-                if (p && p.summary) {
-                  docs.push(new Document({
-                    pageContent: String(p.summary),
-                    metadata: {
-                      lectureId: params.lectureId,
-                      fileName: params.fileName,
-                      fileType: params.fileType,
-                      parserModel: params.parserModel,
-                      contentKind: params.contentKind,
-                      source: "teacher-upload-caption",
-                      page: Number(p.page) || -1,
-                      chunkIndex: -1,
-                      uploadDate: new Date().toISOString(),
-                    },
-                  }));
-                }
+          if (Array.isArray(parsedCaptions.pages)) {
+            for (const p of parsedCaptions.pages) {
+              if (p && p.summary) {
+                docs.push(new Document({
+                  pageContent: String(p.summary),
+                  metadata: {
+                    lectureId: params.lectureId,
+                    fileName: params.fileName,
+                    fileType: params.fileType,
+                    parserModel: params.parserModel,
+                    contentKind: params.contentKind,
+                    source: "teacher-upload-caption",
+                    page: Number(p.page) || -1,
+                    chunkIndex: -1,
+                    uploadDate: new Date().toISOString(),
+                  },
+                }));
               }
             }
-            if (parsedCaptions && parsedCaptions.overall) {
-              docs.push(new Document({
-                pageContent: String(parsedCaptions.overall),
+          }
+
+          if (parsedCaptions && parsedCaptions.overall) {
+            docs.push(new Document({
+              pageContent: String(parsedCaptions.overall),
               metadata: {
                 lectureId: params.lectureId,
                 fileName: params.fileName,
@@ -1274,6 +1277,7 @@ export async function POST(req: NextRequest) {
 
         if (PDF_EXTS.has(ext)) {
           await setProgress({ stage: "extracting PDF text", percent: 35 });
+          const nativeTablesByPage = new Map<number, any[]>();
 
           try {
             const timeoutMs = Number(process.env.PDF_TEXT_TIMEOUT_MS || 20000);
@@ -1281,13 +1285,35 @@ export async function POST(req: NextRequest) {
             notesText = pages.map((page) => page.pageContent).join("\n\n");
             descriptionPages = pages.map((page) => ({ label: `Page ${page.pageNumber}`, content: page.pageContent }));
 
-            // Native table extraction: try pdfplumber/camelot via helper python script
+            // Native block and table extraction: try local PyMuPDF/pdfplumber helpers first.
             try {
+              const blocks = await extractPdfBlocksFromPdfNative(lecture.original_path);
+              if (blocks && Array.isArray(blocks.pages) && blocks.pages.length) {
+                for (const page of blocks.pages) {
+                  if (!page || page.type !== "page") continue;
+                  const idx = Math.max(0, Number(page.page || 1) - 1);
+                  const pageContextParts = [String(page.text || "").trim()];
+                  if (Array.isArray(page.image_blocks) && page.image_blocks.length) {
+                    for (const img of page.image_blocks) {
+                      const ctx = String(img?.surrounding_text || "").trim();
+                      if (ctx) pageContextParts.push(`Image context: ${ctx}`);
+                    }
+                  }
+                  const pageContext = pageContextParts.filter(Boolean).join("\n\n");
+                  if (descriptionPages[idx] && pageContext) {
+                    descriptionPages[idx].content = `${pageContext}\n\n${descriptionPages[idx].content}`.trim();
+                  }
+                }
+              }
+
               const native = await extractTablesFromPdfNative(lecture.original_path);
               if (native && Array.isArray(native.tables) && native.tables.length) {
                 // integrate native tables into per-page descriptionPages by prepending markdown
                 for (const t of native.tables) {
                   const pnum = Number(t.page) || 1;
+                  const tableList = nativeTablesByPage.get(pnum) || [];
+                  tableList.push(t);
+                  nativeTablesByPage.set(pnum, tableList);
                   const md = tablesToMarkdown({ tables: [t] });
                   const idx = pnum - 1;
                   if (descriptionPages[idx]) {
@@ -1321,6 +1347,27 @@ export async function POST(req: NextRequest) {
           visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
           if (visionPages.length) descriptionPages = visionPages;
 
+          try {
+            for (const page of visionPages) {
+              const pageNumber = Number(String(page.label).replace(/\D+/g, "")) || 0;
+              const nativeTables = nativeTablesByPage.get(pageNumber);
+              const parsedTables = (page as any).parsedTables;
+              if (nativeTables && nativeTables.length && parsedTables && Array.isArray(parsedTables.tables) && parsedTables.tables.length) {
+                const visionTable = parsedTables.tables[0];
+                const nativeTable = nativeTables[0];
+                const metrics = summarizeTableMetrics(visionTable, nativeTable);
+                await saveTableEvalReport(ldir, `page_${pageNumber}`, {
+                  method: (page as any).tableExtractionMethod || "vision",
+                  metrics,
+                  native_table: nativeTable,
+                  vision_table: visionTable,
+                });
+              }
+            }
+          } catch (e) {
+            console.warn(`[EVAL] failed to save comparison table metrics: ${String(e)}`);
+          }
+
           extractedText = [
             notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
             visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
@@ -1347,14 +1394,14 @@ export async function POST(req: NextRequest) {
         const descriptionInput = descriptionPages.length ? descriptionPages : [{ label: "Page 1", content: extractedText }];
 
         await setProgress({ stage: "creating document description", percent: 82 });
-        parserOutput = await ollamaText(buildDocumentDescriptionPrompt(descriptionInput));
+        parserOutput = await ollamaText(buildDocumentDescriptionPrompt(descriptionInput), OLLAMA_TEXT_MODEL);
         if (!parserOutput.trim()) parserOutput = extractedText;
 
         await setProgress({ stage: "creating summary", percent: 84 });
-        const summary = await ollamaText(buildDocumentSummaryPrompt(localInput));
+        const summary = await ollamaText(buildDocumentSummaryPrompt(localInput), OLLAMA_TEXT_MODEL);
 
         await setProgress({ stage: "creating lecture memory", percent: 90 });
-        const memory = await ollamaText(buildDocumentMemoryPrompt(localInput));
+        const memory = await ollamaText(buildDocumentMemoryPrompt(localInput), OLLAMA_TEXT_MODEL);
 
         await setProgress({ stage: "saving outputs", percent: 96 });
 
