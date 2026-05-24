@@ -503,15 +503,105 @@ export default function TeacherStudioPage() {
                   </a>
                 )}
               </div>
-              {activeTab === "content" ? (
-                <div className="contentRedirectShell">
-                  <div className="contentRedirectCard">
-                    <div className="fieldLabel">DEDICATED CONTENT PAGE</div>
-                    <h3>Upload content now lives on the dedicated page.</h3>
-                    <p>Use the dedicated upload-content page for PDFs and images; audio and video stay on the lecture upload flow.</p>
-                    <a className="panelLink" href="/teacher/upload-content">
-                      Open upload-content
-                    </a>
+              {activeTab === "content" && contentMode === "chat" ? (
+                <div className="contentChatShell">
+                  {!progress.done && progress.stage !== "idle" && (
+                    <div className="progressWrap contentProgressWrap">
+                      <div className="progressTop">
+                        <span>{progress.stage}</span>
+                        <span>{progress.percent}%</span>
+                      </div>
+                      <div className="track"><div className="fill" style={{ width: `${progress.percent}%` }} /></div>
+                    </div>
+                  )}
+
+                  <div className="chatIntro">
+                    <div>
+                      <div className="fieldLabel">RAG OUTPUT</div>
+                      <h3>{pendingContentFile?.name || contentName || "Processed content"}</h3>
+                    </div>
+                    <button onClick={resetContentFlow} className="dangerGhost">Done</button>
+                  </div>
+
+                  {indexingOk === false && (
+                    <div className="indexingWarning">
+                      <strong>Indexing warning:</strong> The content was processed but indexing to the vector store failed.
+                      {indexingError ? ` (${indexingError})` : ""}
+                      <div style={{ marginTop: 8 }}>
+                        <button className="primary" onClick={async () => {
+                          setLoading(true);
+                          try {
+                            const res = await api("retryIndex", { lectureId: currentLectureId });
+                            if (res?.ok) {
+                              setIndexingOk(true);
+                              setIndexingError(null);
+                              setStatusMsg("Indexing retried and succeeded.");
+                            } else {
+                              setIndexingOk(false);
+                              setIndexingError(res?.error || "Retry failed");
+                              setStatusMsg("Indexing retry failed.");
+                              alert("Indexing retry failed: " + (res?.error || "unknown"));
+                            }
+                          } catch (e: any) {
+                            setIndexingOk(false);
+                            setIndexingError(String(e?.message || e));
+                            alert("Indexing retry error: " + String(e?.message || e));
+                          } finally {
+                            setLoading(false);
+                          }
+                        }} disabled={loading || !currentLectureId}>
+                          {loading ? "Retrying..." : "Retry indexing"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {retrievalNotice && (
+                    <div className="retrievalNotice">
+                      <strong>Search notice:</strong> {retrievalNotice}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                    <div style={{ color: '#6b645b', fontSize: 13 }} />
+                    <div>
+                      <button className="dangerGhost" onClick={() => setShowRaw((s) => !s)} style={{ marginRight: 8 }}>
+                        {showRaw ? "Show summary" : "Show raw text"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="parserOutputPanel">
+                    <div className="sectionMiniTitle">Document description</div>
+                    <pre className="parserOutput">{showRaw ? rawContent || processedContentOutput : processedContentOutput}</pre>
+                  </div>
+
+                  <div className="chatPanel">
+                    <div className="sectionMiniTitle">Ask questions about this file</div>
+                    <div className="chatHistory">
+                      {chatMessages.map((msg, idx) => (
+                        <div key={idx} className={`chatBubble ${msg.role}`}>
+                          <span>{msg.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="chatComposer">
+                      <input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask about key concepts, formulas, or specific sections..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (currentLectureId && contentMode === "chat") void sendContentChat();
+                          }
+                        }}
+                        disabled={loading || !currentLectureId || contentMode !== "chat"}
+                      />
+                      <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim() || !currentLectureId || contentMode !== "chat"}>
+                        {loading ? "Thinking..." : "Send"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (

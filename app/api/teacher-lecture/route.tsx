@@ -8,28 +8,16 @@ import { tmpdir } from "os";
 import { writeFile, unlink } from "fs/promises";
 import OpenAI from "openai";
 import ollama from "ollama";
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document } from "@langchain/core/documents";
 import { getVectorStore } from "@/lib/vectorStore";
 import { supabase } from "@/lib/supabase";
-
-class PDFLoader {
-  constructor(_path: string) {}
-  async load(): Promise<Array<{ pageContent: string }>> {
-    return [];
-  }
-}
-
-async function repairTablesJsonFromText(_raw: string): Promise<any> { return null; }
-function heuristicExtractTablesFromText(_text: string): any { return { tables: [] }; }
-function tablesToMarkdown(_tablesObj: any): string { return ""; }
-async function ocrExtractTablesFromImage(_imagePath: string): Promise<any> { return { tables: [] }; }
-async function saveTableEvalReport(_lectureDir: string, _reportName: string, _payload: any): Promise<void> {}
-function summarizeTableMetrics(_visionTable: any, _nativeTable: any): any { return {}; }
-async function describePdfImageBlockWithVision(_params: any): Promise<string> { return ""; }
-async function extractTablesFromPdfNative(_pdfPath: string): Promise<any> { return null; }
-async function extractPdfBlocksFromPdfNative(_pdfPath: string): Promise<any> { return null; }
-async function extractPdfTextWithLoader(_pdfPath: string): Promise<string> { return ""; }
-async function extractPdfPagesWithLoader(_pdfPath: string): Promise<any> { return []; }
+import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, ocrExtractTablesFromImage } from "@/lib/tableUtils";
+import { saveTableEvalReport } from "@/lib/tableEval";
+import { summarizeTableMetrics } from "@/lib/tableMetrics";
+import { describePdfImageBlockWithVision } from "@/lib/pdfImageVision";
+import { extractTablesFromPdfNative } from "@/lib/pdfTableExtractor";
+import { extractPdfBlocksFromPdfNative } from "@/lib/pdfBlockExtractor";
 
 type Action =
   | "upload"
@@ -140,11 +128,24 @@ function inferContentKindFromEntry(entry: Partial<LectureEntry>): ContentKind {
   return inferContentKindFromExt(path.extname(sourcePath).toLowerCase());
 }
 
+// PDF cache
+const MAX_PDF_CACHE_ENTRIES = 12;
+const globalForPdf = globalThis as unknown as { pdfTextCache?: Map<string, string> };
+if (!globalForPdf.pdfTextCache) globalForPdf.pdfTextCache = new Map();
 const globalForTeacherTempCleanup = globalThis as unknown as {
   teacherTempCleanupInstalled?: boolean;
   teacherTempCleanupOnStartRan?: boolean;
   teacherTempCleanupRunning?: boolean;
 };
+function upsertPdfCache(key: string, value: string) {
+  const cache = globalForPdf.pdfTextCache!;
+  if (cache.has(key)) cache.delete(key);
+  cache.set(key, value);
+  if (cache.size > MAX_PDF_CACHE_ENTRIES) {
+    const oldest = cache.keys().next().value;
+    if (oldest) cache.delete(oldest);
+  }
+}
 
 async function ensureDir(p: string) {
   await fsp.mkdir(p, { recursive: true });
@@ -686,6 +687,42 @@ async function convertPdfToImages(pdfPath: string, outDir: string) {
 
   return files;
 }
+async function extractPdfTextWithLoader(pdfPath: string): Promise<string> {
+  const pages = await extractPdfPagesWithLoader(pdfPath);
+  return pages.map((p) => p.pageContent).join("\n\n").trim();
+}
+
+async function extractPdfPagesWithLoader(pdfPath: string): Promise<Array<{ pageNumber: number; pageContent: string }>> {
+  const buffer = await fsp.readFile(pdfPath);
+  const hash = crypto.createHash("sha1").update(buffer).digest("hex");
+
+  const cache = globalForPdf.pdfTextCache!;
+  const cached = cache.get(hash);
+  if (cached) {
+    return cached
+      .split("\n\n---PAGE---\n\n")
+      .map((pageContent, index) => ({ pageNumber: index + 1, pageContent }))
+      .filter((page) => page.pageContent.trim());
+  }
+
+  const tempDir = path.join(tmpdir(), "teacher-pdf");
+  await ensureDir(tempDir);
+  const tempPath = path.join(tempDir, `${hash}.pdf`);
+  await writeFile(tempPath, buffer);
+
+  try {
+    const loader = new PDFLoader(tempPath);
+    const docs = await loader.load();
+    const pages = docs
+      .map((d, index) => ({ pageNumber: index + 1, pageContent: String(d.pageContent || "").trim().slice(0, 20000) }))
+      .filter((page) => page.pageContent);
+    const serialised = pages.map((page) => page.pageContent).join("\n\n---PAGE---\n\n");
+    if (serialised) upsertPdfCache(hash, serialised);
+    return pages;
+  } finally {
+    try { await unlink(tempPath); } catch {}
+  }
+}
 async function transcribeAudio(audioPath: string, language: string) {
   const tx = await client.audio.transcriptions.create({
     file: fs.createReadStream(audioPath),
@@ -1223,7 +1260,7 @@ export async function POST(req: NextRequest) {
       await setProgress({ lectureId, stage: "starting", percent: 3, done: false, error: "" });
 
       const lib = await loadLibrary();
-      const lecture = lib.find((x) => x.lecture_id === lectureId) as LectureEntry & { original_path: string };
+      const lecture = lib.find((x) => x.lecture_id === lectureId);
       if (!lecture) return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
       if (!lecture.original_path) return NextResponse.json({ error: "Missing original_path" }, { status: 400 });
 
@@ -1233,8 +1270,6 @@ export async function POST(req: NextRequest) {
       const contentKind = inferContentKindFromEntry(lecture);
 
       if (contentKind === "document") {
-        return NextResponse.json({ error: "Non-video processing has moved to /api/upload" }, { status: 400 });
-
         let extractedText = "";
         let visualText = "";
         let notesText = "";
@@ -1248,8 +1283,8 @@ export async function POST(req: NextRequest) {
           try {
             const timeoutMs = Number(process.env.PDF_TEXT_TIMEOUT_MS || 20000);
             const pages = await withTimeout(extractPdfPagesWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
-            notesText = pages.map((page: { pageContent: string }) => page.pageContent).join("\n\n");
-            descriptionPages = pages.map((page: { pageNumber: number; pageContent: string }) => ({ label: `Page ${page.pageNumber}`, content: page.pageContent }));
+            notesText = pages.map((page) => page.pageContent).join("\n\n");
+            descriptionPages = pages.map((page) => ({ label: `Page ${page.pageNumber}`, content: page.pageContent }));
 
             // Native block and table extraction: try local PyMuPDF/pdfplumber helpers first.
             try {
@@ -1377,9 +1412,9 @@ export async function POST(req: NextRequest) {
           try {
             for (const page of visionPages) {
               const pageNumber = Number(String(page.label).replace(/\D+/g, "")) || 0;
-              const nativeTables = nativeTablesByPage.get(pageNumber) || [];
+              const nativeTables = nativeTablesByPage.get(pageNumber);
               const parsedTables = (page as any).parsedTables;
-              if (nativeTables.length && parsedTables && Array.isArray(parsedTables.tables) && parsedTables.tables.length) {
+              if (nativeTables && nativeTables.length && parsedTables && Array.isArray(parsedTables.tables) && parsedTables.tables.length) {
                 const visionTable = parsedTables.tables[0];
                 const nativeTable = nativeTables[0];
                 const metrics = summarizeTableMetrics(visionTable, nativeTable);

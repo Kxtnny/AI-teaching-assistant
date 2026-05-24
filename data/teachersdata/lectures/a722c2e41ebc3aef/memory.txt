@@ -1,0 +1,30 @@
+Here is a compact lecture memory on Bachelor of Computing (Computer Science) in the format requested:
+
+LECTURE MEMORY:
+- **Course Requirements:**
+  - 10 AU in Core courses
+  - 35 AU in Major Prescribed Electives (MPE)
+  - 17 AU in Broadening and Deepening Electives
+  - 15 AU in Year 1 core subjects
+  - 21 AU in Year 2 core subjects
+
+- **Pre-requisites:**
+  - SC1003, SC1004, SC2000, SC2002, CC0007 (Year 1)
+  - SC2001, SC2207, CC0006 (Year 2)
+
+- **MPE Courses:**
+  - 9 MPE courses in Year 4
+  - Choose within SC4xxx for Year 4
+
+- **Final Year Project:**
+  - 10 AU in FYP Part 1 and Part 2
+  - Eligible for Highest Distinction only if completed
+
+- **Common Mistakes:**
+  - Failure to complete MPE courses or FYP
+  - Inadequate pre-requisites
+
+- **Example Question Types:**
+  - Multiple-choice questions on computer science concepts
+  - Short-answer questions on programming and software engineering
+  - Essay questions on data structures, algorithms, and computational thinking

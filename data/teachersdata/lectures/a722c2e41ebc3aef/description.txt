@@ -1,0 +1,123 @@
+**Summary of the Academic Unit Requirement for Bachelor of Computing (Computer Science)**
+
+The Bachelor of Computing (Computer Science) curriculum requires students to complete a total of 135 academic units (AU) over four years. The curriculum is structured into four main components: Core, Major Prescribed Elective (MPE), Broadening and Deepening Elective (BDE), and Career & Innovative Enterprise for the Future World.
+
+**Page 1: Introduction to the Curriculum**
+
+* The curriculum is designed for students to develop a strong foundation in computer science and related areas.
+* The course codes and types (Core, MPE, BDE, etc.) are listed, along with their respective AU values.
+* The table on page 1 summarizes the total AU required for each year of study.
+
+**Key Points:**
+
+* The total AU required for the degree is 135.
+* The curriculum is divided into four years, with increasing AU requirements each year.
+* The course types and codes are listed, along with their AU values.
+
+**Page 2: Course Codes and Types**
+
+* The course codes and types are listed, along with their AU values.
+* The table on page 2 summarizes the course codes and types, including MPE and BDE courses.
+
+**Key Points:**
+
+* The course codes and types are listed, along with their AU values.
+* The table on page 2 summarizes the course codes and types, including MPE and BDE courses.
+* Students are required to complete 9 MPE courses, including at least 4 courses at the Year 3 Standing.
+
+**Note:**
+
+* Students may choose to fulfill the MPE requirement by either completing a Final Year Project (FYP) or by taking 3 additional MPE courses.
+* Please refer to the CSC MPE Courses and Specialization on the CCDS website for more information.
+
+**Key Points:**
+
+* Students have the option to complete a FYP or take additional MPE courses to fulfill the MPE requirement.
+* The CSC MPE Courses and Specialization on the CCDS website provides more information on the MPE requirement.
+
+**Page 3: Year 4 Total AU**
+
+* The total AU required for Year 4 is 35.
+* The course codes and types are listed, along with their AU values.
+* The table on page 3 summarizes the course codes and types, including MPE and BDE courses.
+
+**Key Points:**
+
+* The total AU required for Year 4 is 35.
+* The course codes and types are listed, along with their AU values.
+* Students are required to complete 9 MPE courses, including at least 4 courses at the Year 3 Standing.
+
+**Note:**
+
+* To be eligible for Highest Distinction, students must complete a Final Year Project.
+
+**Key Points:**
+
+* Students who complete a FYP are eligible for Highest Distinction.
+* The FYP is a requirement for Highest Distinction.
+
+**Page 4: Year 3 Total AU**
+
+* The total AU required for Year 3 is 17.
+* The course codes and types are listed, along with their AU values.
+* The table on page 4 summarizes the course codes and types, including MPE and BDE courses.
+
+**Key Points:**
+
+* The total AU required for Year 3 is 17.
+* The course codes and types are listed, along with their AU values.
+* Students are required to complete 9 MPE courses, including at least 4 courses at the Year 3 Standing.
+
+**Note:**
+
+* Students may choose to fulfill the MPE requirement by either completing a Final Year Project (FYP) or by taking 3 additional MPE courses.
+* Please refer to the CSC MPE Courses and Specialization on the CCDS website for more information.
+
+**Key Points:**
+
+* Students have the option to complete a FYP or take additional MPE courses to fulfill the MPE requirement.
+* The CSC MPE Courses and Specialization on the CCDS website provides more information on the MPE requirement.
+
+**Page 5: Year 2 Total AU**
+
+* The total AU required for Year 2 is 15.
+* The course codes and types are listed, along with their AU values.
+* The table on page 5 summarizes the course codes and types, including MPE and BDE courses.
+
+**Key Points:**
+
+* The total AU required for Year 2 is 15.
+* The course codes and types are listed, along with their AU values.
+* Students are required to complete 9 MPE courses, including at least 4 courses at the Year 3 Standing.
+
+**Note:**
+
+* Students may choose to fulfill the MPE requirement by either completing a Final Year Project (FYP) or by taking 3 additional MPE courses.
+* Please refer to the CSC MPE Courses and Specialization on the CCDS website for more information.
+
+**Key Points:**
+
+* Students have the option to complete a FYP or take additional MPE courses to fulfill the MPE requirement.
+* The CSC MPE Courses and Specialization on the CCDS website provides more information on the MPE requirement.
+
+**Page 6: Year 1 Total AU**
+
+* The total AU required for Year 1 is 21.
+* The course codes and types are listed, along with their AU values.
+* The table on page 6 summarizes the course codes and types, including MPE and BDE courses.
+
+**Key Points:**
+
+* The total AU required for Year 1 is 21.
+* The course codes and types are listed, along with their AU values.
+* Students are required to complete 9 MPE courses, including at least 4 courses at the Year 3 Standing.
+
+**Note:**
+
+* Students may choose to fulfill the MPE requirement by either completing a Final Year Project (FYP) or by taking 3 additional MPE courses.
+* Please refer to the CSC MPE Courses and Specialization on the CCDS website for more information.
+
+**Key Points:**
+
+* Students have the option to complete a FYP or take additional MPE courses to fulfill the MPE requirement.
+* The CSC MPE Courses and Specialization on the CCDS website provides more information on the MPE requirement.

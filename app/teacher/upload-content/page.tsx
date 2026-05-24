@@ -13,10 +13,16 @@ type ProcessProgress = {
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type VisionModel = "llava" | "gemma3" | "llama3.2-vision";
+type UploadKind = "pdf" | "image" | "audio" | "video" | "other";
 
-function isVideoFile(file: File) {
-  const ext = file.name.toLowerCase().replace(/^.*\./, "");
-  return ["mp4", "mov", "mkv"].includes(ext) || ["video/mp4", "video/quicktime", "video/x-matroska"].includes(file.type.toLowerCase());
+function getUploadKind(file: File | null): UploadKind {
+  if (!file) return "other";
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  if (ext === "pdf") return "pdf";
+  if (["png", "jpg", "jpeg", "webp"].includes(ext)) return "image";
+  if (["mp3", "wav", "m4a", "flac"].includes(ext)) return "audio";
+  if (["mp4", "mov", "mkv"].includes(ext)) return "video";
+  return "other";
 }
 
 export default function UploadContentPage() {
@@ -130,56 +136,40 @@ export default function UploadContentPage() {
     };
   }, []);
 
-  async function uploadFile(f?: File | null, options?: { silent?: boolean }) {
+  async function uploadParsedFile(f?: File | null) {
     if (!f) return;
-    const silent = !!options?.silent;
-    const videoFile = isVideoFile(f);
 
-    if (!videoFile) {
-      const fd = new FormData();
-      fd.append("file", f);
-      fd.append("visionModel", visionModel);
+    const fd = new FormData();
+    fd.append("file", f);
+    fd.append("visionModel", visionModel);
 
-      setLoading(true);
-      if (!silent) setStatusMsg("Uploading and parsing content...");
-      const res = await fetch("/api/upload", { method: "POST", body: fd }).then((r) => r.json());
-      setLoading(false);
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: fd,
+    }).then((r) => r.json());
 
-      if (!res?.success) return alert(res.error || "Upload failed");
-      setCurrentLectureId(res.lecture.lecture_id);
-
-      if (!silent) {
-        if (res.duplicate) {
-          setStatusMsg("Duplicate file found. Existing lecture selected.");
-        } else {
-          setStatusMsg("Content parsed. Click Process Content.");
-          if (!contentName.trim()) setContentName(res.lecture.title || "");
-        }
-      }
-
-      return res;
+    if (!res?.success) {
+      throw new Error(res?.error || "Upload failed");
     }
+
+    return res;
+  }
+
+  async function uploadTeacherMediaFile(f?: File | null) {
+    if (!f) return;
 
     const fd = new FormData();
     fd.append("action", "upload");
     fd.append("file", f);
     fd.append("tempMode", "1");
 
-    setLoading(true);
-    if (!silent) setStatusMsg("Uploading...");
-    const res = await api("upload", fd, true);
-    setLoading(false);
+    const res = await fetch("/api/teacher-lecture", {
+      method: "POST",
+      body: fd,
+    }).then((r) => r.json());
 
-    if (!res?.ok) return alert(res.error || "Upload failed");
-    setCurrentLectureId(res.lecture.lecture_id);
-
-    if (!silent) {
-      if (res.duplicate) {
-        setStatusMsg("Duplicate file found. Existing lecture selected.");
-      } else {
-        setStatusMsg("Upload complete. Click Process Content.");
-        if (!contentName.trim()) setContentName(res.lecture.title || "");
-      }
+    if (!res?.ok) {
+      throw new Error(res?.error || "Upload failed");
     }
 
     return res;
@@ -192,11 +182,12 @@ export default function UploadContentPage() {
     setProcessedContentOutput("");
     setChatMessages([]);
     setContentMode("upload");
+    const kind = getUploadKind(file);
     if (file && !contentName.trim()) {
       const base = file.name.replace(/\.[^/.]+$/, "");
       setContentName(base);
     }
-    setStatusMsg(file ? `Selected ${file.name}. Click Process Content to continue.` : "Ready for a content upload.");
+    setStatusMsg(file ? `Selected ${file.name} (${kind}). Click Process Content to continue.` : "Ready for a content upload.");
   }
 
   async function onDrop(e: React.DragEvent<HTMLLabelElement>) {
@@ -209,82 +200,88 @@ export default function UploadContentPage() {
     setProcessedContentOutput("");
     setChatMessages([]);
     setContentMode("upload");
+    const kind = getUploadKind(file);
     if (file && !contentName.trim()) {
       const base = file.name.replace(/\.[^/.]+$/, "");
       setContentName(base);
     }
-    setStatusMsg(file ? `Selected ${file.name}. Click Process Content to continue.` : "Ready for a content upload.");
+    setStatusMsg(file ? `Selected ${file.name} (${kind}). Click Process Content to continue.` : "Ready for a content upload.");
   }
 
   async function processContent() {
     let lectureId = currentLectureId;
+    const uploadKind = getUploadKind(pendingContentFile);
 
-    if (!lectureId) {
+    if (uploadKind === "other") {
+      return alert("Unsupported file type. Please upload a PDF, image, audio, or video file.");
+    }
+
+    if (uploadKind === "pdf" || uploadKind === "image") {
       if (!pendingContentFile) return alert("Upload/select content first.");
-
-      if (!isVideoFile(pendingContentFile)) {
-        setContentMode("chat");
-        setLoading(true);
-        setProgress({ lectureId: null, stage: "parsing content", percent: 1, done: false });
-        setStatusMsg("Uploading and parsing content...");
-
-        try {
-          const uploadRes = await uploadFile(pendingContentFile, { silent: true });
-          setLoading(false);
-
-          if (!uploadRes?.ok && !uploadRes?.success) {
-            setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
-            return;
-          }
-
-          const lecture = uploadRes.lecture;
-          lectureId = lecture.lecture_id;
-          setCurrentLectureId(lectureId);
-          setProcessedContentOutput(uploadRes.parserOutput || uploadRes.transcript || uploadRes.summary || uploadRes.memory || "Parsed and indexed.");
-          setRawContent(uploadRes.transcript || uploadRes.parserOutput || "");
-          setIndexingOk(true);
-          setIndexingError(null);
-          setRetrievalNotice(null);
-          setChatMessages([
-            {
-              role: "assistant",
-              content: "The content was parsed by the dedicated non-video upload route and is ready for questions.",
-            },
-          ]);
-          setProgress({ lectureId, stage: "parsed", percent: 100, done: true });
-          setStatusMsg("Content parsed and ready for chat.");
-          return;
-        } catch (error: any) {
-          setLoading(false);
-          setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
-          alert(String(error?.message || error));
-          return;
-        }
-      }
 
       setContentMode("chat");
       setLoading(true);
-      setProgress({ lectureId: null, stage: "uploading content", percent: 1, done: false });
-      setStatusMsg("Uploading content...");
+      setProgress({ lectureId: null, stage: "parsing content", percent: 1, done: false });
+      setStatusMsg(`Parsing ${uploadKind} content with the paper-aligned upload route...`);
 
+      let uploadRes: any;
       try {
-        const uploadRes = await uploadFile(pendingContentFile, { silent: true });
-        setLoading(false);
-
-        if (!uploadRes?.ok) {
-          setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
-          return;
-        }
-
-        lectureId = uploadRes.lecture.lecture_id;
-        setCurrentLectureId(lectureId);
-        setProgress({ lectureId, stage: "uploaded", percent: 14, done: false });
+        uploadRes = await uploadParsedFile(pendingContentFile);
       } catch (error: any) {
         setLoading(false);
         setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
         alert(String(error?.message || error));
         return;
       }
+
+      setLoading(false);
+
+      setProcessedContentOutput(uploadRes.parserOutput || uploadRes.message || "Parsed and indexed with the upload route.");
+      setRawContent(uploadRes.parserOutput || "");
+      setIndexingOk(true);
+      setIndexingError(null);
+      setRetrievalNotice(null);
+      setChatMessages([
+        {
+          role: "assistant",
+          content:
+            "This content was parsed with the paper-aligned upload route and indexed. Chat on this page still relies on the teacher lecture workflow, so the detailed parser output is shown here instead.",
+        },
+      ]);
+      setProgress({ lectureId: null, stage: "parsed", percent: 100, done: true });
+      setStatusMsg(`Content parsed and indexed with the paper-aligned upload route.`);
+      return;
+    }
+
+    if (!lectureId) {
+      if (!pendingContentFile) return alert("Upload/select content first.");
+
+      setContentMode("chat");
+      setLoading(true);
+      setProgress({ lectureId: null, stage: "uploading media", percent: 1, done: false });
+      setStatusMsg(`Uploading ${uploadKind} content to the teacher workflow...`);
+
+      let uploadRes: any;
+      try {
+        uploadRes = await uploadTeacherMediaFile(pendingContentFile);
+      } catch (error: any) {
+        setLoading(false);
+        setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
+        alert(String(error?.message || error));
+        return;
+      }
+
+      setLoading(false);
+
+      if (!uploadRes?.lecture?.lecture_id) {
+        setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: "Missing lecture id" }));
+        alert("Upload succeeded but no lecture id was returned.");
+        return;
+      }
+
+      lectureId = uploadRes.lecture.lecture_id;
+      setCurrentLectureId(lectureId);
+      setProgress({ lectureId, stage: "uploaded", percent: 14, done: false });
     }
 
     setLoading(true);
@@ -535,12 +532,12 @@ export default function UploadContentPage() {
             >
               <input
                 type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.webp"
+                accept=".pdf,.mp4,.mov,.mkv,.mp3,.wav,.m4a,.flac,.png,.jpg,.jpeg,.webp"
                 onChange={onUpload}
                 disabled={loading}
               />
               <strong>Drop your content here</strong>
-              <span>PDF or Image only • Click or drag to upload</span>
+              <span>PDF or Image • Click or drag to upload</span>
             </label>
 
             {pendingContentFile && (

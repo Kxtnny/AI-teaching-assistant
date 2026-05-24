@@ -1,0 +1,18 @@
+Here are the requested sections:
+
+**Summary:**
+• The Bachelor of Computing (Computer Science) program requires students to complete a Major Prescribed Elective (MPE) course.
+• Students must take at least 4 MPE courses from the Broadening and Deepening Elective category.
+• A Final Year Project is required for Highest Distinction.
+• Students are eligible for the Professional Internship if they complete all requirements.
+
+**Key Terms:**
+SC3xxx/SC4xxx, Major Prescribed Elective (MPE), F-Core, U-Core, SC2000, CC0001, CC0002, SC3xxx/SC4xxx MPE-1, SC3xxx/SC4xxx MPE-2, MPE-1, MPE-2
+
+**Important Details:**
+• Students must take at least 9 MPE courses (SC3xxx or SC4xxx).
+• At least 4 of the MPE courses must be taken from the Broadening and Deepening Elective category.
+• The Final Year Project is a requirement for Highest Distinction.
+
+**Content:**
+The content section appears to be a table with various course codes, type, AU, pre-requisite, and other information. It's difficult to extract specific details without more context. If you'd like to provide more information about this section or clarify what you're looking for, I can try to help further.
