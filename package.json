@@ -27,6 +27,7 @@
     "react-dom": "19.2.3",
     "reactflow": "^11.11.4",
     "unpdf": "^1.6.2",
+    "tesseract.js": "^2.1.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {

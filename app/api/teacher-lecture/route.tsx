@@ -12,7 +12,8 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document } from "@langchain/core/documents";
 import { getVectorStore } from "@/lib/vectorStore";
 import { supabase } from "@/lib/supabase";
-import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown } from "@/lib/tableUtils";
+import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, ocrExtractTablesFromImage } from "@/lib/tableUtils";
+import { saveTableEvalReport } from "@/lib/tableEval";
 
 type Action =
   | "upload"
@@ -824,7 +825,7 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
   const perImageTimeoutMs = Number((mode === "pdf" ? process.env.PDF_VISION_TIMEOUT_MS : process.env.VISION_TIMEOUT_MS) || (mode === "pdf" ? 60000 : 20000));
 
   const limited = imagePaths.slice(0, maxFrames);
-  const results: Array<{ label: string; content: string }> = [];
+  const results: Array<{ label: string; content: string; parsedTables?: any; tableExtractionMethod?: string }> = [];
   if (!limited.length) return results;
 
   async function processOne(imgPath: string, idx: number) {
@@ -875,6 +876,20 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
           }
         }
 
+        // If still none and running in PDF mode, try OCR fallback on the rendered page image
+        if ((!parsed || !Array.isArray(parsed.tables) || !parsed.tables.length) && mode === "pdf") {
+          try {
+            const ocr = await ocrExtractTablesFromImage(imgPath);
+            if (ocr && Array.isArray(ocr.tables) && ocr.tables.length) {
+              parsed = ocr;
+              // mark method as OCR if not already set
+              // (method variable may be undefined here; set next)
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+
         if (parsed && Array.isArray(parsed.tables) && parsed.tables.length) {
           const tablesMd = tablesToMarkdown(parsed);
           finalText = `=== Extracted Tables ===\n${tablesMd}\n\n${txt.replace(/<TABLES_JSON>[\s\S]*?<\/TABLES_JSON>/i, "")}`;
@@ -882,7 +897,7 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
       } catch (err) {
         console.warn(`[VISION] table extraction fallback failed on page ${idx + 1}: ${String(err)}`);
       }
-      if (finalText) results.push({ label: `Page ${idx + 1}`, content: finalText });
+      if (finalText) results.push({ label: `Page ${idx + 1}`, content: finalText, parsedTables: (typeof parsed !== 'undefined' ? parsed : undefined), tableExtractionMethod: (typeof method !== 'undefined' ? method : undefined) });
     } catch (err: any) {
       console.warn(`[VISION] page ${idx + 1} skipped: ${err?.message || err}`);
     }
@@ -1285,6 +1300,17 @@ export async function POST(req: NextRequest) {
           visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
           if (visionPages.length) descriptionPages = visionPages;
 
+          // Save table extraction evaluation reports for pages that include parsed tables
+          try {
+            for (const vp of visionPages) {
+              if (vp.parsedTables && vp.parsedTables.tables && vp.parsedTables.tables.length) {
+                await saveTableEvalReport(ldir, vp.label, { method: vp.tableExtractionMethod || "vision", tables: vp.parsedTables.tables });
+              }
+            }
+          } catch (e) {
+            console.warn(`[EVAL] failed to save table eval reports: ${String(e)}`);
+          }
+
           extractedText = [
             notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
             visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
@@ -1295,6 +1321,15 @@ export async function POST(req: NextRequest) {
           visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
           extractedText = visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "";
           descriptionPages = visionPages;
+          try {
+            for (const vp of visionPages) {
+              if (vp.parsedTables && vp.parsedTables.tables && vp.parsedTables.tables.length) {
+                await saveTableEvalReport(ldir, vp.label, { method: vp.tableExtractionMethod || "vision", tables: vp.parsedTables.tables });
+              }
+            }
+          } catch (e) {
+            console.warn(`[EVAL] failed to save table eval reports: ${String(e)}`);
+          }
         } else {
           return NextResponse.json({ error: `Unsupported file type for document processing: ${ext}` }, { status: 400 });
         }

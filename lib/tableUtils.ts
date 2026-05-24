@@ -1,4 +1,5 @@
 import ollama from "ollama";
+import Tesseract from "tesseract.js";
 
 const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || process.env.OLLAMA_MODEL || "llama3.2";
 
@@ -89,4 +90,16 @@ export function tablesToMarkdown(tablesObj: any) {
       return `${title}${headerLine}\n${sepLine}\n${rowsMd}`;
     })
     .join("\n\n");
+}
+
+export async function ocrExtractTablesFromImage(imagePath: string) {
+  try {
+    const res = await Tesseract.recognize(imagePath, "eng");
+    const text = String(res?.data?.text || "").trim();
+    if (!text) return { tables: [] };
+    const heur = heuristicExtractTablesFromText(text);
+    return heur;
+  } catch (e) {
+    return { tables: [] };
+  }
 }
