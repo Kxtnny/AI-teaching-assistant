@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, ocrExtractTablesFromImage } from "@/lib/tableUtils";
 import { saveTableEvalReport } from "@/lib/tableEval";
 import { summarizeTableMetrics } from "@/lib/tableMetrics";
+import { describePdfImageBlockWithVision } from "@/lib/pdfImageVision";
 import { extractTablesFromPdfNative } from "@/lib/pdfTableExtractor";
 import { extractPdfBlocksFromPdfNative } from "@/lib/pdfBlockExtractor";
 
@@ -1288,6 +1289,67 @@ export async function POST(req: NextRequest) {
             // Native block and table extraction: try local PyMuPDF/pdfplumber helpers first.
             try {
               const blocks = await extractPdfBlocksFromPdfNative(lecture.original_path);
+              const imageBlocks = Array.isArray(blocks?.pages)
+                ? blocks.pages.flatMap((page: any) => {
+                    if (!page || page.type !== "page" || !Array.isArray(page.image_blocks)) return [];
+                    return page.image_blocks.map((imageBlock: any) => ({
+                      page: Number(page.page) || 1,
+                      ...imageBlock,
+                    }));
+                  })
+                : [];
+
+              const imageDescriptions = await Promise.all(
+                imageBlocks.map(async (imageBlock: any, imageIndex: number) => {
+                  if (!imageBlock?.image_base64) return null;
+                  try {
+                    const description = await describePdfImageBlockWithVision({
+                      imageBase64: imageBlock.image_base64,
+                      imageExtension: imageBlock.ext,
+                      surroundingText: imageBlock.surrounding_text,
+                      pageLabel: `Page ${imageBlock.page} / Block ${imageBlock.rect_index ?? imageIndex}`,
+                      modelName: visionModel,
+                    });
+                    return {
+                      page: imageBlock.page,
+                      blockIndex: imageBlock.rect_index ?? imageIndex,
+                      content: description,
+                      metadata: imageBlock,
+                    };
+                  } catch {
+                    return {
+                      page: imageBlock.page,
+                      blockIndex: imageBlock.rect_index ?? imageIndex,
+                      content: String(imageBlock.surrounding_text || "").trim(),
+                      metadata: imageBlock,
+                    };
+                  }
+                })
+              );
+
+              if (Array.isArray(blocks?.pages) && blocks.pages.length && imageDescriptions.length) {
+                const descriptionsByPage = new Map<number, string[]>();
+                for (const imageDescription of imageDescriptions.filter(Boolean)) {
+                  const pageNumber = Number((imageDescription as any).page) || 1;
+                  const list = descriptionsByPage.get(pageNumber) || [];
+                  list.push((imageDescription as any).content);
+                  descriptionsByPage.set(pageNumber, list);
+                }
+
+                for (const page of blocks.pages) {
+                  if (!page || page.type !== "page") continue;
+                  const pageNumber = Number(page.page) || 1;
+                  const idx = Math.max(0, pageNumber - 1);
+                  const pageContextParts = [String(page.text || "").trim()];
+                  const imageTexts = descriptionsByPage.get(pageNumber) || [];
+                  if (imageTexts.length) pageContextParts.push(`Image blocks:\n${imageTexts.map((text) => `- ${text}`).join("\n")}`);
+                  const pageContext = pageContextParts.filter(Boolean).join("\n\n");
+                  if (descriptionPages[idx] && pageContext) {
+                    descriptionPages[idx].content = `${pageContext}\n\n${descriptionPages[idx].content}`.trim();
+                  }
+                }
+              }
+
               if (blocks && Array.isArray(blocks.pages) && blocks.pages.length) {
                 for (const page of blocks.pages) {
                   if (!page || page.type !== "page") continue;

@@ -4,6 +4,7 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { getVectorStore } from '@/lib/vectorStore';
 import { extractPdfBlocksFromPdfNative } from '@/lib/pdfBlockExtractor';
 import { extractTablesFromPdfNative } from '@/lib/pdfTableExtractor';
+import { describePdfImageBlockWithVision } from '@/lib/pdfImageVision';
 import { saveTableEvalReport } from '@/lib/tableEval';
 import { tablesToMarkdown } from '@/lib/tableUtils';
 import { writeFile, unlink, mkdir } from 'fs/promises';
@@ -163,6 +164,60 @@ export async function POST(req: Request) {
             })
         : [];
 
+      const imageBlocks = Array.isArray(blockData?.pages)
+        ? blockData.pages.flatMap((page: any) => {
+            if (!page || page.type !== 'page' || !Array.isArray(page.image_blocks)) return [];
+            return page.image_blocks.map((imageBlock: any) => ({
+              page: Number(page.page) || 1,
+              ...imageBlock,
+            }));
+          })
+        : [];
+
+      const imageDescriptions = await Promise.all(
+        imageBlocks.map(async (imageBlock: any, imageIndex: number) => {
+          if (!imageBlock?.image_base64) return null;
+          try {
+            const description = await describePdfImageBlockWithVision({
+              imageBase64: imageBlock.image_base64,
+              imageExtension: imageBlock.ext,
+              surroundingText: imageBlock.surrounding_text,
+              pageLabel: `Page ${imageBlock.page} / Block ${imageBlock.rect_index ?? imageIndex}`,
+              modelName: parserModel,
+            });
+            return {
+              pageContent: `File image block (${parserModel}) for PDF ${file.name}, page ${imageBlock.page}, block ${imageBlock.rect_index ?? imageIndex}:\n\n${description}`,
+              metadata: {
+                fileName: file.name,
+                fileType: file.type,
+                parserModel,
+                source: 'pdf-image-block',
+                page: imageBlock.page,
+                blockIndex: imageBlock.rect_index ?? imageIndex,
+                bbox: imageBlock.bbox || null,
+                imageExtension: imageBlock.ext || null,
+                uploadDate: new Date().toISOString(),
+              },
+            };
+          } catch {
+            return {
+              pageContent: `File image block (${parserModel}) for PDF ${file.name}, page ${imageBlock.page}, block ${imageBlock.rect_index ?? imageIndex}:\n\n${String(imageBlock.surrounding_text || '').trim()}`,
+              metadata: {
+                fileName: file.name,
+                fileType: file.type,
+                parserModel,
+                source: 'pdf-image-block-fallback',
+                page: imageBlock.page,
+                blockIndex: imageBlock.rect_index ?? imageIndex,
+                bbox: imageBlock.bbox || null,
+                imageExtension: imageBlock.ext || null,
+                uploadDate: new Date().toISOString(),
+              },
+            };
+          }
+        })
+      );
+
       const pageDocs = pageContexts.map((pageText, pageIndex) => ({
         pageContent: `File page context (${parserModel}) for PDF ${file.name}, page ${pageIndex + 1}:\n\n${pageText}`,
         metadata: {
@@ -178,7 +233,14 @@ export async function POST(req: Request) {
       const allPdfText = pageContexts.length
         ? pageContexts.join('\n\n')
         : docs.map((d) => d.pageContent).join('\n\n');
-      const parserOutput = await summarizePdfTextWithModel(allPdfText, parserModel);
+      const imageTextContext = imageDescriptions
+        .filter((doc): doc is { pageContent: string; metadata: any } => Boolean(doc))
+        .map((doc) => doc.pageContent)
+        .join('\n\n');
+      const parserOutput = await summarizePdfTextWithModel(
+        [allPdfText, imageTextContext].filter(Boolean).join('\n\n'),
+        parserModel
+      );
 
       const nativeTables = await extractTablesFromPdfNative(tempPath);
       const tableDocs = Array.isArray(nativeTables?.tables)
@@ -236,7 +298,7 @@ export async function POST(req: Request) {
 
       // Store in vector database
       const vectorStore = await getVectorStore();
-      const allDocs = [...pageDocs, ...tableDocs, ...docsWithMetadata, parserDoc];
+      const allDocs = [...pageDocs, ...imageDescriptions.filter(Boolean), ...tableDocs, ...docsWithMetadata, parserDoc];
       const upsertBatchSize = Number(process.env.VECTORSTORE_UPSERT_BATCH_SIZE || 20);
       for (let i = 0; i < allDocs.length; i += upsertBatchSize) {
         const batch = allDocs.slice(i, i + upsertBatchSize);
@@ -251,7 +313,7 @@ export async function POST(req: Request) {
         message: `Successfully processed ${splitDocs.length} text chunks, ${pageDocs.length} page docs, and 1 parser summary from ${file.name} using ${parserModel}`,
         parserModel,
         parserOutput,
-        chunks: splitDocs.length + pageDocs.length + tableDocs.length + 1,
+        chunks: splitDocs.length + pageDocs.length + imageDescriptions.filter(Boolean).length + tableDocs.length + 1,
       });
     } catch (error) {
       // Clean up temp file on error

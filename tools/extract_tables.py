@@ -42,7 +42,14 @@ try:
                 for t in tables:
                     try:
                         rows = t.extract()
+                        bbox = None
+                        try:
+                            bbox = [float(v) for v in getattr(t, "bbox", [])] if getattr(t, "bbox", None) else None
+                        except Exception:
+                            bbox = None
                         add_table(i, rows, "pdfplumber")
+                        if out_tables:
+                            out_tables[-1]["bbox"] = bbox
                     except Exception:
                         continue
 
@@ -58,7 +65,22 @@ try:
                 try:
                     df = table.df
                     rows = df.values.tolist()
-                    add_table(int(getattr(table, "page", 1) or 1), rows, f"camelot-{flavor}")
+                    page_num = int(getattr(table, "page", 1) or 1)
+                    add_table(page_num, rows, f"camelot-{flavor}")
+                    if out_tables:
+                        bbox = None
+                        try:
+                            bbox = list(getattr(table, "_bbox", None) or getattr(table, "bbox", None) or [])
+                        except Exception:
+                            bbox = None
+                        out_tables[-1]["bbox"] = bbox
+                        try:
+                            parsing = getattr(table, "parsing_report", None) or {}
+                            if parsing:
+                                out_tables[-1]["accuracy"] = parsing.get("accuracy")
+                                out_tables[-1]["whitespace"] = parsing.get("whitespace")
+                        except Exception:
+                            pass
                 except Exception:
                     continue
 
