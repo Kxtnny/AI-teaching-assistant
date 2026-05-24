@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-05-24T19:44:14.490Z",
+  "report": {
+    "method": "native",
+    "table": {
+      "page": 1,
+      "title": null,
+      "headers": [
+        "YEAR 2 SEMESTER 2",
+        null,
+        null,
+        null,
+        null
+      ],
+      "rows": [
+        [
+          "Course Code",
+          "Course Title",
+          "Type",
+          "AU",
+          "Pre-requisite"
+        ],
+        [
+          "SC2207",
+          "Introduction to Databases",
+          "Core",
+          "3",
+          "SC2001 (co-requisite)"
+        ],
+        [
+          "CC0006",
+          "Sustainability: Society, Economy & Environment",
+          "U-Core",
+          "3",
+          "Nil"
+        ],
+        [
+          "ML0004",
+          "Career & Innovative Enterprise for the Future World",
+          "C-Core",
+          "2",
+          "Nil"
+        ],
+        [
+          "SC3xxx/SC4xxx",
+          "Major Prescribe Elective (Choose within SC3xxx/SC4xxx)",
+          "MPE",
+          "3",
+          "Year 3 Standing"
+        ],
+        [
+          "SC3xxx/SC4xxx",
+          "Major Prescribe Elective (Choose within SC3xxx/SC4xxx)",
+          "MPE",
+          "3",
+          "Year 3 Standing"
+        ],
+        [
+          "",
+          "Broadening and Deepening Elective",
+          "BDE",
+          "3",
+          "Refer to Class Schedule"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "17",
+          ""
+        ]
+      ],
+      "source": "pdfplumber"
+    }
+  }
+}
