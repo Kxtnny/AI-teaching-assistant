@@ -1,41 +1,69 @@
-LECTURE MEMORY:
+**LECTURE MEMORY:**
 
-**Core Requirements**
+- The curriculum for a Bachelor of Computing (Computer Science) degree, focusing on academic year 2024-25, is outlined.
+- Course requirements include core courses, electives, and a breakdown of academic unit requirements by year and semester.
+- There are several tracks defined – Core, Foundational, and Major Prescribe Elective (MPE).
+- The curriculum emphasizes practical programming skills and interdisciplinary learning.
+- Students must complete 1715 AU to complete the program.
 
-* SC1003F-Core, SC1004Core, MH1812Core, CC0003U-Core are core courses for Year 1
-* SC3099Core and SC3920F-Core are core courses for Year 3
-* Students must complete a Final Year Project (FYP) to be eligible for Highest Distinction
+- **Tables:**
 
-**Major Prescribed Elective (MPE)**
+1.  Year 1 Total AU:
+    | Course Code   | Course Title        | AU |
+    |--------------|----------------------|-----|
+    | CS1003       | Intro to CS          | 4   |
+    | MA100         | Calculus             | 4   |
+    | MH1812        | Ethics & Civics      | 3   |
+    | CC0003U      | Digital Logic        | 2   |
+    | CC0005       |                      | 3   |
+    | HW0001        |                      | 4   |
+    | HW0002        |                      | 4   |
 
-* Students must complete 9 MPE courses, including at least 4 Broadening and Deepening Electives
-* MPE courses can be chosen from SC3xxx or SC4xxx
-* Students can choose to fulfill the requirement by completing a FYP or taking 3 additional MPE courses
+- **Images:** No images are present.
 
-**Pre-requisites**
+**Formulas and Definitions:**
 
-* SC1003 (co-requisite) with SC1004Core for Year 1
-* SC1005Core and SC2000Core for Year 2
-* SC2001Core and SC2002Core for Year 2
-* SC2007 is a co-requisite for SC2203Core in Year 2
+No formulas or definitions are found on this page.
 
-**Career and Innovative Enterprise**
+**Common Mistakes and Areas of Difficulty:**
 
-* Students can choose from Broadening and Deepening Electives, such as Introduction to Databases, Sustainability: Society, Economy & Environment, and Year 2 Semester 2 courses
+*   The emphasis on practical programming skills, as demonstrated through the inclusion of ‘C and C++ Programming’ across multiple courses.
+*   A strong focus on interdisciplinary learning and encouraging students to develop skills in areas such as inquiry, communication, and ethics.
+*   The importance of meeting academic unit requirements for each year and semester.
 
-**Common Mistakes**
+**Study Schedule:**
 
-* Not completing a Final Year Project (FYP) for Highest Distinction
-* Failing to complete the required number of Major Prescribed Elective (MPE) courses
+Recommended Course Schedule – AY2024-25
 
-**Example Question Types**
+**Other Important Details:**
 
-* Multiple choice questions on core requirements and MPE courses
-* Short-answer questions on pre-requisites and Career and Innovative Enterprise
-* Essay questions on the importance of FYP for Highest Distinction
+1.  **Electives:** A section highlights the elective options available, including Major Prescribe Elective courses.
+2.  **Total AU:** Total AU is 1715.
+3.  **Final Year Project (FYP):** Students may fulfill the requirement by completing an FYP or taking 3 additional MPE courses.
+4.  **Course Specializations:** MPE courses and specializations are available on the CCDS website.
 
-Common mistakes include:
+**Major Prescribe Elective:**
 
-* Not completing a Final Year Project (FYP) for Highest Distinction
-* Failing to complete the required number of Major Prescribed Elective (MPE) courses
-* Not meeting the pre-requisites for certain courses
+| Course Code | Course Title | AU |
+|------------|--------------|-----|
+| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
+
+**Year 4 Total AU:**
+
+1.  Students are required to complete 9 MPE courses (SC3xxx or SC4xxx), including at least 4 courses at the Broadening and Deepening Elective level.
+2.  To be eligible for Highest Distinction, students must complete a Final Year Project.
+
+- **Diagrams:** No diagrams are found on this page.
+
+**Notes:**
+
+1.  Students may choose to fulfill the requirement by completing an FYP or taking 3 additional MPE courses.
+2.  MPE courses and specializations are available on the CCDS website.
+3.  To achieve Highest Distinction, students must complete a Final Year Project.
+4.  The document clearly outlines the different types of course codes used (Core, Foundational, Major Prescribe Elective, and various university-specific codes).
+5.  **Course Load:** Students are required to complete 9 MPE courses (SC3xxx or SC4xxx), including at least 4 courses at the Broadening and Deepening Elective level.
+6.  A section highlights the elective options available, including Major Prescribe Elective courses.
+
+**Images:**
+
+No images are present on this page.

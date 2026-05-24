@@ -85,7 +85,7 @@ export default function TeacherStudioPage() {
     }
   }
 
-  function startPolling(lectureId: string) {
+  function startPolling(lectureId: string, onDone?: (progress: ProcessProgress) => void) {
     stopPolling();
     pollRef.current = window.setInterval(async () => {
       const res = await api("progress", { lectureId });
@@ -93,8 +93,34 @@ export default function TeacherStudioPage() {
       const p = res.progress as ProcessProgress;
       setProgress(p);
       setStatusMsg(`Processing: ${p.stage} (${p.percent}%)`);
-      if (p.done) stopPolling();
+      if (p.done) {
+        stopPolling();
+        onDone?.(p);
+      }
     }, 1000);
+  }
+
+  async function hydrateProcessedLecture(lectureId: string) {
+    const res = await api("load", { lectureId });
+    if (!res?.ok) throw new Error(res?.error || "Failed to load processed lecture");
+
+    setContentMode("chat");
+    setProcessedContentOutput(
+      res.description || res.transcript || res.summary || res.memory || "Processing completed, but no parser output was returned."
+    );
+    setRawContent(res.transcript || (res.chunks ? (Array.isArray(res.chunks) ? res.chunks.join("\n\n---\n\n") : String(res.chunks)) : ""));
+    setIndexingOk(null);
+    setIndexingError(null);
+    setRetrievalNotice(null);
+    setChatMessages([
+      {
+        role: "assistant",
+        content:
+          "The content is indexed and ready for questions. Ask anything about the uploaded file, and I will answer using the parsed material.",
+      },
+    ]);
+    setStatusMsg("Content processed, indexed in RAG, and ready for chat.");
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -237,46 +263,31 @@ export default function TeacherStudioPage() {
       done: false,
     });
     setStatusMsg("Processing started...");
-    startPolling(lectureId);
+    startPolling(lectureId, (p) => {
+      if (p.error) {
+        setLoading(false);
+        setProgress(p);
+        return;
+      }
 
-    const res = await api("process", { lectureId, language: "en", visionModel });
-    setLoading(false);
+      void refreshLibrary();
+      if (activeTab === "content") {
+        void hydrateProcessedLecture(lectureId).catch((error: any) => {
+          setLoading(false);
+          setProgress((current) => ({ ...current, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
+          alert(String(error?.message || error));
+        });
+        return;
+      }
 
-    if (!res?.ok) {
-      stopPolling();
-      setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100 }));
-      return alert(res.error || "Processing failed");
-    }
-
-    await refreshLibrary();
-    stopPolling();
-    setProgress({
-      lectureId,
-      stage: "completed",
-      percent: 100,
-      done: true,
+      setProgress({ lectureId, stage: "completed", percent: 100, done: true });
+      setLoading(false);
+      setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
     });
-    if (activeTab === "content") {
-      setContentMode("chat");
-      setProcessedContentOutput(
-        res.parserOutput || res.transcript || res.summary || res.memory || "Processing completed, but no parser output was returned."
-      );
-      setRawContent(res.transcript || (res.chunks ? (Array.isArray(res.chunks) ? res.chunks.join("\n\n---\n\n") : String(res.chunks)) : ""));
-      setIndexingOk(res.indexing_ok === undefined ? null : Boolean(res.indexing_ok));
-      setIndexingError(res.indexing_error || null);
-      setRetrievalNotice(null);
-      setChatMessages([
-        {
-          role: "assistant",
-          content:
-            "The content is indexed and ready for questions. Ask anything about the uploaded file, and I will answer using the parsed material.",
-        },
-      ]);
-      setStatusMsg("Content processed, indexed in RAG, and ready for chat.");
-      return;
-    }
 
-    setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
+    void api("process", { lectureId, language: "en", visionModel }).catch((error) => {
+      console.warn("[teacher] background process request failed:", error);
+    });
   }
 
   async function sendContentChat() {

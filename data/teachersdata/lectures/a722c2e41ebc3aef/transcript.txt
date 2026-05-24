@@ -300,3 +300,286 @@ Broadening and Deepening Elective
 Course Title
 Capstone Project
 YEAR 3 SEMESTER 1
+
+=== VISUAL NOTES (OLLAMA VISION) ===
+=== Page 1 ===
+=== Extracted Tables ===
+**Year 1 Total AU**
+
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| CS1003 | Intro to CS | 4 |
+| MA100 | Calculus | 4 |
+| MH1812 | Ethics & Civics | 3 |
+| CC0003U | Digital Logic | 2 |
+| CC0005 |  | 3 |
+| HW0001 |  | 4 |
+| HW0002 |  | 4 |
+
+**Year 2 Total AU**
+
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| CS1004 |  | 4 |
+| CS1006 |  | 3 |
+| CS1007 |  | 3 |
+| CS1008 |  | 3 |
+| CS2000 |  | 3 |
+| CC0001U |  | 2 |
+| CC0002U |  | 2 |
+| CS2001 |  | 3 |
+| CS2005 |  | 3 |
+| CS2203 |  | 3 |
+| CS2006 |  | 3 |
+| CS2008 |  | 3 |
+| CC0007U |  | 3 |
+| CS2207 |  | 3 |
+| CC0006U |  | 3 |
+| ML0004C |  | 2 |
+| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
+
+**Year 2 Semester 1**
+
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| SC1006 |  | 3 |
+| SC1007 |  | 3 |
+| SC1003 |  | 3 |
+| SC1008 |  | 3 |
+| SC2000 |  | 3 |
+| CC0001U |  | 2 |
+| CC0002U |  | 2 |
+| SC2001 |  | 3 |
+| SC2005 |  | 3 |
+| SC2203 |  | 3 |
+| SC2006 |  | 3 |
+| SC2008 |  | 3 |
+| CC0007U |  | 3 |
+| SC2207 |  | 3 |
+| CC0006U |  | 3 |
+| ML0004C |  | 2 |
+
+**Year 2 Semester 2**
+
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| SC1005 |  | 3 |
+| SC2001 |  | 3 |
+| SC2205 |  | 3 |
+| SC2006 |  | 3 |
+| SC2002 |  | 3 |
+| SC2008 |  | 3 |
+| CC0007U |  | 3 |
+| SC2207 |  | 3 |
+| CC0006U |  | 3 |
+| ML0004C |  | 2 |
+
+**Major Prescribe Elective**
+
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
+
+Okay, here's the extraction of the PDF page, following your instructions and format requirements.
+
+**1) Top-down text readout:**
+
+This page outlines the curriculum for a Bachelor of Computing (Computer Science) degree, focusing on academic year 2024-25. It details course requirements, including core courses, electives, and a breakdown of academic unit requirements by year and semester. The curriculum is structured into two years, with Year 1 covering foundational concepts and Year 2 focusing on specialized areas and elective choices. Several tracks are defined – Core, Foundational, and Major Prescribe Elective (MPE). The curriculum emphasizes a broad range of topics including: Computer Science, Mathematics, Engineering, and Communication skills, with a focus on preparing students for careers in the technology sector. There is a strong emphasis on practical programming skills, as demonstrated through the inclusion of ‘C and C++ Programming’ and ‘Introduction to Computational Thinking & Programming’ across multiple courses. A total of 1715 academic unit points (AU) are required to complete the program. The program includes opportunities for students to specialize in areas such as Databases, Sustainability, and Software Engineering.  The curriculum highlights the importance of interdisciplinary learning and encourages students to develop skills in areas such as inquiry, communication, and ethics.
+
+**2) Component sections:**
+
+*   **Tables:**
+
+    
+
+*   **Images:** No images found on this page.
+
+*   **Diagrams:** No diagrams found on this page.
+
+*   **Formulas:** No formulas found on this page.
+
+*   **Definitions:** No definitions found on this page.
+
+*   **Examples:** No worked examples are provided in a manner that could be summarized.
+
+*   **Other Important Details:**
+
+    *   **Course Code Types:**  The document clearly outlines the different types of course codes used (Core, Foundational, Major Prescribe Elective, and various university-specific codes).
+    *   **Academic Unit (AU) Requirements:**  The table at the bottom of the page details the total AU requirements for each year and semester.
+    *   **Electives:** A section highlights the elective options available, including Major Prescribe Elective courses.
+    *   **Total AU:** Total AU is 1715.
+
+    *   **Study Schedule:** Recommended Course Schedule – AY2024-25.
+
+=== Page 2 ===
+## 1) Top-down text readout:
+
+Course CodeType
+AU
+Pre-requisite
+SC3099Core 
+4
+Year 3 Standing
+HW0288
+Engineering Communication
+F-Core
+2
+CC0001 & Year 3 standing
+SC3xxx/SC4xxx
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+MPE
+3
+Year 3 Standing
+SC3xxx/SC4xxx
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+MPE
+3
+Year 3 Standing
+BDE
+3
+Refer to Class Schedule
+BDE
+3
+Refer to Class Schedule
+18
+
+Course CodeType
+AU
+Pre-requisite
+SC3920F-Core
+10
+Year 3 Standing
+10
+28
+Course CodeType
+AU
+Pre-requisite
+SC4079MPE
+4
+Year 4 Standing
+SC3xxx/SC4xxx
+MPE
+3
+Year 3 Standing
+SC4xxxMPE
+3
+Year 3 Standing
+SC4xxxMPE
+3
+Year 3 Standing
+BDE
+3
+Refer to Class Schedule
+BDE
+3
+Refer to Class Schedule
+19
+
+Course CodeType
+AU
+Pre-requisite
+SC4079MPE4Year 4 Standing
+SC4xxxMPE
+3
+Year 3 Standing
+SC4xxxMPE
+3
+Year 3 Standing
+BDE
+3
+Refer to Class Schedule
+BDE
+3
+Refer to Class Schedule
+16
+35
+
+Note:
+Course CodeTypeAU
+SC3xxx/SC4xxxMPE-13
+SC3xxx/SC4xxxMPE-23
+SC3xxx/SC4xxxMPE-33
+SC3xxx/SC4xxxMPE-43
+SC3xxx/SC4xxxMPE-53
+SC4xxxMPE-63
+SC4xxxMPE-73
+SC4xxxMPE-83
+SC4xxxMPE-93
+Total27
+2. Students may choose to fulfill this requirement by either completing a Final Year Project (FYP) or by taking 3 additional MPE
+Please refer the CSC MPE Courses and Specialization on CCDS website.
+MPE (Choose within SC4xxx)
+MPE (Choose within SC4xxx)
+MPE (Choose within SC4xxx)
+Any MPE
+MPE (Choose within SC4xxx)
+Any MPE
+Any MPE
+Any MPE
+Any MPE
+MPE Structure of Computer Science (U24 and after)
+Remarks
+  3. To be eligible for Highest Distinction, students must complete a Final Year Project.
+Year 4 Total AU
+1. Students are required to complete 9 Major Prescribed Elective (MPE) courses (SC3xxx or SC4xxx), including at least 4 courses at the 
+Broadening and Deepening Elective
+Major Prescribe Elective (Choose within SC4xxx)
+Broadening and Deepening Elective
+Final Year Project (Part 2)
+Major Prescribe Elective (Choose within SC4xxx)
+YEAR 4 SEMESTER 2
+Course Title
+Broadening and Deepening Elective
+Broadening and Deepening Elective
+Major Prescribe Elective (Choose within SC3xxx/SC4xxx)
+Major Prescribe Elective (Choose within SC4xxx)
+Course Title
+Final Year Project (Part 1)
+Year 3 Total AU
+YEAR 4 SEMESTER 1
+Course Title
+Professional Internship (Graded)
+Broadening and Deepening Elective
+Broadening and Deepening Elective
+Course Title
+Capstone Project
+
+## 2) Component sections:
+
+**Tables:**
+
+```json
+{
+  "tables": [
+    {
+      "title": "Semester 1 Year 1",
+      "headers": ["Course Code", "Course Title", "AU"],
+      "rows": [
+        ["CS101", "Intro to CS", "4"],
+        ["MA100", "Calculus", "4"]
+      ]
+    }
+  ]
+}
+```
+
+**Images:**
+There are no identifiable images on this page.
+
+**Diagrams:**
+There are no diagrams on this page.
+
+**Formulas:**
+There are no visible formulas on this page.
+
+**Definitions:**
+There are no definitions on this page.
+
+**Examples:**
+There are no worked examples on this page.
+
+**Other Important Details:**
+*   **Final Year Project (FYP):** Students may fulfill the requirement by completing an FYP or taking 3 additional MPE courses.
+*   **Course Specializations:** MPE courses and specializations are available on the CCDS website.
+*   **Grading Requirements:** To achieve Highest Distinction, students must complete a Final Year Project.
+*   **Course Load:** Students are required to complete 9 MPE courses (SC3xxx or SC4xxx), including at least 4 courses at the Broadening and Deepening Elective level.

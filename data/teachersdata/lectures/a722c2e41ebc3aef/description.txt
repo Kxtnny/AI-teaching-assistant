@@ -1,60 +1,83 @@
-Document Summary:
+**Document Summary:**
 
-* The document outlines the academic requirements for a Bachelor of Computing (Computer Science) degree.
-* It lists various course codes, pre-requisites, and credit values for different courses in each year of study.
-* Students must complete CoreMPE, ICC, BDE, and Total AU credits throughout their studies.
-* The curriculum includes various electives, including Major Prescribed Elective (MPE) courses and Broadening and Deepening Elective courses.
+The document outlines the curriculum for a Bachelor of Computing degree, focusing on academic year 2024-25. It details course requirements, including core courses, electives, and a breakdown of academic unit requirements by year and semester. The curriculum emphasizes practical programming skills, interdisciplinary learning, and preparation for careers in the technology sector. A total of 1715 academic unit points (AU) are required to complete the program.
 
-Page 1:
+**Page 1:**
 
-Visible Text:
-- Course Code
-- Type
-- Pre-requisite
-- Credit Value
-- Year of Study
+**Top-down text readout:**
+This page outlines the curriculum for a Bachelor of Computing (Computer Science) degree, focusing on academic year 2024-25. It details course requirements, including core courses, electives, and a breakdown of academic unit requirements by year and semester.
 
-Tables:
-| Course Code | Type | Pre-requisite | Credit Value |
-|-------------|------|-----------------|---------------|
-| AU          |      | Nil             | 3             |
-| SC1003F-Core| Core | Nil             | 4             |
-| ...         | ...  | ...              | ...            |
+**Tables:**
 
-Other Important Details:
-- The total number of credits for Year 1 is listed at the bottom, with the values of various courses.
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| CS1003 | Intro to CS | 4 |
+| MA100 | Calculus | 4 |
+| MH1812 | Ethics & Civics | 3 |
+| CC0003U | Digital Logic | 2 |
+| CC0005 |  | 3 |
+| HW0001 |  | 4 |
+| HW0002 |  | 4 |
 
-Page 2:
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| CS1004 |  | 4 |
+| CS1006 |  | 3 |
+| CS1007 |  | 3 |
+| CS1008 |  | 3 |
+| CS2000 |  | 3 |
+| CC0001U |  | 2 |
+| CC0002U |  | 2 |
+| CS2001 |  | 3 |
+| CS2005 |  | 3 |
+| CS2203 |  | 3 |
+| CS2006 |  | 3 |
+| CS2008 |  | 3 |
+| CC0007U |  | 3 |
+| CS2207 |  | 3 |
+| CC0006U |  | 3 |
+| ML0004C |  | 2 |
+| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
 
-Visible Text:
-- Course Code
-- Type
-- Pre-requisite
-- Credit Value
-- Year of Study
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| SC1006 |  | 3 |
+| SC1007 |  | 3 |
+| SC1003 |  | 3 |
+| SC1008 |  | 3 |
+| SC2000 |  | 3 |
+| CC0001U |  | 2 |
+| CC0002U |  | 2 |
+| SC2001 |  | 3 |
+| SC2005 |  | 3 |
+| SC2203 |  | 3 |
+| SC2006 |  | 3 |
+| SC2008 |  | 3 |
+| CC0007U |  | 3 |
+| SC2207 |  | 3 |
+| CC0006U |  | 3 |
+| ML0004C |  | 2 |
 
-Tables:
-| Course Code | Type | Pre-requisite | Credit Value |
-|-------------|------|-----------------|---------------|
-| SC3920F-Core | Core | Nil             | 10            |
-| ...         | ...  | ...              | ...            |
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| SC1005 |  | 3 |
+| SC2001 |  | 3 |
+| SC2205 |  | 3 |
+| SC2006 |  | 3 |
+| SC2002 |  | 3 |
+| SC2008 |  | 3 |
+| CC0007U |  | 3 |
+| SC2207 |  | 3 |
+| CC0006U |  | 3 |
+| ML0004C |  | 2 |
 
-Images:
-- None
+| Course Code | Course Title | AU |
+| --- | --- | --- |
+| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
 
-Diagrams:
-- None
+**Other Important Details:**
 
-Formulas:
-None
-
-Definitions:
-- The term "MPE" refers to Major Prescribed Elective courses, which are a required part of the curriculum.
-- The term "BDE" refers to Broadening and Deepening Elective courses, which are also a required part of the curriculum.
-
-Examples:
-- Examples of MPE courses include SC3xxx/SC4xxx.
-- Examples of BDE courses include SC3xxx/SC4xxx.
-
-Other Important Details:
-- Students can choose to fulfill certain requirements by completing a Final Year Project (FYP) or taking additional courses.
+*   The curriculum emphasizes a broad range of topics, including Computer Science, Mathematics, Engineering, and Communication skills.
+*   There is a strong emphasis on practical programming skills, as demonstrated through the inclusion of ‘C and C++ Programming’ and ‘Introduction to Computational Thinking & Programming’ across multiple courses.
+*   A total of 1715 academic unit points (AU) are required to complete the program.
+*   The program includes opportunities for students to specialize in areas such as Databases, Sustainability, and Software Engineering.

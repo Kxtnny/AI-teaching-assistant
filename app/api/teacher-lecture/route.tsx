@@ -726,10 +726,59 @@ async function transcribeAudio(audioPath: string, language: string) {
   });
   return String(tx || "").trim();
 }
-async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL) {
+function buildDetailedPageExtractionPrompt(pageLabel: string, adjacentText?: string) {
+  return `You are extracting a PDF page for an educational RAG system.
+${pageLabel}
+
+Goal:
+- Read the page top to bottom.
+- Capture the exact visible text first.
+- Then describe special components only if they exist: tables, images, diagrams, formulas, labels, examples, and definitions.
+- If a scanned page is unclear, perform OCR-style transcription as accurately as possible.
+
+Output format:
+1) Top-down text readout:
+- Preserve visible text in the order it appears on the page.
+- Keep line breaks, headings, bullet points, and labels when they matter.
+
+2) Component sections (include only if present):
+- Tables:
+  - Render each table as a markdown table.
+  - Include row-by-row values with clear column headers.
+  - If multiple tables appear, separate them clearly.
+  - IMPORTANT: In addition to markdown, if the page contains any table(s), append a strict machine-readable JSON block between the markers <TABLES_JSON> and </TABLES_JSON> containing an array named "tables" with each table as {"title": string|null, "headers": [..], "rows": [[..],[..]]}. Example:
+
+    <TABLES_JSON>
+    {"tables": [{"title": "Semester 1 Year 1", "headers": ["Course Code","Course Title","AU"], "rows": [["CS101","Intro to CS","4"],["MA100","Calculus","4"]]}]}
+    </TABLES_JSON>
+
+  - The JSON block MUST be valid JSON and must appear at the end of your message exactly between those markers. This allows programmatic extraction of tables.
+- Images:
+  - Give a thorough description of the image, including objects, labels, captions, visual emphasis, and educational purpose.
+- Diagrams:
+  - Give a thorough description of the diagram, including arrows, relationships, labels, shapes, flow direction, and meaning.
+- Formulas:
+  - Transcribe formulas carefully and explain the symbols if visible.
+- Definitions:
+  - Explain the term and its surrounding context.
+- Examples:
+  - Summarize worked examples step by step.
+- Other Important Details:
+  - Include anything else that is visually important, such as side notes, callouts, figure captions, legends, or boxed remarks.
+
+Rules:
+- Be exhaustive and concrete.
+- Do not invent information that is not visible.
+- Do not mention a component section unless that component exists on the page.
+- Prioritize readability and completeness over brevity.
+
+Adjacent text from the PDF text layer (use this to contextualize the image):
+${adjacentText?.trim() ? adjacentText : "[No adjacent text extracted]"}`;
+}
+async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL, adjacentTexts: string[] = [], mode: "generic" | "pdf" = "generic") {
   const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
-  const concurrency = Number(process.env.VISION_CONCURRENCY || 2);
-  const perImageTimeoutMs = Number(process.env.VISION_TIMEOUT_MS || 20000);
+  const concurrency = Number((mode === "pdf" ? process.env.PDF_VISION_CONCURRENCY : process.env.VISION_CONCURRENCY) || (mode === "pdf" ? 1 : 2));
+  const perImageTimeoutMs = Number((mode === "pdf" ? process.env.PDF_VISION_TIMEOUT_MS : process.env.VISION_TIMEOUT_MS) || (mode === "pdf" ? 60000 : 20000));
 
   const limited = imagePaths.slice(0, maxFrames);
   const results: string[] = [];
@@ -743,7 +792,7 @@ async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAM
           model: visionModel,
           messages: [{
             role: "user",
-            content: "Extract lecture text, formulas, headings, and key bullet points from this image. Keep output concise and factual.",
+            content: buildDetailedPageExtractionPrompt(`Page ${idx + 1}`, adjacentTexts[idx]),
             images: [b64],
           }],
         }),
@@ -768,10 +817,10 @@ async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAM
   await Promise.all(workers);
   return results.join("\n\n");
 }
-async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL) {
+async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL, adjacentTexts: string[] = [], mode: "generic" | "pdf" = "generic") {
   const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
-  const concurrency = Number(process.env.VISION_CONCURRENCY || 2);
-  const perImageTimeoutMs = Number(process.env.VISION_TIMEOUT_MS || 20000);
+  const concurrency = Number((mode === "pdf" ? process.env.PDF_VISION_CONCURRENCY : process.env.VISION_CONCURRENCY) || (mode === "pdf" ? 1 : 2));
+  const perImageTimeoutMs = Number((mode === "pdf" ? process.env.PDF_VISION_TIMEOUT_MS : process.env.VISION_TIMEOUT_MS) || (mode === "pdf" ? 60000 : 20000));
 
   const limited = imagePaths.slice(0, maxFrames);
   const results: Array<{ label: string; content: string }> = [];
@@ -785,7 +834,7 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
           model: visionModel,
           messages: [{
             role: "user",
-            content: "Extract this page in reading order from top to bottom. First preserve all visible text. Then, if the page contains tables, output them as markdown tables row by row with clear columns. If the page contains images or diagrams, describe them thoroughly and completely, including labels, arrows, captions, shapes, and relationships. Mention formulas, definitions, headings, and important labels exactly when visible. Be exhaustive, factual, and do not omit important details.",
+            content: buildDetailedPageExtractionPrompt(`Page ${idx + 1}`, adjacentTexts[idx]),
             images: [b64],
           }],
         }),
@@ -793,7 +842,32 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
         `Vision page ${idx + 1}`
       );
       const txt = String(res?.message?.content || "").trim();
-      if (txt) results.push({ label: `Page ${idx + 1}`, content: txt });
+      // Try to extract machine-readable tables JSON (between markers) and convert to markdown for reliability
+      let finalText = txt;
+      try {
+        const m = txt.match(/<TABLES_JSON>([\s\S]*?)<\/TABLES_JSON>/i);
+        if (m && m[1]) {
+          const jsonText = m[1].trim();
+          const parsed = JSON.parse(jsonText);
+          if (parsed && Array.isArray(parsed.tables)) {
+            const tablesMd = parsed.tables
+              .map((t: any) => {
+                const hdrs = Array.isArray(t.headers) ? t.headers : [];
+                const rows = Array.isArray(t.rows) ? t.rows : [];
+                const headerLine = `| ${hdrs.join(" | ")} |`;
+                const sepLine = `| ${hdrs.map(() => "---").join(" | ")} |`;
+                const rowsMd = rows.map((r: any[]) => `| ${r.map((c) => String(c || "")).join(" | ")} |`).join("\n");
+                const title = t.title ? `**${String(t.title)}**\n\n` : "";
+                return `${title}${headerLine}\n${sepLine}\n${rowsMd}`;
+              })
+              .join("\n\n");
+            finalText = `=== Extracted Tables ===\n${tablesMd}\n\n${txt.replace(m[0], "")}`;
+          }
+        }
+      } catch (err) {
+        console.warn(`[VISION] failed to parse TABLES_JSON on page ${idx + 1}: ${String(err)}`);
+      }
+      if (finalText) results.push({ label: `Page ${idx + 1}`, content: finalText });
     } catch (err: any) {
       console.warn(`[VISION] page ${idx + 1} skipped: ${err?.message || err}`);
     }
@@ -1186,16 +1260,15 @@ export async function POST(req: NextRequest) {
             console.warn("[PDF] loader extraction failed:", e?.message || e);
           }
 
-          if (!notesText.trim()) {
-            await setProgress({ stage: "rendering PDF pages", percent: 45 });
-            const pdfPagesDir = path.join(ldir, "pdf_pages");
-            const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
+          await setProgress({ stage: "rendering PDF pages", percent: 45 });
+          const pdfPagesDir = path.join(ldir, "pdf_pages");
+          const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
 
-            await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
-            const visionPages = await visionExtractFromImagesDetailed(pageImages, visionModel);
-            visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
-            descriptionPages = visionPages;
-          }
+          await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
+          const pageContexts = descriptionPages.map((page) => page.content);
+          const visionPages = await visionExtractFromImagesDetailed(pageImages, visionModel, pageContexts, "pdf");
+          visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
+          if (visionPages.length) descriptionPages = visionPages;
 
           extractedText = [
             notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
@@ -1324,6 +1397,7 @@ export async function POST(req: NextRequest) {
       } else if (PDF_EXTS.has(ext)) {
         await setProgress({ stage: "extracting PDF text", percent: 35 });
 
+        let pdfVisionText = "";
         try {
           const timeoutMs = Number(process.env.PDF_TEXT_TIMEOUT_MS || 20000);
           notesText = await withTimeout(extractPdfTextWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
@@ -1331,16 +1405,14 @@ export async function POST(req: NextRequest) {
           console.warn("[PDF] loader extraction failed:", e?.message || e);
         }
 
-        if (!notesText.trim()) {
-          await setProgress({ stage: "rendering PDF pages", percent: 45 });
-          const pdfPagesDir = path.join(ldir, "pdf_pages");
-          const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
+        await setProgress({ stage: "rendering PDF pages", percent: 45 });
+        const pdfPagesDir = path.join(ldir, "pdf_pages");
+        const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
 
-          await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
-          notesText = await visionExtractFromImages(pageImages, visionModel);
-        }
+        await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
+        pdfVisionText = await visionExtractFromImages(pageImages, visionModel, [], "pdf");
 
-        if (!notesText.trim()) {
+        if (!notesText.trim() && !pdfVisionText.trim()) {
           await setProgress({
             stage: "failed",
             percent: 100,
@@ -1349,6 +1421,8 @@ export async function POST(req: NextRequest) {
           });
           return NextResponse.json({ error: "Could not extract text from PDF." }, { status: 400 });
         }
+
+        visualText = pdfVisionText;
       } else if (IMAGE_EXTS.has(ext)) {
         await setProgress({ stage: "reading image notes (vision)", percent: 45 });
         visualText = await visionExtractFromImages([lecture.original_path], visionModel);
@@ -1437,6 +1511,7 @@ export async function POST(req: NextRequest) {
           vision: !!visualText,
         },
         indexing_ok: Boolean(indexingResult2 && indexingResult2.ok),
+            hierarchical_pdf_pipeline: PDF_EXTS.has(ext),
         indexing_error: indexingResult2 && (indexingResult2.error || null),
       });
     }
