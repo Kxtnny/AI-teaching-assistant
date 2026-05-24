@@ -26,7 +26,7 @@ function getUploadKind(file: File | null): UploadKind {
 }
 
 export default function UploadContentPage() {
-  const [currentLectureId, setCurrentLectureId] = useState("");
+  const [currentContentId, setCurrentContentId] = useState("");
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("Ready for a content upload.");
   const [progress, setProgress] = useState<ProcessProgress>({
@@ -99,10 +99,10 @@ export default function UploadContentPage() {
     }, 1800);
   }
 
-  function startPolling(lectureId: string, onDone?: (progress: ProcessProgress) => void) {
+  function startPolling(contentId: string, onDone?: (progress: ProcessProgress) => void) {
     stopPolling();
     pollRef.current = window.setInterval(async () => {
-      const res = await api("progress", { lectureId });
+      const res = await api("progress", { contentId });
       if (!res?.ok) return;
       const p = res.progress as ProcessProgress;
       setProgress(p);
@@ -114,8 +114,8 @@ export default function UploadContentPage() {
     }, 1000);
   }
 
-  async function hydrateProcessedContent(lectureId: string) {
-    const res = await api("load", { lectureId });
+  async function hydrateProcessedContent(contentId: string) {
+    const res = await api("load", { contentId });
     if (!res?.ok) throw new Error(res?.error || "Failed to load processed content");
 
     setContentMode("chat");
@@ -205,7 +205,7 @@ export default function UploadContentPage() {
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
     setPendingContentFile(file);
-    setCurrentLectureId("");
+    setCurrentContentId("");
     setProcessedContentOutput("");
     setChatMessages([]);
     setContentMode("upload");
@@ -223,7 +223,7 @@ export default function UploadContentPage() {
     if (loading) return;
     const file = e.dataTransfer.files?.[0] || null;
     setPendingContentFile(file);
-    setCurrentLectureId("");
+    setCurrentContentId("");
     setProcessedContentOutput("");
     setChatMessages([]);
     setContentMode("upload");
@@ -236,7 +236,7 @@ export default function UploadContentPage() {
   }
 
   async function processContent() {
-    let lectureId = currentLectureId;
+    let contentId = currentContentId;
     const uploadKind = getUploadKind(pendingContentFile);
 
     if (uploadKind === "other") {
@@ -266,8 +266,13 @@ export default function UploadContentPage() {
       stopParseTicker();
       setLoading(false);
 
+      contentId = uploadRes.contentId || uploadRes.lecture?.lecture_id || currentContentId;
+      setCurrentContentId(contentId);
       setProcessedContentOutput(uploadRes.parserOutput || uploadRes.message || "Parsed and indexed with the upload route.");
       setRawContent(uploadRes.parserOutput || "");
+      setIndexingOk(true);
+      setIndexingError(null);
+      setRetrievalNotice(null);
       setIndexingOk(true);
       setIndexingError(null);
       setRetrievalNotice(null);
@@ -283,7 +288,7 @@ export default function UploadContentPage() {
       return;
     }
 
-    if (!lectureId) {
+    if (!contentId) {
       if (!pendingContentFile) return alert("Upload/select content first.");
 
       setContentMode("chat");
@@ -309,35 +314,35 @@ export default function UploadContentPage() {
         return;
       }
 
-      lectureId = uploadRes.lecture.lecture_id;
-      setCurrentLectureId(lectureId);
-      setProgress({ lectureId, stage: "uploaded", percent: 14, done: false });
+      contentId = uploadRes.contentId || uploadRes.lecture.lecture_id;
+      setCurrentContentId(contentId);
+      setProgress({ lectureId: contentId, stage: "uploaded", percent: 14, done: false });
     }
 
     setLoading(true);
-    setProgress({ lectureId, stage: "starting", percent: 18, done: false });
+    setProgress({ lectureId: contentId, stage: "starting", percent: 18, done: false });
     setStatusMsg("Processing started...");
-    startPolling(lectureId, (p) => {
+    startPolling(contentId, (p) => {
       if (p.error) {
         setLoading(false);
         setProgress(p);
         return;
       }
-      void hydrateProcessedContent(lectureId).catch((error: any) => {
+      void hydrateProcessedContent(contentId).catch((error: any) => {
         setLoading(false);
         setProgress((current) => ({ ...current, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
         alert(String(error?.message || error));
       });
     });
 
-    void api("process", { lectureId, language: "en", visionModel }).catch((error) => {
+    void api("process", { contentId, language: "en", visionModel }).catch((error) => {
       console.warn("[teacher-upload] background process request failed:", error);
     });
   }
 
   async function sendContentChat() {
     const question = chatInput.trim();
-    if (!question || !currentLectureId) return;
+    if (!question) return;
 
     const nextMessages: ChatMessage[] = [...chatMessages, { role: "user", content: question }];
     setChatMessages(nextMessages);
@@ -345,8 +350,31 @@ export default function UploadContentPage() {
     setLoading(true);
 
     try {
+      if (!currentContentId) {
+        const res = await fetch("/api/upload-qa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question,
+            context: processedContentOutput || rawContent,
+            history: chatMessages,
+            model: visionModel,
+          }),
+        }).then((r) => r.json());
+
+        if (!res?.ok) {
+          alert(res.error || "Chat failed");
+          setChatMessages(nextMessages);
+          return;
+        }
+
+        setRetrievalNotice(res.retrieval_notice || null);
+        setChatMessages([...nextMessages, { role: "assistant", content: res.reply || "No response returned." }]);
+        return;
+      }
+
       const res = await api("chat", {
-        lectureId: currentLectureId,
+        contentId: currentContentId,
         question,
         history: chatMessages,
       });
@@ -366,7 +394,7 @@ export default function UploadContentPage() {
 
   function resetContentFlow() {
     setPendingContentFile(null);
-    setCurrentLectureId("");
+    setCurrentContentId("");
     setContentMode("upload");
     setProcessedContentOutput("");
     setContentName("");
@@ -381,7 +409,7 @@ export default function UploadContentPage() {
 
   function clearPendingContentFile() {
     setPendingContentFile(null);
-    setCurrentLectureId("");
+    setCurrentContentId("");
     setProcessedContentOutput("");
     setContentName("");
     setChatMessages([]);
@@ -397,13 +425,12 @@ export default function UploadContentPage() {
   }
 
   async function doneAndDelete() {
-    if (currentLectureId) {
+    if (currentContentId) {
       const confirmed = confirm("Delete this temporary content and all generated files/vectors?");
-      if (!confirmed) return;
 
       setLoading(true);
       try {
-        const res = await api("deleteLecture", { lectureId: currentLectureId });
+        const res = await api("deleteLecture", { contentId: currentContentId });
         if (!res?.ok) {
           alert(res.error || "Delete failed");
           return;
@@ -466,7 +493,7 @@ export default function UploadContentPage() {
                     onClick={async () => {
                       setLoading(true);
                       try {
-                        const res = await api("retryIndex", { lectureId: currentLectureId });
+                        const res = await api("retryIndex", { contentId: currentContentId });
                         if (res?.ok) {
                           setIndexingOk(true);
                           setIndexingError(null);
@@ -485,7 +512,7 @@ export default function UploadContentPage() {
                         setLoading(false);
                       }
                     }}
-                    disabled={loading || !currentLectureId}
+                    disabled={loading || !currentContentId}
                   >
                     {loading ? "Retrying..." : "Retry indexing"}
                   </button>
@@ -528,12 +555,12 @@ export default function UploadContentPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      if (currentLectureId && contentMode === "chat") void sendContentChat();
+                      if (contentMode === "chat") void sendContentChat();
                     }
                   }}
-                  disabled={loading || !currentLectureId || contentMode !== "chat"}
+                  disabled={loading || contentMode !== "chat"}
                 />
-                <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim() || !currentLectureId || contentMode !== "chat"}>
+                <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim() || contentMode !== "chat"}>
                   {loading ? "Thinking..." : "Send"}
                 </button>
               </div>
@@ -543,7 +570,7 @@ export default function UploadContentPage() {
           <>
             <div className="statusLine">
               <span>{statusMsg}</span>
-              <span>{currentLectureId ? `Lecture ID: ${currentLectureId}` : "No content processed yet"}</span>
+              <span>{currentContentId ? `Content ID: ${currentContentId}` : "No content processed yet"}</span>
             </div>
 
             <p>Drop/select file, fill the fields, then click Process Content.</p>
@@ -622,7 +649,7 @@ export default function UploadContentPage() {
               </button>
             </div>
 
-            {progress.lectureId === currentLectureId && !progress.done && (
+            {progress.lectureId === currentContentId && !progress.done && (
               <div className="progressWrap">
                 <div className="progressTop">
                   <span>{progress.stage}</span>

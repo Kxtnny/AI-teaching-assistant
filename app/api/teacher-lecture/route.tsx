@@ -1075,12 +1075,12 @@ export async function GET(req: NextRequest) {
   try {
     await initStorage();
 
-    const lectureId = req.nextUrl.searchParams.get("lectureId") || "";
+    const contentId = req.nextUrl.searchParams.get("contentId") || "";
     const preview = req.nextUrl.searchParams.get("preview") === "1";
-    if (!lectureId) return NextResponse.json({ error: "Missing lectureId" }, { status: 400 });
+    if (!contentId) return NextResponse.json({ error: "Missing contentId" }, { status: 400 });
 
     const lib = await loadLibrary();
-    const lecture = lib.find((x) => x.lecture_id === lectureId);
+    const lecture = lib.find((x) => x.lecture_id === contentId);
     if (!lecture || !lecture.original_path) {
       return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
     }
@@ -1151,7 +1151,7 @@ export async function POST(req: NextRequest) {
       const existing = lib.find((x) => x.file_hash === fileHash);
       if (existing) {
         await removeIfExists(tmpPath);
-        return NextResponse.json({ ok: true, duplicate: true, lecture: existing });
+        return NextResponse.json({ ok: true, duplicate: true, lecture: existing, contentId: existing.lecture_id });
       }
 
       const lectureId = fileHash.slice(0, 16);
@@ -1184,7 +1184,7 @@ export async function POST(req: NextRequest) {
 
       await updateOrInsert(entry);
       await setProgress({ lectureId, stage: "uploaded", percent: 0, done: true, error: "" });
-      return NextResponse.json({ ok: true, duplicate: false, lecture: entry });
+      return NextResponse.json({ ok: true, duplicate: false, lecture: entry, contentId: lectureId });
     }
 
     const body = await req.json();
@@ -1193,7 +1193,7 @@ export async function POST(req: NextRequest) {
 
     if (action === "progress") {
       const p = await loadProgress();
-      if (!body.lectureId || p.lectureId === body.lectureId) return NextResponse.json({ ok: true, progress: p });
+      if (!body.contentId || p.lectureId === body.contentId) return NextResponse.json({ ok: true, progress: p });
       return NextResponse.json({ ok: true, progress: defaultProgress });
     }
 
@@ -1255,12 +1255,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "process") {
-      const { lectureId, language = "en", llmModel = DEFAULT_LLM_MODEL, visionModel = OLLAMA_VISION_MODEL } = body;
+      const { contentId, language = "en", llmModel = DEFAULT_LLM_MODEL, visionModel = OLLAMA_VISION_MODEL } = body;
 
-      await setProgress({ lectureId, stage: "starting", percent: 3, done: false, error: "" });
+      await setProgress({ lectureId: contentId, stage: "starting", percent: 3, done: false, error: "" });
 
       const lib = await loadLibrary();
-      const lecture = lib.find((x) => x.lecture_id === lectureId);
+      const lecture = lib.find((x) => x.lecture_id === contentId);
       if (!lecture) return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
       if (!lecture.original_path) return NextResponse.json({ error: "Missing original_path" }, { status: 400 });
 
@@ -1480,7 +1480,7 @@ export async function POST(req: NextRequest) {
         await fsp.writeFile(chunksPath, JSON.stringify(chunks.map((text, i) => ({ chunk_id: i, text })), null, 2), "utf-8");
 
         const indexingResult = await indexContentChunksToVectorStore({
-          lectureId,
+          lectureId: contentId,
           fileName: path.basename(lecture.original_path),
           fileType: path.extname(lecture.original_path).toLowerCase(),
           parserModel: visionModel,
@@ -1499,7 +1499,7 @@ export async function POST(req: NextRequest) {
           content_kind: "document",
         });
 
-        await setProgress({ lectureId, stage: "completed", percent: 100, done: true, error: "" });
+        await setProgress({ lectureId: contentId, stage: "completed", percent: 100, done: true, error: "" });
 
         return NextResponse.json({
           ok: true,
@@ -1637,7 +1637,7 @@ export async function POST(req: NextRequest) {
       await fsp.writeFile(chunksPath, JSON.stringify(chunks.map((text, i) => ({ chunk_id: i, text })), null, 2), "utf-8");
       // attempt to index transcript/chunks for RAG
       const indexingResult2 = await indexContentChunksToVectorStore({
-        lectureId,
+        lectureId: contentId,
         fileName: path.basename(lecture.original_path),
         fileType: path.extname(lecture.original_path).toLowerCase(),
         parserModel: OLLAMA_TEXT_MODEL,
@@ -1656,7 +1656,7 @@ export async function POST(req: NextRequest) {
         content_kind: "video",
       });
 
-      await setProgress({ lectureId, stage: "completed", percent: 100, done: true, error: "" });
+      await setProgress({ lectureId: contentId, stage: "completed", percent: 100, done: true, error: "" });
 
       return NextResponse.json({
         ok: true,
@@ -1677,11 +1677,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "chat") {
-      const { lectureId, question, history = [], llmModel = DEFAULT_LLM_MODEL } = body;
+      const { contentId, question, history = [], llmModel = DEFAULT_LLM_MODEL } = body;
       if (!question) return NextResponse.json({ error: "Missing question" }, { status: 400 });
 
       const lib = await loadLibrary();
-      const lecture = lib.find((x) => x.lecture_id === lectureId);
+      const lecture = lib.find((x) => x.lecture_id === contentId);
       if (!lecture) {
         return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
       }
@@ -1697,7 +1697,7 @@ export async function POST(req: NextRequest) {
           const vectorStore = await getVectorStore();
           return await vectorStore.similaritySearch(question, k, filter);
         } catch (err: any) {
-          console.warn(`[RAG] similaritySearch failed for ${lectureId}: ${String(err?.message || err)}`);
+          console.warn(`[RAG] similaritySearch failed for ${contentId}: ${String(err?.message || err)}`);
           retrievalNotice = `Vector search unavailable, using fallback document lookup. (${normalizeInsertionErrorMessage(err)})`;
           return [];
         }
@@ -1705,9 +1705,9 @@ export async function POST(req: NextRequest) {
 
       // Hybrid retrieval: combine vector matches with lexical local chunk matches, then rerank.
       const vectorCandidates: Document[] = [];
-      vectorCandidates.push(...await trySimilaritySearch({ lectureId, source: "teacher-upload-llm-summary" }, 3));
-      vectorCandidates.push(...await trySimilaritySearch({ lectureId, source: "teacher-upload-caption" }, 3));
-      vectorCandidates.push(...await trySimilaritySearch({ lectureId }, 6));
+      vectorCandidates.push(...await trySimilaritySearch({ lectureId: contentId, source: "teacher-upload-llm-summary" }, 3));
+      vectorCandidates.push(...await trySimilaritySearch({ lectureId: contentId, source: "teacher-upload-caption" }, 3));
+      vectorCandidates.push(...await trySimilaritySearch({ lectureId: contentId }, 6));
 
       let localCandidates: Document[] = [];
       if (lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
@@ -1716,7 +1716,7 @@ export async function POST(req: NextRequest) {
         const top = retrieveTopK(question, chunks, 4);
         localCandidates = top.map((x) => new Document({
           pageContent: x.text,
-          metadata: { lectureId, chunkIndex: x.i, source: "local-lexical" },
+          metadata: { lectureId: contentId, chunkIndex: x.i, source: "local-lexical" },
         }));
       }
 
@@ -1744,7 +1744,7 @@ export async function POST(req: NextRequest) {
         const description = await fsp.readFile(lecture.description_path, "utf-8");
         finalRetrieved = [new Document({
           pageContent: description,
-          metadata: { lectureId, source: "local-description-fallback", chunkIndex: -1 },
+          metadata: { lectureId: contentId, source: "local-description-fallback", chunkIndex: -1 },
         })];
         retrievalNotice = retrievalNotice || "Vector search unavailable, using the saved document description as fallback context.";
       }
@@ -1772,10 +1772,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "mcq" || action === "tf" || action === "derivation") {
-      const { lectureId, focus = "", n = 5, topic = "main lecture concept", llmModel = DEFAULT_LLM_MODEL } = body;
+      const { contentId, focus = "", n = 5, topic = "main lecture concept", llmModel = DEFAULT_LLM_MODEL } = body;
 
       const lib = await loadLibrary();
-      const lecture = lib.find((x) => x.lecture_id === lectureId);
+      const lecture = lib.find((x) => x.lecture_id === contentId);
       if (
         !lecture ||
         !lecture.memory_path ||
@@ -1818,14 +1818,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "deleteLecture") {
-      const { lectureId } = body;
-      if (!lectureId) return NextResponse.json({ error: "Missing lectureId" }, { status: 400 });
+      const { contentId } = body;
+      if (!contentId) return NextResponse.json({ error: "Missing contentId" }, { status: 400 });
 
       // Delete from library and file system
       const lib = await loadLibrary();
-      const filtered = lib.filter((x) => x.lecture_id !== lectureId);
+      const filtered = lib.filter((x) => x.lecture_id !== contentId);
       await saveLibrary(filtered);
-      await removeLectureArtifacts(lectureId);
+      await removeLectureArtifacts(contentId);
 
       return NextResponse.json({ ok: true });
     }
@@ -1839,11 +1839,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "retryIndex") {
-      const { lectureId } = body;
-      if (!lectureId) return NextResponse.json({ error: "Missing lectureId" }, { status: 400 });
+      const { contentId } = body;
+      if (!contentId) return NextResponse.json({ error: "Missing contentId" }, { status: 400 });
 
       const lib = await loadLibrary();
-      const lecture = lib.find((x) => x.lecture_id === lectureId);
+      const lecture = lib.find((x) => x.lecture_id === contentId);
       if (!lecture) return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
 
       // Load chunks and parser output if available
@@ -1854,7 +1854,7 @@ export async function POST(req: NextRequest) {
           chunks = Array.isArray(raw) ? raw.map((x: any) => x.text).filter(Boolean) : [];
         }
       } catch (e: any) {
-        console.warn(`[RAG] Failed to read chunks.json for ${lectureId}: ${String(e?.message || e)}`);
+        console.warn(`[RAG] Failed to read chunks.json for ${contentId}: ${String(e?.message || e)}`);
       }
 
       let parserOutput = "";
@@ -1865,7 +1865,7 @@ export async function POST(req: NextRequest) {
           parserOutput = await fsp.readFile(lecture.transcript_path, "utf-8");
         }
       } catch (e: any) {
-        console.warn(`[RAG] Failed to read summary/transcript for ${lectureId}: ${String(e?.message || e)}`);
+        console.warn(`[RAG] Failed to read summary/transcript for ${contentId}: ${String(e?.message || e)}`);
       }
 
       if (!chunks.length && !parserOutput.trim()) {
@@ -1873,7 +1873,7 @@ export async function POST(req: NextRequest) {
       }
 
       const resIndex = await indexContentChunksToVectorStore({
-        lectureId,
+        lectureId: contentId,
         fileName: lecture.original_path ? path.basename(lecture.original_path) : lecture.title,
         fileType: lecture.original_path ? path.extname(lecture.original_path).toLowerCase() : ".txt",
         parserModel: OLLAMA_TEXT_MODEL,

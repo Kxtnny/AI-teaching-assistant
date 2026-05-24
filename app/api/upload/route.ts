@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { getVectorStore } from '@/lib/vectorStore';
 import { extractPdfBlocksFromPdfNative } from '@/lib/pdfBlockExtractor';
 import { extractTablesFromPdfNative } from '@/lib/pdfTableExtractor';
@@ -17,6 +18,10 @@ const SUPPORTED_VISION_MODELS = new Set(['gemma3', 'llama3.2-vision', 'llava']);
 function getVisionModel(formData: FormData) {
   const selected = String(formData.get('visionModel') || 'llama3.2-vision').trim();
   return SUPPORTED_VISION_MODELS.has(selected) ? selected : 'llama3.2-vision';
+}
+
+function makeContentId(buffer: Buffer) {
+  return crypto.createHash('sha1').update(buffer).digest('hex').slice(0, 16);
 }
 
 async function parseImageWithVisionModel(file: File, modelName: string) {
@@ -93,6 +98,9 @@ export async function POST(req: Request) {
     }
 
     if (isImage) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const contentId = makeContentId(buffer);
       const parserOutput = await parseImageWithVisionModel(file, parserModel);
 
       if (!parserOutput) {
@@ -119,6 +127,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
+        contentId,
         message: `Parsed and indexed image ${file.name} with ${parserModel}`,
         parserModel,
         parserOutput,
@@ -129,6 +138,7 @@ export async function POST(req: Request) {
     // Save file temporarily (use OS temp directory for cross-platform support)
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const contentId = makeContentId(buffer);
     const tempDir = join(tmpdir(), 'pdf-uploads');
     await mkdir(tempDir, { recursive: true });
     const tempPath = join(tempDir, file.name);
@@ -282,6 +292,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
+        contentId,
         message: `Successfully processed ${pageDocs.length} page docs, ${imageDescriptions.filter(Boolean).length} image docs, and 1 parser summary from ${file.name} using ${parserModel}`,
         parserModel,
         parserOutput,
