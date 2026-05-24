@@ -55,6 +55,7 @@ export default function UploadContentPage() {
   const [visionMenuOpen, setVisionMenuOpen] = useState(false);
 
   const pollRef = useRef<number | null>(null);
+  const parseTickerRef = useRef<number | null>(null);
   const visionMenuRef = useRef<HTMLDivElement | null>(null);
 
   async function api(action: string, payload: any = {}, isForm = false) {
@@ -73,6 +74,29 @@ export default function UploadContentPage() {
       window.clearInterval(pollRef.current);
       pollRef.current = null;
     }
+  }
+
+  function stopParseTicker() {
+    if (parseTickerRef.current) {
+      window.clearInterval(parseTickerRef.current);
+      parseTickerRef.current = null;
+    }
+  }
+
+  function startParseTicker(label: string) {
+    stopParseTicker();
+    const steps = [8, 16, 24, 33, 42, 54, 66, 78, 88];
+    let index = 0;
+    parseTickerRef.current = window.setInterval(() => {
+      const percent = steps[Math.min(index, steps.length - 1)];
+      setProgress((current) => ({
+        ...current,
+        stage: label,
+        percent: Math.max(current.percent, percent),
+        done: false,
+      }));
+      index += 1;
+    }, 1800);
   }
 
   function startPolling(lectureId: string, onDone?: (progress: ProcessProgress) => void) {
@@ -114,7 +138,10 @@ export default function UploadContentPage() {
   }
 
   useEffect(() => {
-    return () => stopPolling();
+    return () => {
+      stopPolling();
+      stopParseTicker();
+    };
   }, []);
 
   useEffect(() => {
@@ -223,17 +250,20 @@ export default function UploadContentPage() {
       setLoading(true);
       setProgress({ lectureId: null, stage: "parsing content", percent: 1, done: false });
       setStatusMsg(`Parsing ${uploadKind} content with the paper-aligned upload route...`);
+      startParseTicker(uploadKind === "pdf" ? "Parsing PDF blocks and tables" : "Parsing image content");
 
       let uploadRes: any;
       try {
         uploadRes = await uploadParsedFile(pendingContentFile);
       } catch (error: any) {
+        stopParseTicker();
         setLoading(false);
         setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
         alert(String(error?.message || error));
         return;
       }
 
+      stopParseTicker();
       setLoading(false);
 
       setProcessedContentOutput(uploadRes.parserOutput || uploadRes.message || "Parsed and indexed with the upload route.");
