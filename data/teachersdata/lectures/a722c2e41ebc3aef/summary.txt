@@ -1,28 +1,19 @@
-Here is a clean study brief based on the extracted content:
+Here is the extracted content reformatted into a clean study brief:
 
 **Summary:**
 
-* Bachelor of Computing (Computer Science) curriculum
-* Students must complete 9 Major Prescribed Electives (MPE) courses, including at least 4 Broadening and Deepening Elective courses.
-* Final Year Project requirements:
-	+ Part 1: Completed during Year 4
-	+ Part 2: Optional completion after graduation for Highest Distinction
-* Course structure:
-	+ Year 3: Professional Internship (Graded), Capstone Project, and 7 electives
-	+ Year 4: Final Year Project (Part 1) and 8 electives
+• Bachelor of Computing (Computer Science) program requires students to complete specific courses in each semester.
+• Students must complete 9 Major Prescribed Elective (MPE) courses, including at least 4 courses at the Broadening and Deepening Elective level.
+• The program includes various electives and requirements for Year 1, Year 2, Year 3, and Year 4 students.
+• Students may choose to fulfill the MPE requirement by completing a Final Year Project (FYP) or taking additional courses.
 
 **Key Terms:**
 
-SC1003F, SC1004Core, MH1812Core, CC0003U-Core, CC0005U_CORE, HW0001-, HW0002-, SC1006Core, SC1007Core, CC0007U Corey, SC3920F-core, SC4079MPE, BDE, MPE
+AU, SC1003F-Core, SC1004Core, SC1005Core, MH1812Core, CC0003U-Core, CC0005U-Core, SC3099Core, F-Core, HW0288, SC3920F-Core, SC4079MPE, SC4xxxMPE
 
 **Important Details:**
 
-* Broadening and Deepening Elective courses:
-	+ Must include at least 4 courses
-	+ Examples: Sustainability: Society, Economy & Environment, Introduction to Databases
-* Major Prescribed Elective (MPE) courses:
-	+ Must complete 9 courses
-	+ Examples: SC3xxx/SC4xxx MPE-13, SC3xxx/SC4xxx MPE-23
-* Final Year Project requirements:
-	+ Part 1: Completed during Year 4
-	+ Part 2: Optional completion after graduation for Highest Distinction
+• **Year 1 Requirements:** Navigating the Digital World, Object Oriented Design & Programming, Inquiry & Communication in an Interdisciplinary World, C and C++ Programming, Probability & Statistics for Computing, Computer Organisation & Architecture, Data Structures & Algorithms
+• **Year 2 Requirements:** Science & Technology for Humanity, Software Engineering, Computer Network, Operating Systems, Automata. Computability and Complexity; Algorithm Design & Analysis
+• **Major Prescribed Elective (MPE) Courses:** Students must complete 9 MPE courses in SC3xxx/SC4xxx, including at least 4 Broadening and Deepening Electives.
+• **Final Year Project:** Students may choose to fulfill the MPE requirement by completing a Final Year Project (FYP) or taking additional courses.

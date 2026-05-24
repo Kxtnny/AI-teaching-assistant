@@ -14,6 +14,7 @@ import { getVectorStore } from "@/lib/vectorStore";
 import { supabase } from "@/lib/supabase";
 import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, ocrExtractTablesFromImage } from "@/lib/tableUtils";
 import { saveTableEvalReport } from "@/lib/tableEval";
+import { extractTablesFromPdfNative } from "@/lib/pdfTableExtractor";
 
 type Action =
   | "upload"
@@ -787,6 +788,7 @@ async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAM
   if (!limited.length) return "";
 
   async function processOne(imgPath: string, idx: number) {
+    // local parsed/method handled in detailed extractor when needed
     try {
       const b64 = await fsp.readFile(imgPath, { encoding: "base64" });
       const res = await withTimeout(
@@ -819,99 +821,91 @@ async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAM
   await Promise.all(workers);
   return results.join("\n\n");
 }
-async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL, adjacentTexts: string[] = [], mode: "generic" | "pdf" = "generic") {
+async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL, adjacentTexts: string[] = [], mode: "generic" | "pdf" = "generic", lectureDirPath?: string) {
   const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
   const concurrency = Number((mode === "pdf" ? process.env.PDF_VISION_CONCURRENCY : process.env.VISION_CONCURRENCY) || (mode === "pdf" ? 1 : 2));
   const perImageTimeoutMs = Number((mode === "pdf" ? process.env.PDF_VISION_TIMEOUT_MS : process.env.VISION_TIMEOUT_MS) || (mode === "pdf" ? 60000 : 20000));
 
   const limited = imagePaths.slice(0, maxFrames);
-  const results: Array<{ label: string; content: string; parsedTables?: any; tableExtractionMethod?: string }> = [];
+  const results: Array<{ label: string; content: string }> = [];
   if (!limited.length) return results;
 
-  async function processOne(imgPath: string, idx: number) {
+  for (let idx = 0; idx < limited.length; idx++) {
+    const imgPath = limited[idx];
     try {
       const b64 = await fsp.readFile(imgPath, { encoding: "base64" });
       const res = await withTimeout(
         ollama.chat({
           model: visionModel,
-          messages: [{
-            role: "user",
-            content: buildDetailedPageExtractionPrompt(`Page ${idx + 1}`, adjacentTexts[idx]),
-            images: [b64],
-          }],
+          messages: [{ role: "user", content: buildDetailedPageExtractionPrompt(`Page ${idx + 1}`, adjacentTexts[idx]), images: [b64] }],
         }),
         perImageTimeoutMs,
         `Vision page ${idx + 1}`
       );
+
       const txt = String(res?.message?.content || "").trim();
-      // Try to extract machine-readable tables JSON (between markers) and convert to markdown for reliability
       let finalText = txt;
+      let extractedTables: any = null;
+      let tableExtractionMethod: string | undefined = undefined;
+
       try {
         const m = txt.match(/<TABLES_JSON>([\s\S]*?)<\/TABLES_JSON>/i);
-        let parsed: any = null;
         if (m && m[1]) {
-          const jsonText = m[1].trim();
           try {
-            parsed = JSON.parse(jsonText);
+            extractedTables = JSON.parse(m[1].trim());
+            tableExtractionMethod = "vision";
           } catch (_e) {
-            // attempt repair via LLM
-            const repair = await repairTablesJsonFromText(jsonText || txt);
-            if (repair) parsed = repair;
+            const repair = await repairTablesJsonFromText(m[1].trim() || txt);
+            if (repair) {
+              extractedTables = repair;
+              tableExtractionMethod = "repair";
+            }
           }
         } else {
-          // No explicit TABLES_JSON found — try to repair/produce one from the entire text
           const repair = await repairTablesJsonFromText(txt);
-          if (repair) parsed = repair;
-        }
-
-        // If still no parsed tables, attempt heuristic extraction from the visual text
-        if ((!parsed || !Array.isArray(parsed.tables) || !parsed.tables.length)) {
-          try {
-            const heur = heuristicExtractTablesFromText(txt || adjacentTexts[idx] || "");
-            if (heur && Array.isArray(heur.tables) && heur.tables.length) {
-              parsed = heur;
-            }
-          } catch (e) {
-            // ignore heuristic failures
+          if (repair) {
+            extractedTables = repair;
+            tableExtractionMethod = "repair";
           }
         }
 
-        // If still none and running in PDF mode, try OCR fallback on the rendered page image
-        if ((!parsed || !Array.isArray(parsed.tables) || !parsed.tables.length) && mode === "pdf") {
-          try {
-            const ocr = await ocrExtractTablesFromImage(imgPath);
-            if (ocr && Array.isArray(ocr.tables) && ocr.tables.length) {
-              parsed = ocr;
-              // mark method as OCR if not already set
-              // (method variable may be undefined here; set next)
-            }
-          } catch (e) {
-            // ignore
+        if ((!extractedTables || !Array.isArray(extractedTables.tables) || !extractedTables.tables.length)) {
+          const heur = heuristicExtractTablesFromText(txt || adjacentTexts[idx] || "");
+          if (heur && Array.isArray(heur.tables) && heur.tables.length) {
+            extractedTables = heur;
+            tableExtractionMethod = tableExtractionMethod || "heuristic";
           }
         }
 
-        if (parsed && Array.isArray(parsed.tables) && parsed.tables.length) {
-          const tablesMd = tablesToMarkdown(parsed);
+        if ((!extractedTables || !Array.isArray(extractedTables.tables) || !extractedTables.tables.length) && mode === "pdf") {
+          const ocr = await ocrExtractTablesFromImage(imgPath);
+          if (ocr && Array.isArray(ocr.tables) && ocr.tables.length) {
+            extractedTables = ocr;
+            tableExtractionMethod = tableExtractionMethod || "ocr";
+          }
+        }
+
+        if (extractedTables && Array.isArray(extractedTables.tables) && extractedTables.tables.length) {
+          const tablesMd = tablesToMarkdown(extractedTables);
           finalText = `=== Extracted Tables ===\n${tablesMd}\n\n${txt.replace(/<TABLES_JSON>[\s\S]*?<\/TABLES_JSON>/i, "")}`;
+          if (lectureDirPath) {
+            try {
+              await saveTableEvalReport(lectureDirPath, `page_${idx + 1}`, { method: tableExtractionMethod || "vision", tables: extractedTables.tables });
+            } catch (e) {
+              // ignore
+            }
+          }
         }
-      } catch (err) {
-        console.warn(`[VISION] table extraction fallback failed on page ${idx + 1}: ${String(err)}`);
+      } catch (e) {
+        console.warn(`[VISION] table extraction fallback failed on page ${idx + 1}: ${String(e)}`);
       }
-      if (finalText) results.push({ label: `Page ${idx + 1}`, content: finalText, parsedTables: (typeof parsed !== 'undefined' ? parsed : undefined), tableExtractionMethod: (typeof method !== 'undefined' ? method : undefined) });
+
+      results.push({ label: `Page ${idx + 1}`, content: finalText });
     } catch (err: any) {
       console.warn(`[VISION] page ${idx + 1} skipped: ${err?.message || err}`);
     }
   }
 
-  let cursor = 0;
-  const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
-    while (cursor < limited.length) {
-      const i = cursor++;
-      await processOne(limited[i], i);
-    }
-  });
-
-  await Promise.all(workers);
   return results;
 }
 async function indexContentChunksToVectorStore(params: {
@@ -960,30 +954,30 @@ async function indexContentChunksToVectorStore(params: {
         const captionPrompt = buildCaptionPrompt(params.parserOutput);
         const captionsRaw = await ollamaText(captionPrompt, OLLAMA_TEXT_MODEL);
         try {
-          const parsed = JSON.parse(captionsRaw);
-          if (Array.isArray(parsed.pages)) {
-            for (const p of parsed.pages) {
-              if (p && p.summary) {
-                docs.push(new Document({
-                  pageContent: String(p.summary),
-                  metadata: {
-                    lectureId: params.lectureId,
-                    fileName: params.fileName,
-                    fileType: params.fileType,
-                    parserModel: params.parserModel,
-                    contentKind: params.contentKind,
-                    source: "teacher-upload-caption",
-                    page: Number(p.page) || -1,
-                    chunkIndex: -1,
-                    uploadDate: new Date().toISOString(),
-                  },
-                }));
+          const parsedCaptions = JSON.parse(captionsRaw);
+            if (Array.isArray(parsedCaptions.pages)) {
+              for (const p of parsedCaptions.pages) {
+                if (p && p.summary) {
+                  docs.push(new Document({
+                    pageContent: String(p.summary),
+                    metadata: {
+                      lectureId: params.lectureId,
+                      fileName: params.fileName,
+                      fileType: params.fileType,
+                      parserModel: params.parserModel,
+                      contentKind: params.contentKind,
+                      source: "teacher-upload-caption",
+                      page: Number(p.page) || -1,
+                      chunkIndex: -1,
+                      uploadDate: new Date().toISOString(),
+                    },
+                  }));
+                }
               }
             }
-          }
-          if (parsed && parsed.overall) {
-            docs.push(new Document({
-              pageContent: String(parsed.overall),
+            if (parsedCaptions && parsedCaptions.overall) {
+              docs.push(new Document({
+                pageContent: String(parsedCaptions.overall),
               metadata: {
                 lectureId: params.lectureId,
                 fileName: params.fileName,
@@ -1286,6 +1280,33 @@ export async function POST(req: NextRequest) {
             const pages = await withTimeout(extractPdfPagesWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
             notesText = pages.map((page) => page.pageContent).join("\n\n");
             descriptionPages = pages.map((page) => ({ label: `Page ${page.pageNumber}`, content: page.pageContent }));
+
+            // Native table extraction: try pdfplumber/camelot via helper python script
+            try {
+              const native = await extractTablesFromPdfNative(lecture.original_path);
+              if (native && Array.isArray(native.tables) && native.tables.length) {
+                // integrate native tables into per-page descriptionPages by prepending markdown
+                for (const t of native.tables) {
+                  const pnum = Number(t.page) || 1;
+                  const md = tablesToMarkdown({ tables: [t] });
+                  const idx = pnum - 1;
+                  if (descriptionPages[idx]) {
+                    descriptionPages[idx].content = `=== Native Extracted Tables ===\n${md}\n\n${descriptionPages[idx].content}`;
+                  }
+                }
+                // save eval reports
+                try {
+                  for (const t of native.tables) {
+                    await saveTableEvalReport(ldir, `native_page_${t.page}`, { method: "native", table: t });
+                  }
+                } catch (e) {
+                  console.warn(`[EVAL] failed to save native table eval reports: ${String(e)}`);
+                }
+              }
+            } catch (e) {
+              console.warn(`[PDF_NATIVE] native table extractor failed: ${String(e)}`);
+            }
+
           } catch (e: any) {
             console.warn("[PDF] loader extraction failed:", e?.message || e);
           }
@@ -1296,20 +1317,9 @@ export async function POST(req: NextRequest) {
 
           await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
           const pageContexts = descriptionPages.map((page) => page.content);
-          const visionPages = await visionExtractFromImagesDetailed(pageImages, visionModel, pageContexts, "pdf");
+          const visionPages = await visionExtractFromImagesDetailed(pageImages, visionModel, pageContexts, "pdf", ldir);
           visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
           if (visionPages.length) descriptionPages = visionPages;
-
-          // Save table extraction evaluation reports for pages that include parsed tables
-          try {
-            for (const vp of visionPages) {
-              if (vp.parsedTables && vp.parsedTables.tables && vp.parsedTables.tables.length) {
-                await saveTableEvalReport(ldir, vp.label, { method: vp.tableExtractionMethod || "vision", tables: vp.parsedTables.tables });
-              }
-            }
-          } catch (e) {
-            console.warn(`[EVAL] failed to save table eval reports: ${String(e)}`);
-          }
 
           extractedText = [
             notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
@@ -1317,19 +1327,10 @@ export async function POST(req: NextRequest) {
           ].filter(Boolean).join("\n\n");
         } else if (IMAGE_EXTS.has(ext)) {
           await setProgress({ stage: "reading image notes (vision)", percent: 45 });
-          const visionPages = await visionExtractFromImagesDetailed([lecture.original_path], visionModel);
+          const visionPages = await visionExtractFromImagesDetailed([lecture.original_path], visionModel, [], undefined, ldir);
           visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
           extractedText = visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "";
           descriptionPages = visionPages;
-          try {
-            for (const vp of visionPages) {
-              if (vp.parsedTables && vp.parsedTables.tables && vp.parsedTables.tables.length) {
-                await saveTableEvalReport(ldir, vp.label, { method: vp.tableExtractionMethod || "vision", tables: vp.parsedTables.tables });
-              }
-            }
-          } catch (e) {
-            console.warn(`[EVAL] failed to save table eval reports: ${String(e)}`);
-          }
         } else {
           return NextResponse.json({ error: `Unsupported file type for document processing: ${ext}` }, { status: 400 });
         }

@@ -1,31 +1,76 @@
 LECTURE MEMORY:
 
-* Course Structure:
-	+ Bachelor of Computing (Computer Science) with various elective options
-	+ Year 1: 22 AU, Core courses like CS1003F, SC1004Core, MH1812Core, CC0003U-Core, and CC0005U-Core
-	+ Year 2: 25 AU, Core courses like SC1006Core, SC1007Core, CC0001UCORE, CC0002U CORE, and HW0001-
-	+ Year 3: 16 AU, Core courses like SC3920F_CORE, SC4079MPE, BDE
-* Elective Options:
-	+ Major Prescribed Electives (SC3xxx/SC4xxx) with various codes (e.g., MPE-13, MPE-23)
-	+ Broadening and Deepening Elective level courses
-	+ Final Year Project (Part 1 and Part 2)
-* Prerequisites:
-	+ Nil for some core courses (e.g., CS1003F, MH1812Core, CC0003U-Core, CC0005U-Core)
-	+ SC1003 (co-requisite) for SC1004Core
-	+ SC1005 (co-requisite) for SC1006Core
-* Course Requirements:
-	+ 9 Major Prescribed Electives (SC3xxx/SC4xxx) for Year 4 students
-	+ Completion of a Final Year Project for Highest Distinction
-* Other Requirements:
-	+ Completion of at least 4 courses at the Broadening and Deepening Elective level
+**General Information**
 
-Common mistakes or confusing points:
+* The course is a Bachelor of Computing (Computer Science) program.
+* It has three semesters in Year 2, two in Year 3, and one in Year 4.
 
-* The document uses various codes for elective options (e.g., MPE-13, MPE-23), which may be confusing.
-* The structure of Computer Science is mentioned, but its specific meaning is not clear.
+**Course Structure**
 
-Example question types:
+* Core courses: SC1003F-Core, SC1004Core, MH1812Core, CC0003U-Core
+* Co-requisite courses: SC1005Core, SC2000Core
+* Major Prescribed Elective (MPE) courses: SC3xxx/SC4xxx
+* Broadening and Deepening Electives (BDE): 47 courses
 
-* What are the elective options available to Year 3 students?
-* How many Major Prescribed Electives do Year 4 students need to complete?
-* What is the requirement for completing a Final Year Project for Highest Distinction?
+**Year 1**
+
+* Core courses: SC1003F-Core, SC1004Core, MH1812Core, CC0003U_CORE, CC0005
+* Co-requisite course: SC2000Core
+* MPE courses: Any MPE
+* BDE courses: 35 courses
+
+**Year 2**
+
+* Semester 1:
+	+ Core course: SC1006Core
+	+ Co-requisite course: SC1007Core
+	+ MPE course: SC3xxx/SC4xxx
+	+ BDE course: SC2001Core
+* Semester 2:
+	+ Core courses: SC1008Core, SC2002Core
+	+ Co-requisite course: SC2006Core
+	+ MPE course: Any MPE
+	+ BDE course: SC2203Core
+
+**Year 3**
+
+* Core courses: SC3920F-Core
+* Co-requisite course: None
+* MPE courses: SC3xxx/SC4xxx (9 courses)
+* BDE courses: None
+* Capstone Project course:
+* Professional Internship (Graded) course:
+
+**Year 4**
+
+* Semester 1:
+	+ Core course: None
+	+ Co-requisite course: None
+	+ MPE course: SC3xxx/SC4xxx (9 courses)
+	+ BDE course: None
+	+ Final Year Project (Part 1) course
+* Semester 2:
+	+ Core course: None
+	+ Co-requisite course: None
+	+ MPE course: Any MPE (6 courses)
+	+ BDE course: SC2008Core
+	+ Final Year Project (Part 2) course
+
+**Important Notes**
+
+* Students must complete a Final Year Project to be eligible for Highest Distinction.
+* Students can choose to fulfill the Major Prescribed Elective requirement by completing a Final Year Project or taking 3 additional MPE courses.
+
+Common Mistakes/Confusing Points:
+
+* Ensure that all Core, Co-requisite, and MPE courses are completed according to the course structure.
+* Make sure to complete the required number of BDE courses and MPE courses for each year.
+* Pay attention to the requirements for completing a Final Year Project.
+
+Example Question Types:
+
+* Multiple Choice Questions (MCQs)
+* Short Answer Questions (SAQs)
+* Long Answer Questions (LAQs)
+* Case Study Problems
+* Group Discussions
