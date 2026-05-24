@@ -12,6 +12,7 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document } from "@langchain/core/documents";
 import { getVectorStore } from "@/lib/vectorStore";
 import { supabase } from "@/lib/supabase";
+import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown } from "@/lib/tableUtils";
 
 type Action =
   | "upload"
@@ -846,26 +847,40 @@ async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel
       let finalText = txt;
       try {
         const m = txt.match(/<TABLES_JSON>([\s\S]*?)<\/TABLES_JSON>/i);
+        let parsed: any = null;
         if (m && m[1]) {
           const jsonText = m[1].trim();
-          const parsed = JSON.parse(jsonText);
-          if (parsed && Array.isArray(parsed.tables)) {
-            const tablesMd = parsed.tables
-              .map((t: any) => {
-                const hdrs = Array.isArray(t.headers) ? t.headers : [];
-                const rows = Array.isArray(t.rows) ? t.rows : [];
-                const headerLine = `| ${hdrs.join(" | ")} |`;
-                const sepLine = `| ${hdrs.map(() => "---").join(" | ")} |`;
-                const rowsMd = rows.map((r: any[]) => `| ${r.map((c) => String(c || "")).join(" | ")} |`).join("\n");
-                const title = t.title ? `**${String(t.title)}**\n\n` : "";
-                return `${title}${headerLine}\n${sepLine}\n${rowsMd}`;
-              })
-              .join("\n\n");
-            finalText = `=== Extracted Tables ===\n${tablesMd}\n\n${txt.replace(m[0], "")}`;
+          try {
+            parsed = JSON.parse(jsonText);
+          } catch (_e) {
+            // attempt repair via LLM
+            const repair = await repairTablesJsonFromText(jsonText || txt);
+            if (repair) parsed = repair;
+          }
+        } else {
+          // No explicit TABLES_JSON found — try to repair/produce one from the entire text
+          const repair = await repairTablesJsonFromText(txt);
+          if (repair) parsed = repair;
+        }
+
+        // If still no parsed tables, attempt heuristic extraction from the visual text
+        if ((!parsed || !Array.isArray(parsed.tables) || !parsed.tables.length)) {
+          try {
+            const heur = heuristicExtractTablesFromText(txt || adjacentTexts[idx] || "");
+            if (heur && Array.isArray(heur.tables) && heur.tables.length) {
+              parsed = heur;
+            }
+          } catch (e) {
+            // ignore heuristic failures
           }
         }
+
+        if (parsed && Array.isArray(parsed.tables) && parsed.tables.length) {
+          const tablesMd = tablesToMarkdown(parsed);
+          finalText = `=== Extracted Tables ===\n${tablesMd}\n\n${txt.replace(/<TABLES_JSON>[\s\S]*?<\/TABLES_JSON>/i, "")}`;
+        }
       } catch (err) {
-        console.warn(`[VISION] failed to parse TABLES_JSON on page ${idx + 1}: ${String(err)}`);
+        console.warn(`[VISION] table extraction fallback failed on page ${idx + 1}: ${String(err)}`);
       }
       if (finalText) results.push({ label: `Page ${idx + 1}`, content: finalText });
     } catch (err: any) {

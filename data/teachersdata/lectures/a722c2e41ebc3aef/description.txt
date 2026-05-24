@@ -1,83 +1,40 @@
-**Document Summary:**
+Document Summary:
 
-The document outlines the curriculum for a Bachelor of Computing degree, focusing on academic year 2024-25. It details course requirements, including core courses, electives, and a breakdown of academic unit requirements by year and semester. The curriculum emphasizes practical programming skills, interdisciplinary learning, and preparation for careers in the technology sector. A total of 1715 academic unit points (AU) are required to complete the program.
+* This document appears to be a course schedule for a Bachelor of Computer Science degree in the Faculty of Engineering at the National University of Singapore (NUS).
+* The document outlines the course requirements, elective options, and specializations available to students.
+* Students must complete a total of 9 Major Prescribed Electives (MPE) courses, including at least 4 Broadening and Deepening Elective courses.
+* The document also mentions the completion of a Final Year Project as a requirement for Highest Distinction.
 
-**Page 1:**
+Page 1:
+The page contains a table with course information, listing each course code, type, Australian Units (AU), and prerequisite requirements. From top to bottom, the content can be read as follows:
 
-**Top-down text readout:**
-This page outlines the curriculum for a Bachelor of Computing (Computer Science) degree, focusing on academic year 2024-25. It details course requirements, including core courses, electives, and a breakdown of academic unit requirements by year and semester.
+- Course codes, types, AU, and prerequisites are listed.
+- The total number of Australian Units for Year 1 is calculated as 22.
+- The table lists courses for YEAR 2 SEMESTER 1, including course codes, types, AU, and prerequisites.
+- The table lists courses for YEAR 2 SEMESTER 2, including course codes, types, AU, and prerequisites.
+- Below the course tables, there is a section titled "Career & Innovative Enterprise for the Future World", which includes headings such as "Broadening and Deepening Elective" and "Introduction to Databases".
 
-**Tables:**
+Tables:
+| Course Code | Type | AU | Pre-requisite |
+| --- | --- | --- | --- |
+| CS1003F | Core | 3 | Nil |
 
-| Course Code | Course Title | AU |
-| --- | --- | --- |
-| CS1003 | Intro to CS | 4 |
-| MA100 | Calculus | 4 |
-| MH1812 | Ethics & Civics | 3 |
-| CC0003U | Digital Logic | 2 |
-| CC0005 |  | 3 |
-| HW0001 |  | 4 |
-| HW0002 |  | 4 |
+Page 2:
+From top to bottom, the content can be read as follows:
 
-| Course Code | Course Title | AU |
-| --- | --- | --- |
-| CS1004 |  | 4 |
-| CS1006 |  | 3 |
-| CS1007 |  | 3 |
-| CS1008 |  | 3 |
-| CS2000 |  | 3 |
-| CC0001U |  | 2 |
-| CC0002U |  | 2 |
-| CS2001 |  | 3 |
-| CS2005 |  | 3 |
-| CS2203 |  | 3 |
-| CS2006 |  | 3 |
-| CS2008 |  | 3 |
-| CC0007U |  | 3 |
-| CS2207 |  | 3 |
-| CC0006U |  | 3 |
-| ML0004C |  | 2 |
-| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
+- The page contains a list of course codes, types, and AU.
+- Below this section, there is an instruction note that outlines additional requirements for students' course selections.
+- The text mentions specific course electives such as "SC3xxx/SC4xxxMPE" with different prefixes (e.g., "-13", "-23").
+- Below the instruction note, there are references to a "Final Year Project (Part 1)" and "Final Year Project (Part 2)".
+- The text mentions that students must complete at least 4 courses at the Broadening and Deepening Elective level.
 
-| Course Code | Course Title | AU |
-| --- | --- | --- |
-| SC1006 |  | 3 |
-| SC1007 |  | 3 |
-| SC1003 |  | 3 |
-| SC1008 |  | 3 |
-| SC2000 |  | 3 |
-| CC0001U |  | 2 |
-| CC0002U |  | 2 |
-| SC2001 |  | 3 |
-| SC2005 |  | 3 |
-| SC2203 |  | 3 |
-| SC2006 |  | 3 |
-| SC2008 |  | 3 |
-| CC0007U |  | 3 |
-| SC2207 |  | 3 |
-| CC0006U |  | 3 |
-| ML0004C |  | 2 |
+Definitions:
 
-| Course Code | Course Title | AU |
-| --- | --- | --- |
-| SC1005 |  | 3 |
-| SC2001 |  | 3 |
-| SC2205 |  | 3 |
-| SC2006 |  | 3 |
-| SC2002 |  | 3 |
-| SC2008 |  | 3 |
-| CC0007U |  | 3 |
-| SC2207 |  | 3 |
-| CC0006U |  | 3 |
-| ML0004C |  | 2 |
+* AU stands for Australian Units, which is a unit of measurement used in Australian education.
+* MPE stands for Major Prescribed Elective, which refers to specific courses required by the degree program.
+* FYP stands for Final Year Project, which is a final project that students must complete as part of their degree requirements.
 
-| Course Code | Course Title | AU |
-| --- | --- | --- |
-| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
+Other Important Details:
 
-**Other Important Details:**
-
-*   The curriculum emphasizes a broad range of topics, including Computer Science, Mathematics, Engineering, and Communication skills.
-*   There is a strong emphasis on practical programming skills, as demonstrated through the inclusion of ‘C and C++ Programming’ and ‘Introduction to Computational Thinking & Programming’ across multiple courses.
-*   A total of 1715 academic unit points (AU) are required to complete the program.
-*   The program includes opportunities for students to specialize in areas such as Databases, Sustainability, and Software Engineering.
+- The document appears to be tailored towards Computer Science students in the Faculty of Engineering at NUS.
+- There are different groups of electives available to students, including SC3xxx/SC4xxxMPE courses and Broadening and Deepening Elective courses.

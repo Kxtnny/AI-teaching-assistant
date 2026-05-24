@@ -1,69 +1,31 @@
-**LECTURE MEMORY:**
+LECTURE MEMORY:
 
-- The curriculum for a Bachelor of Computing (Computer Science) degree, focusing on academic year 2024-25, is outlined.
-- Course requirements include core courses, electives, and a breakdown of academic unit requirements by year and semester.
-- There are several tracks defined – Core, Foundational, and Major Prescribe Elective (MPE).
-- The curriculum emphasizes practical programming skills and interdisciplinary learning.
-- Students must complete 1715 AU to complete the program.
+* Course Structure:
+	+ Bachelor of Computing (Computer Science) with various elective options
+	+ Year 1: 22 AU, Core courses like CS1003F, SC1004Core, MH1812Core, CC0003U-Core, and CC0005U-Core
+	+ Year 2: 25 AU, Core courses like SC1006Core, SC1007Core, CC0001UCORE, CC0002U CORE, and HW0001-
+	+ Year 3: 16 AU, Core courses like SC3920F_CORE, SC4079MPE, BDE
+* Elective Options:
+	+ Major Prescribed Electives (SC3xxx/SC4xxx) with various codes (e.g., MPE-13, MPE-23)
+	+ Broadening and Deepening Elective level courses
+	+ Final Year Project (Part 1 and Part 2)
+* Prerequisites:
+	+ Nil for some core courses (e.g., CS1003F, MH1812Core, CC0003U-Core, CC0005U-Core)
+	+ SC1003 (co-requisite) for SC1004Core
+	+ SC1005 (co-requisite) for SC1006Core
+* Course Requirements:
+	+ 9 Major Prescribed Electives (SC3xxx/SC4xxx) for Year 4 students
+	+ Completion of a Final Year Project for Highest Distinction
+* Other Requirements:
+	+ Completion of at least 4 courses at the Broadening and Deepening Elective level
 
-- **Tables:**
+Common mistakes or confusing points:
 
-1.  Year 1 Total AU:
-    | Course Code   | Course Title        | AU |
-    |--------------|----------------------|-----|
-    | CS1003       | Intro to CS          | 4   |
-    | MA100         | Calculus             | 4   |
-    | MH1812        | Ethics & Civics      | 3   |
-    | CC0003U      | Digital Logic        | 2   |
-    | CC0005       |                      | 3   |
-    | HW0001        |                      | 4   |
-    | HW0002        |                      | 4   |
+* The document uses various codes for elective options (e.g., MPE-13, MPE-23), which may be confusing.
+* The structure of Computer Science is mentioned, but its specific meaning is not clear.
 
-- **Images:** No images are present.
+Example question types:
 
-**Formulas and Definitions:**
-
-No formulas or definitions are found on this page.
-
-**Common Mistakes and Areas of Difficulty:**
-
-*   The emphasis on practical programming skills, as demonstrated through the inclusion of ‘C and C++ Programming’ across multiple courses.
-*   A strong focus on interdisciplinary learning and encouraging students to develop skills in areas such as inquiry, communication, and ethics.
-*   The importance of meeting academic unit requirements for each year and semester.
-
-**Study Schedule:**
-
-Recommended Course Schedule – AY2024-25
-
-**Other Important Details:**
-
-1.  **Electives:** A section highlights the elective options available, including Major Prescribe Elective courses.
-2.  **Total AU:** Total AU is 1715.
-3.  **Final Year Project (FYP):** Students may fulfill the requirement by completing an FYP or taking 3 additional MPE courses.
-4.  **Course Specializations:** MPE courses and specializations are available on the CCDS website.
-
-**Major Prescribe Elective:**
-
-| Course Code | Course Title | AU |
-|------------|--------------|-----|
-| SC3xxx/SC4xxx | Major Prescribe Elective | 3 |
-
-**Year 4 Total AU:**
-
-1.  Students are required to complete 9 MPE courses (SC3xxx or SC4xxx), including at least 4 courses at the Broadening and Deepening Elective level.
-2.  To be eligible for Highest Distinction, students must complete a Final Year Project.
-
-- **Diagrams:** No diagrams are found on this page.
-
-**Notes:**
-
-1.  Students may choose to fulfill the requirement by completing an FYP or taking 3 additional MPE courses.
-2.  MPE courses and specializations are available on the CCDS website.
-3.  To achieve Highest Distinction, students must complete a Final Year Project.
-4.  The document clearly outlines the different types of course codes used (Core, Foundational, Major Prescribe Elective, and various university-specific codes).
-5.  **Course Load:** Students are required to complete 9 MPE courses (SC3xxx or SC4xxx), including at least 4 courses at the Broadening and Deepening Elective level.
-6.  A section highlights the elective options available, including Major Prescribe Elective courses.
-
-**Images:**
-
-No images are present on this page.
+* What are the elective options available to Year 3 students?
+* How many Major Prescribed Electives do Year 4 students need to complete?
+* What is the requirement for completing a Final Year Project for Highest Distinction?
