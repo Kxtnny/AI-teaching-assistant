@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
-import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { getVectorStore } from '@/lib/vectorStore';
 import { extractPdfBlocksFromPdfNative } from '@/lib/pdfBlockExtractor';
 import { extractTablesFromPdfNative } from '@/lib/pdfTableExtractor';
@@ -137,18 +135,7 @@ export async function POST(req: Request) {
     await writeFile(tempPath, buffer);
 
     try {
-      // Load PDF
-      const loader = new PDFLoader(tempPath);
-      const docs = await loader.load();
       const blockData = await extractPdfBlocksFromPdfNative(tempPath);
-
-      // Split text into chunks
-      const textSplitter = new RecursiveCharacterTextSplitter({
-        chunkSize: 1000,
-        chunkOverlap: 200,
-      });
-
-      const splitDocs = await textSplitter.splitDocuments(docs);
       const pageContexts = Array.isArray(blockData?.pages)
         ? blockData.pages
             .filter((page: any) => page && page.type === 'page')
@@ -218,7 +205,7 @@ export async function POST(req: Request) {
         })
       );
 
-      const pageDocs = pageContexts.map((pageText, pageIndex) => ({
+      const pageDocs = pageContexts.map((pageText: string, pageIndex: number) => ({
         pageContent: `File page context (${parserModel}) for PDF ${file.name}, page ${pageIndex + 1}:\n\n${pageText}`,
         metadata: {
           fileName: file.name,
@@ -230,9 +217,7 @@ export async function POST(req: Request) {
         },
       }));
 
-      const allPdfText = pageContexts.length
-        ? pageContexts.join('\n\n')
-        : docs.map((d) => d.pageContent).join('\n\n');
+      const allPdfText = pageContexts.join('\n\n');
       const imageTextContext = imageDescriptions
         .filter((doc): doc is { pageContent: string; metadata: any } => Boolean(doc))
         .map((doc) => doc.pageContent)
@@ -269,19 +254,6 @@ export async function POST(req: Request) {
         } catch {}
       }
 
-      // Add metadata
-      const docsWithMetadata = splitDocs.map((doc) => ({
-        ...doc,
-        metadata: {
-          ...doc.metadata,
-          fileName: file.name,
-          fileType: file.type,
-          parserModel,
-          source: 'pdf-text',
-          uploadDate: new Date().toISOString(),
-        },
-      }));
-
       const parserDoc = {
         pageContent:
           `File parser output (${parserModel}) for PDF ${file.name}:\n\n` +
@@ -298,7 +270,7 @@ export async function POST(req: Request) {
 
       // Store in vector database
       const vectorStore = await getVectorStore();
-      const allDocs = [...pageDocs, ...imageDescriptions.filter(Boolean), ...tableDocs, ...docsWithMetadata, parserDoc];
+      const allDocs = [...pageDocs, ...imageDescriptions.filter(Boolean), ...tableDocs, parserDoc];
       const upsertBatchSize = Number(process.env.VECTORSTORE_UPSERT_BATCH_SIZE || 20);
       for (let i = 0; i < allDocs.length; i += upsertBatchSize) {
         const batch = allDocs.slice(i, i + upsertBatchSize);
@@ -310,10 +282,10 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `Successfully processed ${splitDocs.length} text chunks, ${pageDocs.length} page docs, and 1 parser summary from ${file.name} using ${parserModel}`,
+        message: `Successfully processed ${pageDocs.length} page docs, ${imageDescriptions.filter(Boolean).length} image docs, and 1 parser summary from ${file.name} using ${parserModel}`,
         parserModel,
         parserOutput,
-        chunks: splitDocs.length + pageDocs.length + imageDescriptions.filter(Boolean).length + tableDocs.length + 1,
+        chunks: pageDocs.length + imageDescriptions.filter(Boolean).length + tableDocs.length + 1,
       });
     } catch (error) {
       // Clean up temp file on error
