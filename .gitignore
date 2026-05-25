@@ -43,4 +43,3 @@ next-env.d.ts
 # Python virtualenvs
 .venv/
 venv/
-.venv-cpython/
