@@ -17,6 +17,9 @@ export async function POST(req: Request) {
     if (!fileName) {
       return NextResponse.json({ error: 'fileName is required' }, { status: 400 });
     }
+    if (!contentId) {
+      return NextResponse.json({ error: 'contentId is required' }, { status: 400 });
+    }
 
     const table = tableJsonRaw ? JSON.parse(tableJsonRaw) : null;
     const markdown = tableMarkdown || (table ? tablesToMarkdown({ tables: [table] }) : '');

@@ -1726,6 +1726,20 @@ export async function POST(req: NextRequest) {
       vectorCandidates.push(...await trySimilaritySearch({ contentId, source: "teacher-upload-caption" }, 3));
       vectorCandidates.push(...await trySimilaritySearch({ contentId }, 6));
 
+      // Retrieval fallbacks: if nothing found for the contentId-scoped queries,
+      // try table-context specific and broader searches to catch metadata mismatches
+      // or embedding ranking issues (helps when table docs exist but were not
+      // returned by the strict contentId queries).
+      if (vectorCandidates.length === 0) {
+        try {
+          vectorCandidates.push(...await trySimilaritySearch({ contentId, source: 'pdf-table-context' }, 6));
+          vectorCandidates.push(...await trySimilaritySearch({ source: 'pdf-table-context' }, 6));
+          vectorCandidates.push(...await trySimilaritySearch({}, 6));
+        } catch (e) {
+          // swallow; trySimilaritySearch already handles errors and records notice
+        }
+      }
+
       let localCandidates: Document[] = [];
       if (lecture.chunks_path && (await fileExists(lecture.chunks_path))) {
         const raw = JSON.parse(await fsp.readFile(lecture.chunks_path, "utf-8"));
