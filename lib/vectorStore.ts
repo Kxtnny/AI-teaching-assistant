@@ -1,5 +1,6 @@
 import { SupabaseVectorStore } from '@langchain/community/vectorstores/supabase';
 import { supabase } from './supabase';
+import OpenAI from 'openai';
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -17,26 +18,76 @@ class OllamaEmbeddings {
 
   async embedDocuments(texts: string[]): Promise<number[][]> {
     const batchSize = Number(process.env.OLLAMA_EMBEDDING_BATCH_SIZE || 4);
+    const maxChars = Number(process.env.OLLAMA_EMBED_MAX_CHARS || 3000);
     const embeddings: number[][] = [];
 
-    for (let i = 0; i < texts.length; i += batchSize) {
-      const batch = texts.slice(i, i + batchSize);
-      const batchEmbeddings = await Promise.all(
-        batch.map(async (text) => {
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-              return await this.embedQuery(text);
-            } catch (error) {
-              if (attempt === 3) throw error;
-              await sleep(300 * attempt);
+    // Helper: split text into chunks not exceeding maxChars (try to cut on whitespace)
+    function chunkText(text: string, maxLen: number) {
+      const chunks: string[] = [];
+      let s = 0;
+      while (s < text.length) {
+        if (text.length - s <= maxLen) {
+          chunks.push(text.slice(s));
+          break;
+        }
+        let cut = s + maxLen;
+        // try to find a whitespace to split on
+        const lastSpace = text.lastIndexOf(' ', cut);
+        if (lastSpace > s) cut = lastSpace;
+        chunks.push(text.slice(s, cut));
+        s = cut + 1;
+      }
+      return chunks.filter(Boolean);
+    }
+
+    // Process each text: chunk if needed, embed each chunk, then average chunk embeddings
+    for (let i = 0; i < texts.length; i++) {
+      const text = texts[i] ?? '';
+      const chunks = text.length > maxChars ? chunkText(text, maxChars) : [text];
+      const chunkEmbeds: number[][] = [];
+
+      for (let j = 0; j < chunks.length; j += batchSize) {
+        const batch = chunks.slice(j, j + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(async (chunk) => {
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              try {
+                return await this.embedQuery(chunk);
+              } catch (error) {
+                if (attempt === 3) {
+                  // try OpenAI fallback on final failure
+                  try {
+                    if (process.env.OPENAI_API_KEY) {
+                      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+                      const resp = await openai.embeddings.create({ model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small', input: chunk });
+                      return resp.data?.[0]?.embedding ?? [];
+                    }
+                  } catch (e) {
+                    // fall through to rethrow original
+                  }
+                  throw error;
+                }
+                await sleep(300 * attempt);
+              }
             }
-          }
+            throw new Error('Unexpected embedding retry failure');
+          })
+        );
 
-          throw new Error('Unexpected embedding retry failure');
-        })
-      );
+        chunkEmbeds.push(...batchResults.filter(Boolean) as number[][]);
+      }
 
-      embeddings.push(...batchEmbeddings);
+      // Average chunk embeddings to produce a single vector per original text
+      if (chunkEmbeds.length === 0) embeddings.push([]);
+      else {
+        const dim = chunkEmbeds[0].length;
+        const avg = new Array(dim).fill(0);
+        for (const e of chunkEmbeds) {
+          for (let k = 0; k < dim; k++) avg[k] += e[k] ?? 0;
+        }
+        for (let k = 0; k < dim; k++) avg[k] = avg[k] / chunkEmbeds.length;
+        embeddings.push(avg);
+      }
     }
 
     return embeddings;
@@ -67,11 +118,31 @@ class OllamaEmbeddings {
 
     if (!response.ok) {
       const body = await response.text();
+      // Attempt OpenAI fallback if available
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+          const resp = await openai.embeddings.create({ model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small', input: text });
+          return resp.data?.[0]?.embedding ?? [];
+        } catch (e) {
+          // continue to throw original
+        }
+      }
       throw new Error(`Ollama embedding failed (${response.status}): ${response.statusText} ${body}`);
     }
 
     const data = await response.json();
     if (!data?.embedding || !Array.isArray(data.embedding)) {
+      // Try OpenAI fallback
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+          const resp = await openai.embeddings.create({ model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small', input: text });
+          return resp.data?.[0]?.embedding ?? [];
+        } catch (e) {
+          // fall through
+        }
+      }
       throw new Error(`Ollama embedding response missing embedding array for model ${this.model}`);
     }
 
