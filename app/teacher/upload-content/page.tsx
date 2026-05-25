@@ -42,41 +42,14 @@ export default function UploadContentPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [visionMenuOpen, setVisionMenuOpen] = useState(false);
-
-  const pollRef = useRef<number | null>(null);
   const visionMenuRef = useRef<HTMLDivElement | null>(null);
 
   async function api(action: string, payload: any = {}, isForm = false) {
-    if (isForm) {
-      return fetch("/api/teacher-lecture", { method: "POST", body: payload }).then((r) => r.json());
-    }
     return fetch("/api/teacher-lecture", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, ...payload }),
     }).then((r) => r.json());
-  }
-
-  function stopPolling() {
-    if (pollRef.current) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }
-
-  function startPolling(contentId: string, onDone?: (progress: ProcessProgress) => void) {
-    stopPolling();
-    pollRef.current = window.setInterval(async () => {
-      const res = await api("progress", { contentId });
-      if (!res?.ok) return;
-      const p = res.progress as ProcessProgress;
-      setProgress(p);
-      setStatusMsg(`Processing: ${p.stage} (${p.percent}%)`);
-      if (p.done) {
-        stopPolling();
-        onDone?.(p);
-      }
-    }, 1000);
   }
 
   async function hydrateProcessedContent(contentId: string) {
@@ -103,7 +76,7 @@ export default function UploadContentPage() {
   }
 
   useEffect(() => {
-    return () => stopPolling();
+    return () => undefined;
   }, []);
 
   useEffect(() => {
@@ -131,7 +104,7 @@ export default function UploadContentPage() {
     const fd = new FormData();
     fd.append("file", f);
 
-    const res = await api("upload", fd, true);
+    const res = await fetch("/api/upload", { method: "POST", body: fd }).then((r) => r.json());
 
     if (!res?.ok) {
       throw new Error(res?.error || "Upload failed");
@@ -174,46 +147,49 @@ export default function UploadContentPage() {
   async function processContent() {
     let contentId = currentContentId;
 
-    if (!contentId) {
-      if (!pendingContentFile) return alert("Upload/select content first.");
-
-      let uploadRes: any;
-      try {
-        uploadRes = await uploadFile(pendingContentFile);
-      } catch (error: any) {
-        setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
-        alert(String(error?.message || error));
-        return;
-      }
-
-      contentId = uploadRes?.contentId || uploadRes?.lecture?.lecture_id || "";
-      if (!contentId) {
-        alert("Upload succeeded but no content ID was returned.");
-        return;
-      }
-
-      setCurrentContentId(contentId);
-    }
+    if (!pendingContentFile) return alert("Upload/select content first.");
 
     setLoading(true);
-    setProgress({ contentId: contentId, stage: "starting", percent: 18, done: false });
-    setStatusMsg("Processing started...");
-    startPolling(contentId, (p) => {
-      if (p.error) {
-        setLoading(false);
-        setProgress(p);
-        return;
-      }
-      void hydrateProcessedContent(contentId).catch((error: any) => {
-        setLoading(false);
-        setProgress((current) => ({ ...current, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
-        alert(String(error?.message || error));
-      });
-    });
+    setProgress({ contentId: contentId || null, stage: "starting", percent: 18, done: false });
+    setStatusMsg("Uploading and processing content...");
 
-    void api("process", { contentId, language: "en", visionModel }).catch((error) => {
-      console.warn("[teacher-upload] background process request failed:", error);
-    });
+    let uploadRes: any;
+    try {
+      uploadRes = await uploadFile(pendingContentFile);
+    } catch (error: any) {
+      setProgress((p) => ({ ...p, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
+      setLoading(false);
+      alert(String(error?.message || error));
+      return;
+    }
+
+    contentId = uploadRes?.contentId || uploadRes?.lecture?.lecture_id || "";
+    if (!contentId) {
+      setLoading(false);
+      alert("Upload succeeded but no content ID was returned.");
+      return;
+    }
+
+    setCurrentContentId(contentId);
+    setProgress({ contentId, stage: "completed", percent: 100, done: true });
+    setProcessedContentOutput(
+      uploadRes?.parserOutput || uploadRes?.description || uploadRes?.transcript || uploadRes?.summary || uploadRes?.message ||
+        "Upload completed and content is ready."
+    );
+    setRawContent(uploadRes?.transcript || uploadRes?.parserOutput || "");
+    setIndexingOk(null);
+    setIndexingError(null);
+    setRetrievalNotice(null);
+    setChatMessages([
+      {
+        role: "assistant",
+        content:
+          "The content is indexed and ready for questions. Ask anything about the uploaded file, and I will answer using the parsed material.",
+      },
+    ]);
+    setContentMode("chat");
+    setStatusMsg("Content processed and ready for chat.");
+    setLoading(false);
   }
 
   async function sendContentChat() {

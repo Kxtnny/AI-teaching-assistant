@@ -1,7 +1,8 @@
 {
   "lectureId": "a722c2e41ebc3aef",
-  "stage": "completed",
-  "percent": 100,
+  "stage": "uploaded",
+  "percent": 0,
   "done": true,
-  "error": ""
+  "error": "",
+  "contentId": "a722c2e41ebc3aef"
 }
