@@ -80,7 +80,8 @@ const WORD_RE = /[A-Za-z0-9']+/g;
 
 // teacher storage
 const DATA_DIR = path.resolve(process.cwd(), "data", "teachersdata");
-const LECTURES_DIR = path.join(DATA_DIR, "lectures");
+// on-disk folder renamed from `lectures` -> `content`
+const LECTURES_DIR = path.join(DATA_DIR, "content");
 const LIBRARY_PATH = path.join(DATA_DIR, "library.json");
 const UPLOAD_TMP = path.join(DATA_DIR, "tmp_uploads");
 const PROGRESS_PATH = path.join(DATA_DIR, "progress.json");

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
     if (table && contentId) {
       try {
-        await saveTableEvalReport(`data/teachersdata/lectures/${contentId}`, `upload_page_${page}`, {
+        await saveTableEvalReport(`data/teachersdata/content/${contentId}`, `upload_page_${page}`, {
           method: 'native',
           table,
         });

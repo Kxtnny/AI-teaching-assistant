@@ -188,7 +188,7 @@ If you get an error like `Binary not found: pdftoppm` or `ffmpeg`, confirm the P
 - Winget may require admin elevation to install system packages — run PowerShell as Administrator if the install fails.
 - If `winget install` returns "No package found", run `winget source update` and `winget search ffmpeg` / `winget search poppler` to find available ids.
 - Some Python packages with native extensions may require Visual C++ build tools. Install `Build Tools for Visual Studio` if you encounter wheel/build errors.
-- The repository intentionally preserves internal `lecture_id` storage while exposing `contentId` publicly. No rename of on-disk folders is required for migration.
+- The repository intentionally preserves internal `lecture_id` storage while exposing `contentId` publicly. The on-disk folders were renamed from `lectures` → `content` and the server code updated to point to the new locations.
 
 ---
 
