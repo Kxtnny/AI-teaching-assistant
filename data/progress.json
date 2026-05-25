@@ -1,7 +1,7 @@
 {
   "lectureId": "26e46d40598d1e24",
-  "stage": "completed",
+  "stage": "failed",
   "percent": 100,
   "done": true,
-  "error": ""
+  "error": "ENOENT: no such file or directory, open 'C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\26e46d40598d1e24\\memory.txt'"
 }

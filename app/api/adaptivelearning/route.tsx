@@ -367,7 +367,7 @@ export async function POST(req: Request) {
 
     const messages: UIMessage[] = Array.isArray(body?.messages) ? body.messages : [];
     const mode: string | undefined = body?.mode;
-    const lectureId: string | undefined = body?.lectureId;
+    const lectureId: string | undefined = body?.contentId || body?.lectureId;
     const creatorRaw: string | undefined = body?.creator;
     const creator: CreatorType = creatorRaw === "teacher" ? "teacher" : "student";
 

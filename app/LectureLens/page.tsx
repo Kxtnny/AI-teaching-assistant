@@ -97,16 +97,16 @@ export default function StudentHomePage() {
     }
   }
 
-  async function deleteStudentLecture(lectureId: string) {
+  async function deleteStudentLecture(contentId: string) {
     const yes = window.confirm("Delete this student lecture?");
     if (!yes) return;
 
-    setDeletingId(lectureId);
+    setDeletingId(contentId);
     try {
       const res = await fetch("/api/lecture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "deleteLecture", lectureId }),
+        body: JSON.stringify({ action: "deleteLecture", contentId }),
       }).then((r) => r.json());
 
       if (!res?.ok) throw new Error(res?.error || "Delete failed");
@@ -149,19 +149,19 @@ export default function StudentHomePage() {
         ) : (
           <div className={styles.grid}>
             {items.map((c, idx) => (
-              <Link
+                <Link
                 key={c.lecture_id}
                 href={`/LectureLens/course/${c.lecture_id}?creator=${c.creator || "student"}`}
                 className={styles.courseCard}
               >
-                {c.creator !== "teacher" && (
+                  {c.creator !== "teacher" && (
                   <button
                     type="button"
                     className={styles.deleteBtn}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      deleteStudentLecture(c.lecture_id);
+                        deleteStudentLecture(c.lecture_id);
                     }}
                     disabled={deletingId === c.lecture_id}
                     aria-label="Delete lecture"

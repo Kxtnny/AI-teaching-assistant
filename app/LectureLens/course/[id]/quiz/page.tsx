@@ -15,7 +15,7 @@ type McqItem = {
 export default function QuizPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const lectureId = params.id;
+  const contentId = params.id;
   const creator = (searchParams.get("creator") === "teacher" ? "teacher" : "student") as
     | "teacher"
     | "student";
@@ -45,7 +45,7 @@ const apiBase = useMemo(
       const res = await fetch(apiBase, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mcq", lectureId, focus, n: count }),
+        body: JSON.stringify({ action: "mcq", contentId, focus, n: count }),
       }).then((r) => r.json());
 
       if (!res?.ok) throw new Error(res?.error || "Failed to generate quiz");
@@ -67,7 +67,7 @@ const apiBase = useMemo(
 
   return (
     <div className={styles.page}>
-      <Link href={`/LectureLens/course/${lectureId}?creator=${creator}`} className={styles.back}>
+      <Link href={`/LectureLens/course/${contentId}?creator=${creator}`} className={styles.back}>
         ← Back to course
       </Link>
 

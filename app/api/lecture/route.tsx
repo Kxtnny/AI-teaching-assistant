@@ -44,7 +44,7 @@ interface LectureEntry {
 }
 
 type ProgressState = {
-  lectureId: string | null;
+  contentId: string | null;
   stage: string;
   percent: number;
   done: boolean;
@@ -84,7 +84,7 @@ const PROGRESS_PATH = path.join(DATA_DIR, "progress.json");
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const defaultProgress: ProgressState = {
-  lectureId: null,
+  contentId: null,
   stage: "idle",
   percent: 0,
   done: true,
@@ -527,7 +527,7 @@ export async function POST(req: NextRequest) {
       };
 
       await updateOrInsert(entry);
-      await setProgress({ lectureId, stage: "uploaded", percent: 0, done: true, error: "" });
+      await setProgress({ contentId: lectureId, stage: "uploaded", percent: 0, done: true, error: "" });
       return NextResponse.json({ ok: true, duplicate: false, lecture: entry });
     }
 
@@ -537,15 +537,17 @@ export async function POST(req: NextRequest) {
 
     if (action === "progress") {
       const p = await loadProgress();
-      if (!body.lectureId || p.lectureId === body.lectureId) return NextResponse.json({ ok: true, progress: p });
+      const reqId = body?.contentId || body?.lectureId;
+      if (!reqId || p.contentId === reqId) return NextResponse.json({ ok: true, progress: p });
       return NextResponse.json({ ok: true, progress: defaultProgress });
     }
 
     if (action === "load") {
       const lib = await loadLibrary();
 
-      if (body.lectureId) {
-        const lecture = lib.find((x) => x.lecture_id === body.lectureId);
+      const reqId = body?.contentId || body?.lectureId;
+      if (reqId) {
+        const lecture = lib.find((x) => x.lecture_id === reqId);
         if (!lecture) return NextResponse.json({ error: "Lecture not found" }, { status: 404 });
 
         const transcript = lecture.transcript_path && (await fileExists(lecture.transcript_path))
@@ -571,9 +573,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "process") {
-      const { lectureId, language = "en", llmModel = DEFAULT_LLM_MODEL } = body;
+      const reqId = body?.contentId || body?.lectureId;
+      const lectureId = reqId;
+      const language = body?.language || "en";
+      const llmModel = body?.llmModel || DEFAULT_LLM_MODEL;
 
-      await setProgress({ lectureId, stage: "starting", percent: 3, done: false, error: "" });
+      await setProgress({ contentId: lectureId, stage: "starting", percent: 3, done: false, error: "" });
 
       const lib = await loadLibrary();
       const lecture = lib.find((x) => x.lecture_id === lectureId);
@@ -708,7 +713,7 @@ export async function POST(req: NextRequest) {
         status: "Ready",
       });
 
-      await setProgress({ lectureId, stage: "completed", percent: 100, done: true, error: "" });
+      await setProgress({ contentId: lectureId, stage: "completed", percent: 100, done: true, error: "" });
 
       return NextResponse.json({
         ok: true,
@@ -726,7 +731,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "chat") {
-      const { lectureId, question, history = [], llmModel = DEFAULT_LLM_MODEL } = body;
+      const reqId = body?.contentId || body?.lectureId;
+      const lectureId = reqId;
+      const question = body?.question;
+      const history = body?.history || [];
+      const llmModel = body?.llmModel || DEFAULT_LLM_MODEL;
       if (!question) return NextResponse.json({ error: "Missing question" }, { status: 400 });
 
       const lib = await loadLibrary();
@@ -754,7 +763,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "mcq" || action === "tf" || action === "derivation") {
-      const { lectureId, focus = "", n = 5, topic = "main lecture concept", llmModel = DEFAULT_LLM_MODEL } = body;
+      const reqId = body?.contentId || body?.lectureId;
+      const lectureId = reqId;
+      const focus = body?.focus || "";
+      const n = body?.n || 5;
+      const topic = body?.topic || "main lecture concept";
+      const llmModel = body?.llmModel || DEFAULT_LLM_MODEL;
 
       const lib = await loadLibrary();
       const lecture = lib.find((x) => x.lecture_id === lectureId);
@@ -794,13 +808,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "deleteLecture") {
-      const { lectureId } = body;
-      if (!lectureId) return NextResponse.json({ error: "Missing lectureId" }, { status: 400 });
+      const reqId = body?.contentId || body?.lectureId;
+      if (!reqId) return NextResponse.json({ error: "Missing contentId" }, { status: 400 });
 
       const lib = await loadLibrary();
-      const filtered = lib.filter((x) => x.lecture_id !== lectureId);
+      const filtered = lib.filter((x) => x.lecture_id !== reqId);
       await saveLibrary(filtered);
-      await removeIfExists(lectureDir(lectureId));
+      await removeIfExists(lectureDir(reqId));
       return NextResponse.json({ ok: true });
     }
 

@@ -6,7 +6,7 @@ import React, { useRef, useState } from "react";
 import styles from "./page.module.css";
 
 type ProcessProgress = {
-  lectureId: string | null;
+  contentId: string | null;
   stage: string;
   percent: number;
   done: boolean;
@@ -60,12 +60,12 @@ export default function StudentUploadPage() {
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [currentLectureId, setCurrentLectureId] = useState("");
+  const [currentContentId, setCurrentContentId] = useState("");
   const [statusMsg, setStatusMsg] = useState("Ready.");
   const [uploadDone, setUploadDone] = useState(false);
 
   const [progress, setProgress] = useState<ProcessProgress>({
-    lectureId: null,
+    contentId: null,
     stage: "idle",
     percent: 0,
     done: true,
@@ -89,10 +89,10 @@ export default function StudentUploadPage() {
     }
   }
 
-  function startPolling(lectureId: string) {
+  function startPolling(contentId: string) {
     stopPolling();
     pollRef.current = window.setInterval(async () => {
-      const res = await api("progress", { lectureId });
+      const res = await api("progress", { contentId });
       if (!res?.ok) return;
       const p = res.progress as ProcessProgress;
       setProgress(p);
@@ -104,13 +104,13 @@ export default function StudentUploadPage() {
     }, 1000);
   }
 
-  function saveOptionalMeta(lectureId: string) {
-    if (!lectureId) return;
+  function saveOptionalMeta(contentId: string) {
+    if (!contentId) return;
     try {
       const titleMap = JSON.parse(localStorage.getItem(TITLE_STORAGE_KEY) || "{}");
       const descMap = JSON.parse(localStorage.getItem(DESC_STORAGE_KEY) || "{}");
-      if (customTitle.trim()) titleMap[lectureId] = customTitle.trim();
-      if (description.trim()) descMap[lectureId] = description.trim();
+      if (customTitle.trim()) titleMap[contentId] = customTitle.trim();
+      if (description.trim()) descMap[contentId] = description.trim();
       localStorage.setItem(TITLE_STORAGE_KEY, JSON.stringify(titleMap));
       localStorage.setItem(DESC_STORAGE_KEY, JSON.stringify(descMap));
     } catch {}
@@ -129,22 +129,22 @@ export default function StudentUploadPage() {
 
     if (!res?.ok) return alert(res.error || "Upload failed");
 
-    const lectureId = res.lecture?.lecture_id || "";
-    setCurrentLectureId(lectureId);
+    const contentId = res.lecture?.lecture_id || "";
+    setCurrentContentId(contentId);
     setSelectedFile(file);
-    saveOptionalMeta(lectureId);
+    saveOptionalMeta(contentId);
     setUploadDone(true);
     setStatusMsg(res.duplicate ? "Duplicate detected. Existing lecture loaded. You can process again." : "Upload complete. Click Process Lecture.");
   }
 
   async function processLecture() {
-    if (!currentLectureId) return alert("Upload/select lecture first.");
+    if (!currentContentId) return alert("Upload/select lecture first.");
     setProcessing(true);
-    setProgress({ lectureId: currentLectureId, stage: "starting", percent: 1, done: false });
+    setProgress({ contentId: currentContentId, stage: "starting", percent: 1, done: false });
     setStatusMsg("Processing started...");
-    startPolling(currentLectureId);
+    startPolling(currentContentId);
 
-    const res = await api("process", { lectureId: currentLectureId, language: "en" });
+    const res = await api("process", { contentId: currentContentId, language: "en" });
     if (!res?.ok) {
       stopPolling();
       setProcessing(false);
@@ -152,22 +152,22 @@ export default function StudentUploadPage() {
       return alert(res.error || "Processing failed");
     }
 
-    setProgress({ lectureId: currentLectureId, stage: "completed", percent: 100, done: true });
+    setProgress({ contentId: currentContentId, stage: "completed", percent: 100, done: true });
     setStatusMsg("Lecture processed successfully.");
     setProcessing(false);
     stopPolling();
   }
 
   async function deleteCurrent() {
-    if (!currentLectureId) return alert("No lecture selected.");
+    if (!currentContentId) return alert("No lecture selected.");
     if (!confirm("Delete current uploaded lecture?")) return;
-    const res = await api("deleteLecture", { lectureId: currentLectureId });
+    const res = await api("deleteLecture", { contentId: currentContentId });
     if (!res?.ok) return alert(res.error || "Delete failed");
     stopPolling();
-    setCurrentLectureId("");
+    setCurrentContentId("");
     setSelectedFile(null);
     setUploadDone(false);
-    setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
+    setProgress({ contentId: null, stage: "idle", percent: 0, done: true });
     setStatusMsg("Current lecture deleted.");
   }
 
@@ -198,7 +198,7 @@ export default function StudentUploadPage() {
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A short summary of what students will learn..." />
           </div>
 
-          {(uploading || processing || (progress.lectureId && !progress.done)) && (
+          {(uploading || processing || (progress.contentId && !progress.done)) && (
             <div className={styles.progressWrap}>
               <div className={styles.progressTop}>
                 <span>{uploading ? "Uploading..." : progress.stage}</span>
@@ -214,7 +214,7 @@ export default function StudentUploadPage() {
             <button className={styles.primary} onClick={processLecture} disabled={!uploadDone || processing || uploading}>
               {processing ? "Processing..." : "Process Lecture"}
             </button>
-            <button className={styles.dangerGhost} onClick={deleteCurrent} disabled={!currentLectureId || uploading || processing}>
+            <button className={styles.dangerGhost} onClick={deleteCurrent} disabled={!currentContentId || uploading || processing}>
               Delete Current
             </button>
           </div>

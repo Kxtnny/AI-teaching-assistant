@@ -10,7 +10,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const lectureId = params.id;
+  const contentId = params.id;
   const creator = (searchParams.get("creator") === "teacher" ? "teacher" : "student") as
     | "teacher"
     | "student";
@@ -59,7 +59,7 @@ export default function ChatPage() {
       const res = await fetch(apiBase, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "chat", lectureId, question: q, history: next }),
+        body: JSON.stringify({ action: "chat", contentId, question: q, history: next }),
       }).then((r) => r.json());
 
       if (!res?.ok) {
@@ -79,7 +79,7 @@ export default function ChatPage() {
       <div className={styles.chatWrapper}>
         {/* Header */}
         <div className={styles.header}>
-          <Link href={`/LectureLens/course/${lectureId}?creator=${creator}`} className={styles.backButton}>
+          <Link href={`/LectureLens/course/${contentId}?creator=${creator}`} className={styles.backButton}>
             ← Back to Course
           </Link>
           <div className={styles.headerInfo}>

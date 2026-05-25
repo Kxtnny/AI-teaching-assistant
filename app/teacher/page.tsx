@@ -12,7 +12,7 @@ type Lecture = {
 };
 
 type ProcessProgress = {
-  lectureId: string | null;
+  contentId: string | null;
   stage: string;
   percent: number;
   done: boolean;
@@ -26,11 +26,11 @@ type VisionModel = "llava" | "gemma3" | "llama3.2-vision";
 
 export default function TeacherStudioPage() {
   const [library, setLibrary] = useState<Lecture[]>([]);
-  const [currentLectureId, setCurrentLectureId] = useState("");
+  const [currentContentId, setCurrentContentId] = useState("");
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("Welcome back.");
   const [progress, setProgress] = useState<ProcessProgress>({
-    lectureId: null,
+    contentId: null,
     stage: "idle",
     percent: 0,
     done: true,
@@ -85,10 +85,10 @@ export default function TeacherStudioPage() {
     }
   }
 
-  function startPolling(lectureId: string, onDone?: (progress: ProcessProgress) => void) {
+  function startPolling(contentId: string, onDone?: (progress: ProcessProgress) => void) {
     stopPolling();
     pollRef.current = window.setInterval(async () => {
-      const res = await api("progress", { lectureId });
+      const res = await api("progress", { contentId });
       if (!res?.ok) return;
       const p = res.progress as ProcessProgress;
       setProgress(p);
@@ -100,8 +100,8 @@ export default function TeacherStudioPage() {
     }, 1000);
   }
 
-  async function hydrateProcessedLecture(lectureId: string) {
-    const res = await api("load", { lectureId });
+  async function hydrateProcessedLecture(contentId: string) {
+    const res = await api("load", { contentId });
     if (!res?.ok) throw new Error(res?.error || "Failed to load processed lecture");
 
     setContentMode("chat");
@@ -162,7 +162,7 @@ export default function TeacherStudioPage() {
 
     if (!res?.ok) return alert(res.error || "Upload failed");
     await refreshLibrary();
-    setCurrentLectureId(res.lecture.lecture_id);
+    setCurrentContentId(res.lecture.lecture_id);
     setCurrentContentKind(res.lecture?.content_kind === "document" ? "document" : "video");
 
     if (!silent) {
@@ -181,7 +181,7 @@ export default function TeacherStudioPage() {
     const file = e.target.files?.[0] || null;
     if (activeTab === "content") {
       setPendingContentFile(file);
-      setCurrentLectureId("");
+      setCurrentContentId("");
       setCurrentContentKind(null);
       setProcessedContentOutput("");
       setChatMessages([]);
@@ -203,7 +203,7 @@ export default function TeacherStudioPage() {
     const file = e.dataTransfer.files?.[0] || null;
     if (activeTab === "content") {
       setPendingContentFile(file);
-      setCurrentLectureId("");
+      setCurrentContentId("");
       setCurrentContentKind(null);
       setProcessedContentOutput("");
       setChatMessages([]);
@@ -219,15 +219,15 @@ export default function TeacherStudioPage() {
   }
 
   async function processLecture() {
-    let lectureId = currentLectureId;
+    let contentId = currentContentId;
 
-    if (activeTab === "content" && !lectureId) {
+    if (activeTab === "content" && !contentId) {
       if (!pendingContentFile) return alert("Upload/select content first.");
 
       setContentMode("chat");
       setLoading(true);
       setProgress({
-        lectureId: null,
+        contentId: null,
         stage: "uploading content",
         percent: 1,
         done: false,
@@ -242,28 +242,28 @@ export default function TeacherStudioPage() {
         return;
       }
 
-      lectureId = uploadRes.lecture.lecture_id;
-      setCurrentLectureId(lectureId);
+      contentId = uploadRes.lecture.lecture_id;
+      setCurrentContentId(contentId);
       setCurrentContentKind(uploadRes.lecture?.content_kind === "document" ? "document" : "video");
       setProgress({
-        lectureId,
+        contentId: contentId,
         stage: "uploaded",
         percent: 14,
         done: false,
       });
     }
 
-    if (!lectureId) return alert("Upload/select lecture first.");
+    if (!contentId) return alert("Upload/select lecture first.");
 
     setLoading(true);
     setProgress({
-      lectureId,
+      contentId: contentId,
       stage: "starting",
       percent: activeTab === "content" ? 18 : 1,
       done: false,
     });
     setStatusMsg("Processing started...");
-    startPolling(lectureId, (p) => {
+    startPolling(contentId, (p) => {
       if (p.error) {
         setLoading(false);
         setProgress(p);
@@ -272,7 +272,7 @@ export default function TeacherStudioPage() {
 
       void refreshLibrary();
       if (activeTab === "content") {
-        void hydrateProcessedLecture(lectureId).catch((error: any) => {
+        void hydrateProcessedLecture(contentId).catch((error: any) => {
           setLoading(false);
           setProgress((current) => ({ ...current, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
           alert(String(error?.message || error));
@@ -280,19 +280,19 @@ export default function TeacherStudioPage() {
         return;
       }
 
-      setProgress({ lectureId, stage: "completed", percent: 100, done: true });
+      setProgress({ contentId: contentId, stage: "completed", percent: 100, done: true });
       setLoading(false);
       setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
     });
 
-    void api("process", { lectureId, language: "en", visionModel }).catch((error) => {
+    void api("process", { contentId, language: "en", visionModel }).catch((error) => {
       console.warn("[teacher] background process request failed:", error);
     });
   }
 
   async function sendContentChat() {
     const question = chatInput.trim();
-    if (!question || !currentLectureId) return;
+    if (!question || !currentContentId) return;
 
     const nextMessages: ChatMessage[] = [...chatMessages, { role: "user", content: question }];
     setChatMessages(nextMessages);
@@ -301,7 +301,7 @@ export default function TeacherStudioPage() {
 
     try {
       const res = await api("chat", {
-        lectureId: currentLectureId,
+        contentId: currentContentId,
         question,
         history: chatMessages,
       });
@@ -321,7 +321,7 @@ export default function TeacherStudioPage() {
 
   function resetContentFlow() {
     setPendingContentFile(null);
-    setCurrentLectureId("");
+    setCurrentContentId("");
     setCurrentContentKind(null);
     setContentMode("upload");
     setProcessedContentOutput("");
@@ -329,13 +329,13 @@ export default function TeacherStudioPage() {
     setChatInput("");
     setChatMessages([]);
     setRetrievalNotice(null);
-    setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
+    setProgress({ contentId: null, stage: "idle", percent: 0, done: true });
     setStatusMsg("Ready for another content upload.");
   }
 
   function clearPendingContentFile() {
     setPendingContentFile(null);
-    setCurrentLectureId("");
+    setCurrentContentId("");
     setCurrentContentKind(null);
     setProcessedContentOutput("");
     setContentName("");
@@ -351,23 +351,23 @@ export default function TeacherStudioPage() {
     setVisionMenuOpen(false);
   }
 
-  async function deleteLecture(lectureId?: string) {
-    const id = lectureId || currentLectureId;
+  async function deleteLecture(contentId?: string) {
+    const id = contentId || currentContentId;
     if (!id) return alert("Select lecture first.");
     if (!confirm("Delete this lecture?")) return;
 
     setDeletingId(id);
-    const res = await api("deleteLecture", { lectureId: id });
+    const res = await api("deleteLecture", { contentId: id });
     setDeletingId(null);
 
     if (!res?.ok) return alert(res.error || "Delete failed");
     // If the deleted lecture is the one currently in the chat flow, fully reset the content flow
-    if (currentLectureId === id || contentMode === "chat") {
+    if (currentContentId === id || contentMode === "chat") {
       resetContentFlow();
     } else {
-      if (currentLectureId === id) setCurrentLectureId("");
-      if (currentLectureId === id) setCurrentContentKind(null);
-      setProgress({ lectureId: null, stage: "idle", percent: 0, done: true });
+      if (currentContentId === id) setCurrentContentId("");
+      if (currentContentId === id) setCurrentContentKind(null);
+      setProgress({ contentId: null, stage: "idle", percent: 0, done: true });
     }
 
     await refreshLibrary();
@@ -389,11 +389,11 @@ export default function TeacherStudioPage() {
   const coverTone = (idx: number) => ["tone0", "tone1", "tone2", "tone3", "tone4", "tone5"][idx % 6];
 
   function openFileUrl(item: Lecture) {
-    return `/api/teacher-lecture?lectureId=${encodeURIComponent(item.lecture_id)}`;
+    return `/api/teacher-lecture?contentId=${encodeURIComponent(item.lecture_id)}`;
   }
 
   function previewUrl(item: Lecture) {
-    return `/api/teacher-lecture?lectureId=${encodeURIComponent(item.lecture_id)}&preview=1`;
+    return `/api/teacher-lecture?contentId=${encodeURIComponent(item.lecture_id)}&preview=1`;
   }
 
   const assistanceRows = [
@@ -531,7 +531,7 @@ export default function TeacherStudioPage() {
                         <button className="primary" onClick={async () => {
                           setLoading(true);
                           try {
-                            const res = await api("retryIndex", { lectureId: currentLectureId });
+                            const res = await api("retryIndex", { contentId: currentContentId });
                             if (res?.ok) {
                               setIndexingOk(true);
                               setIndexingError(null);
@@ -549,7 +549,7 @@ export default function TeacherStudioPage() {
                           } finally {
                             setLoading(false);
                           }
-                        }} disabled={loading || !currentLectureId}>
+                        }} disabled={loading || !currentContentId}>
                           {loading ? "Retrying..." : "Retry indexing"}
                         </button>
                       </div>
@@ -593,12 +593,12 @@ export default function TeacherStudioPage() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
-                            if (currentLectureId && contentMode === "chat") void sendContentChat();
+                            if (currentContentId && contentMode === "chat") void sendContentChat();
                           }
                         }}
-                        disabled={loading || !currentLectureId || contentMode !== "chat"}
+                        disabled={loading || !currentContentId || contentMode !== "chat"}
                       />
-                      <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim() || !currentLectureId || contentMode !== "chat"}>
+                      <button className="primary" onClick={sendContentChat} disabled={loading || !chatInput.trim() || !currentContentId || contentMode !== "chat"}>
                         {loading ? "Thinking..." : "Send"}
                       </button>
                     </div>
@@ -683,12 +683,12 @@ export default function TeacherStudioPage() {
                   </div>
 
                   <div className="actionRow">
-                    <button onClick={processLecture} disabled={loading || (activeTab === "content" ? !pendingContentFile && !currentLectureId : !currentLectureId)} className="primary">
+                    <button onClick={processLecture} disabled={loading || (activeTab === "content" ? !pendingContentFile && !currentContentId : !currentContentId)} className="primary">
                       {loading ? "Working..." : activeTab === "content" ? "Process Content" : "Process Lecture"}
                     </button>
                   </div>
 
-                  {progress.lectureId === currentLectureId && !progress.done && (
+                  {progress.contentId === currentContentId && !progress.done && (
                     <div className="progressWrap">
                       <div className="progressTop">
                         <span>{progress.stage}</span>

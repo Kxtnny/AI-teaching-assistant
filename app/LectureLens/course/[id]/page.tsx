@@ -6,5 +6,5 @@ export default async function CoursePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <CourseClient lectureId={id} />;
+  return <CourseClient contentId={id} />;
 }

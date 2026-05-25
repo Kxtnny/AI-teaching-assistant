@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "./CourseClient.module.css";
 
-export default function CourseClient({ lectureId }: { lectureId: string }) {
+export default function CourseClient({ contentId }: { contentId: string }) {
   const searchParams = useSearchParams();
   const creator = (searchParams.get("creator") === "teacher" ? "teacher" : "student") as
     | "teacher"
@@ -30,12 +30,12 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
 
   useEffect(() => {
     (async () => {
-      const res = await api("load", { lectureId });
+      const res = await api("load", { contentId });
       if (!res?.ok) return;
       setTitle(res.lecture?.title || "Course Topic");
       setSummary((res.summary || "").trim());
     })();
-  }, [lectureId, apiBase]);
+  }, [contentId, apiBase]);
 
   const shortSummary = (() => {
     const text = summary || "No summary available yet. Please process this lecture first.";
@@ -86,16 +86,16 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
               <h4 className={styles.cardTitle}>Ask the Tutor</h4>
               <p className={styles.cardText}>Ask lecture-specific questions and get guided help.</p>
             </Link> */}
-            <Link href={`/LectureLens/course/${lectureId}/quiz${q}`} className={`${styles.card} ${styles.quiz}`}>
+            <Link href={`/LectureLens/course/${contentId}/quiz${q}`} className={`${styles.card} ${styles.quiz}`}>
               <h4 className={styles.cardTitle}>Practice Quiz</h4>
               <p className={styles.cardText}>Generate MCQs and test your understanding.</p>
             </Link>
-            <Link href={`/LectureLens/course/${lectureId}/adaptive${q}`} className={`${styles.card} ${styles.adaptive}`}>
+            <Link href={`/LectureLens/course/${contentId}/adaptive${q}`} className={`${styles.card} ${styles.adaptive}`}>
               <h4 className={styles.cardTitle}>Adaptive Learning</h4>
               <p className={styles.cardText}>Get personalized support based on your learning needs.</p>
             </Link>
 
-            <Link href={`/LectureLens/course/${lectureId}/solosprintui${q}`} className={styles.card}>
+            <Link href={`/LectureLens/course/${contentId}/solosprintui${q}`} className={styles.card}>
               <h4 className={styles.cardTitle}>Solo Feynman Sprint</h4>
               <p className={styles.cardText}>practise your understanding using this gamified approach.</p>
             </Link>
