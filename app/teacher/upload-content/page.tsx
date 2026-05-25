@@ -150,6 +150,19 @@ export default function UploadContentPage() {
     if (!pendingContentFile) return alert("Upload/select content first.");
 
     setLoading(true);
+    setContentMode("chat");
+    setProcessedContentOutput("Processing content...\n\nThe document description will appear here when it is ready.");
+    setRawContent("");
+    setChatMessages([
+      {
+        role: "assistant",
+        content:
+          "The content is being processed. The document description will appear here once parsing finishes.",
+      },
+    ]);
+    setRetrievalNotice(null);
+    setIndexingOk(null);
+    setIndexingError(null);
     setProgress({ contentId: contentId || null, stage: "starting", percent: 18, done: false });
     setStatusMsg("Uploading and processing content...");
 
@@ -187,7 +200,6 @@ export default function UploadContentPage() {
           "The content is indexed and ready for questions. Ask anything about the uploaded file, and I will answer using the parsed material.",
       },
     ]);
-    setContentMode("chat");
     setStatusMsg("Content processed and ready for chat.");
     setLoading(false);
   }
