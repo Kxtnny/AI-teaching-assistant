@@ -15,6 +15,29 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Quick Setup
+
+A short checklist to get the project running locally. For a full, detailed guide including system binaries (ffmpeg, pdftoppm/poppler), environment variables, and troubleshooting see [INSTALLATION.md](./INSTALLATION.md).
+
+1. (Optional) Create and activate Python venv:
+
+```powershell
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+& .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+2. Install Node dependencies and start dev server:
+
+```bash
+npm install
+npm run dev
+```
+
+3. Ensure system binaries are installed (required for processing): `ffmpeg` and `pdftoppm` (see INSTALLATION.md).
+
 # 🚀 Project Setup Guide
 
 Follow these steps to get the project running locally.
