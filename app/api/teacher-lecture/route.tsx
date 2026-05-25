@@ -1063,6 +1063,22 @@ async function ollamaText(prompt: string, model = OLLAMA_TEXT_MODEL) {
   return String(res?.message?.content || "").trim();
 }
 async function llm(messages: ChatMessage[], model = DEFAULT_LLM_MODEL) {
+  // Prefer local Ollama models when the model name indicates a local/Llama family.
+  const preferOllama = /llama|llava|gemma|local/i.test(String(model));
+  if (preferOllama) {
+    try {
+      const res = await ollama.chat({
+        model,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      });
+      return String(res?.message?.content || "").trim();
+    } catch (err) {
+      console.warn('[LLM] Ollama call failed, falling back to OpenAI:', String(err));
+      // fallthrough to OpenAI fallback
+    }
+  }
+
+  // Fallback to OpenAI (keeps existing behavior for non-local models)
   const res = await client.chat.completions.create({
     model,
     temperature: 0.2,

@@ -128,6 +128,24 @@ export default function UploadContentPage() {
   async function uploadFile(f?: File | null) {
     if (!f) return;
 
+    const isVideo = f.type.startsWith("video/");
+    const isAudio = f.type.startsWith("audio/");
+
+    // Route media (video/audio) to the teacher-lecture upload flow which handles audio extraction and scene frames.
+    if (isVideo || isAudio) {
+      const fd = new FormData();
+      fd.append("file", f);
+      fd.append("action", "upload");
+      fd.append("tempMode", "1");
+
+      const res = await fetch("/api/teacher-lecture", { method: "POST", body: fd }).then((r) => r.json());
+      if (!res?.ok) {
+        throw new Error(res?.error || "Upload failed");
+      }
+      return res;
+    }
+
+    // Default: use the lightweight paper-aligned upload route for PDFs/images.
     const fd = new FormData();
     fd.append("file", f);
     fd.append("visionModel", visionModel);

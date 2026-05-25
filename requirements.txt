@@ -2,3 +2,5 @@ pdfplumber==0.7.6
 camelot-py==0.10.1
 tesseract
 pymupdf
+pytesseract
+Pillow

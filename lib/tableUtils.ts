@@ -1,5 +1,7 @@
 import ollama from "ollama";
 import Tesseract from "tesseract.js";
+import { spawn } from "child_process";
+import path from "path";
 
 const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || process.env.OLLAMA_MODEL || "llama3.2";
 
@@ -93,6 +95,34 @@ export function tablesToMarkdown(tablesObj: any) {
 }
 
 export async function ocrExtractTablesFromImage(imagePath: string) {
+  // Try native Python pytesseract first (better accuracy/ANLS); fall back to tesseract.js if Python isn't available.
+  try {
+    const py = process.env.PYTHON_BIN || "python";
+    const script = path.join(process.cwd(), "tools", "ocr_image_text.py");
+    const p = spawn(py, [script, imagePath], { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    p.stdout.on("data", (d) => (stdout += d.toString()));
+    p.stderr.on("data", (d) => (stderr += d.toString()));
+
+    const code: number = await new Promise((resolve) => {
+      p.on("close", (c) => resolve(c ?? 0));
+      p.on("error", () => resolve(1));
+    });
+
+    if (code === 0 && stdout) {
+      try {
+        const parsed = JSON.parse(stdout);
+        const text = String(parsed?.text || "").trim();
+        if (text) return heuristicExtractTablesFromText(text);
+      } catch (e) {
+        // fall through to JS tesseract
+      }
+    }
+  } catch (e) {
+    // ignore and fallback
+  }
+
   try {
     const res = await Tesseract.recognize(imagePath, "eng");
     const text = String(res?.data?.text || "").trim();
