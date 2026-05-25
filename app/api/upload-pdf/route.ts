@@ -4,10 +4,7 @@ import { HumanMessage } from '@langchain/core/messages';
 import { getVectorStore } from '@/lib/vectorStore';
 import { extractPdfBlocksFromPdfNative } from '@/lib/pdfBlockExtractor';
 import { extractTablesFromPdfNative } from '@/lib/pdfTableExtractor';
-import { saveTableEvalReport } from '@/lib/tableEval';
-import { tablesToMarkdown } from '@/lib/tableUtils';
 import { uploadTeacherLectureFile, getUploadedContentId } from '@/lib/uploadProxy';
-import path from 'path';
 
 const SUPPORTED_VISION_MODELS = new Set(['gemma3', 'llama3.2-vision', 'llava']);
 
@@ -194,20 +191,7 @@ export async function POST(req: Request) {
     );
 
     const nativeTables = await extractTablesFromPdfNative(lecturePath);
-    const tableDocs = Array.isArray(nativeTables?.tables)
-      ? nativeTables.tables.map((table: any) => ({
-          pageContent: `File table context (${parserModel}) for PDF ${file.name}, page ${table.page || 1}:\n\n${tablesToMarkdown({ tables: [table] })}`,
-          metadata: {
-            contentId,
-            fileName: file.name,
-            fileType: file.type,
-            parserModel,
-            source: 'pdf-table-context',
-            page: Number(table.page) || 1,
-            uploadDate: new Date().toISOString(),
-          },
-        }))
-      : [];
+    const tableCount = Array.isArray(nativeTables?.tables) ? nativeTables.tables.length : 0;
 
     if (Array.isArray(nativeTables?.tables) && nativeTables.tables.length) {
       try {
@@ -219,9 +203,7 @@ export async function POST(req: Request) {
           tableForm.append('parserModel', parserModel);
           tableForm.append('page', String(table.page || 1));
           tableForm.append('tableJson', JSON.stringify(table));
-          tableForm.append('tableMarkdown', tablesToMarkdown({ tables: [table] }));
           await fetch(new URL('/api/upload-table', req.url), { method: 'POST', body: tableForm });
-          await saveTableEvalReport(path.dirname(lecturePath), `upload_page_${table.page || 1}`, { method: 'native', table });
         }
       } catch {}
     }
@@ -241,7 +223,7 @@ export async function POST(req: Request) {
       },
     };
 
-    const allDocs = [...pageDocs, ...tableDocs, parserDoc];
+    const allDocs = [...pageDocs, parserDoc];
     const upsertBatchSize = Number(process.env.VECTORSTORE_UPSERT_BATCH_SIZE || 20);
     for (let i = 0; i < allDocs.length; i += upsertBatchSize) {
       const batch = allDocs.slice(i, i + upsertBatchSize);
@@ -254,8 +236,8 @@ export async function POST(req: Request) {
       contentId,
       parserModel,
       parserOutput,
-      chunks: pageDocs.length + tableDocs.length + 1,
-      message: `Successfully processed ${pageDocs.length} page docs, ${imageBlocks.length} image docs, and ${tableDocs.length} table docs from ${file.name} using ${parserModel}`,
+      chunks: pageDocs.length + 1,
+      message: `Successfully processed ${pageDocs.length} page docs, ${imageBlocks.length} image docs, and forwarded ${tableCount} table docs from ${file.name} using ${parserModel}`,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to process PDF file';

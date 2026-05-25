@@ -151,7 +151,7 @@ export default function UploadContentPage() {
 
     setLoading(true);
     setContentMode("chat");
-    setProcessedContentOutput("Processing content...\n\nThe document description will appear here when it is ready.");
+    setProcessedContentOutput("Processing content...");
     setRawContent("");
     setChatMessages([
       {
