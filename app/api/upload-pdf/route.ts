@@ -4,7 +4,7 @@ import { HumanMessage } from '@langchain/core/messages';
 import { getVectorStore } from '@/lib/vectorStore';
 import { extractPdfBlocksFromPdfNative } from '@/lib/pdfBlockExtractor';
 import { extractTablesFromPdfNative } from '@/lib/pdfTableExtractor';
-import { uploadTeacherLectureFile, getUploadedContentId } from '@/lib/uploadProxy';
+import { storePdfUpload } from '@/lib/pdfUploadStore';
 
 const SUPPORTED_VISION_MODELS = new Set(['gemma3', 'llama3.2-vision', 'llava']);
 
@@ -74,9 +74,9 @@ export async function POST(req: Request) {
     }
 
     const parserModel = getVisionModel(formData);
-    const uploadRes = await uploadTeacherLectureFile(req, file, { tempMode: false });
+    const uploadRes = await storePdfUpload(file, { tempMode: false });
     const lecture = uploadRes.lecture;
-    const contentId = getUploadedContentId(uploadRes);
+    const contentId = uploadRes.contentId;
     if (!lecture || !contentId) {
       return NextResponse.json({ error: 'Upload succeeded but no content ID was returned' }, { status: 500 });
     }
