@@ -17,7 +17,7 @@ export default function ChatPage() {
   const contentKind = searchParams.get("contentKind") === "document" ? "document" : "video";
 
   const apiBase = useMemo(
-    () => (creator === "teacher" && contentKind !== "document" ? "/api/teacher-lecture" : "/api/lecture"),
+    () => (creator === "teacher" && contentKind !== "document" ? "/api/teacher-lecture" : "/api/upload-pdf"),
     [creator, contentKind]
   );
 

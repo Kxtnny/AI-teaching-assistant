@@ -13,7 +13,7 @@ export default function CourseClient({ contentId }: { contentId: string }) {
   const contentKind = searchParams.get("contentKind") === "document" ? "document" : "video";
 
   const apiBase = useMemo(
-    () => (creator === "teacher" && contentKind !== "document" ? "/api/teacher-lecture" : "/api/lecture"),
+    () => (creator === "teacher" && contentKind !== "document" ? "/api/teacher-lecture" : "/api/upload-pdf"),
     [creator, contentKind]
   );
 

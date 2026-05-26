@@ -65,8 +65,8 @@ export default function TeacherStudioPage() {
   async function api(action: string, payload: any = {}, isForm = false) {
     const hasContentId = Boolean(payload?.contentId || payload?.lectureId);
     const shouldUseLectureApi =
-      currentContentKind === "document" && hasContentId && ["load", "chat", "mcq", "tf", "derivation"].includes(action);
-    const apiBase = shouldUseLectureApi ? "/api/lecture" : "/api/teacher-lecture";
+      currentContentKind === "document" && hasContentId && ["load", "chat"].includes(action);
+    const apiBase = shouldUseLectureApi ? "/api/upload-pdf" : "/api/teacher-lecture";
     if (isForm) {
       return fetch(apiBase, { method: "POST", body: payload }).then((r) => r.json());
     }

@@ -46,7 +46,7 @@ export default function UploadContentPage() {
   const visionMenuRef = useRef<HTMLDivElement | null>(null);
 
   function getContentApiBase(kind: "video" | "document" | null) {
-    return kind === "document" ? "/api/lecture" : "/api/teacher-lecture";
+    return kind === "document" ? "/api/upload-pdf" : "/api/teacher-lecture";
   }
 
   async function api(action: string, payload: any = {}, isForm = false) {

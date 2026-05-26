@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
+import fsp from 'fs/promises';
+import path from 'path';
 import { ChatOllama } from '@langchain/ollama';
 import { HumanMessage } from '@langchain/core/messages';
+import { supabase } from '@/lib/supabase';
 import { getVectorStore } from '@/lib/vectorStore';
+import { llm, DEFAULT_LLM_MODEL } from '@/lib/llm';
 import { extractPdfBlocksFromPdfNative } from '@/lib/pdfBlockExtractor';
 import { extractTablesFromPdfNative } from '@/lib/pdfTableExtractor';
 import { storePdfUpload } from '@/lib/pdfUploadStore';
+
+const DATA_DIR = path.resolve(process.cwd(), 'data', 'teachersdata');
+const LIBRARY_PATH = path.join(DATA_DIR, 'library.json');
 
 const SUPPORTED_VISION_MODELS = new Set(['gemma3', 'llama3.2-vision', 'llava']);
 
@@ -61,8 +68,183 @@ async function summarizePdfTextWithModel(pdfText: string, modelName: string) {
   return String(response.content || '').trim();
 }
 
+async function loadPdfLibrary(): Promise<any[]> {
+  try {
+    const raw = await fsp.readFile(LIBRARY_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function loadPdfLecture(contentId: string) {
+  const library = await loadPdfLibrary();
+  return library.find((entry) => String(entry?.lecture_id || '') === contentId) || null;
+}
+
+async function loadPdfDocuments(contentId: string) {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('content, metadata')
+    .filter('metadata->>contentId', 'eq', contentId);
+
+  if (error) {
+    throw new Error(`Failed to load PDF documents: ${error.message}`);
+  }
+
+  const docs = (data || [])
+    .map((row: any) => ({
+      pageContent: String(row.content || '').trim(),
+      metadata: row.metadata || {},
+    }))
+    .filter((doc: any) => doc.pageContent);
+
+  const sourceOrder = (source: string) => {
+    if (source === 'pdf-parser') return 0;
+    if (source === 'pdf-page-context') return 1;
+    if (source === 'pdf-table-context') return 2;
+    if (source === 'pdf-image-block') return 3;
+    return 4;
+  };
+
+  docs.sort((a: any, b: any) => {
+    const bySource = sourceOrder(String(a.metadata?.source || '')) - sourceOrder(String(b.metadata?.source || ''));
+    if (bySource !== 0) return bySource;
+    const byPage = Number(a.metadata?.page || 0) - Number(b.metadata?.page || 0);
+    if (byPage !== 0) return byPage;
+    return Number(a.metadata?.chunkIndex || 0) - Number(b.metadata?.chunkIndex || 0);
+  });
+
+  return docs;
+}
+
+function normalizeTokens(text: string) {
+  return (text.match(/[A-Za-z0-9']+/g) || []).map((token) => token.toLowerCase());
+}
+
+function scoreChunk(query: string, chunk: string) {
+  const q = new Set(normalizeTokens(query));
+  const c = normalizeTokens(chunk);
+  if (!q.size || !c.length) return 0;
+  const counts = new Map<string, number>();
+  for (const token of c) counts.set(token, (counts.get(token) || 0) + 1);
+  let score = 0;
+  for (const token of q) {
+    const count = counts.get(token);
+    if (count) score += 1 + Math.log(1 + count);
+  }
+  return score;
+}
+
+function buildPdfMemory(docs: Array<{ pageContent: string; metadata: any }>) {
+  const parserDoc = docs.find((doc) => String(doc.metadata?.source || '') === 'pdf-parser');
+  return parserDoc?.pageContent || docs.map((doc) => doc.pageContent).join('\n\n').slice(0, 12000);
+}
+
+function dedupeAndRankPdfDocs(question: string, docs: Array<{ pageContent: string; metadata: any }>) {
+  const seen = new Set<string>();
+  return docs
+    .filter((doc) => {
+      const key = String(doc.pageContent || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((doc) => ({ doc, score: scoreChunk(question, doc.pageContent) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+    .map((item) => item.doc);
+}
+
+async function answerPdfQuestion(params: {
+  contentId: string;
+  question: string;
+  history: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  llmModel?: string;
+}) {
+  const docs = await loadPdfDocuments(params.contentId);
+  if (!docs.length) {
+    return { error: 'Lecture not processed yet' } as const;
+  }
+
+  const memory = buildPdfMemory(docs);
+  const selected = dedupeAndRankPdfDocs(params.question, docs);
+  const ctx = selected.map((doc, index) => `(Chunk ${index})\n${doc.pageContent}`).join('\n\n---\n\n');
+
+  const messages = [
+    { role: 'system', content: 'You are a helpful tutor grounded in the uploaded PDF context.' },
+    { role: 'user', content: `PDF summary:\n${memory}\n\nRelevant excerpts:\n${ctx}` },
+    ...params.history.slice(-8),
+    { role: 'user', content: params.question },
+  ] as const;
+
+  const reply = await llm([...messages], params.llmModel || DEFAULT_LLM_MODEL);
+
+  return { reply, memory, selectedCount: selected.length } as const;
+}
+
 export async function POST(req: Request) {
   try {
+    const contentType = req.headers.get('content-type') || '';
+
+    if (!contentType.includes('multipart/form-data')) {
+      const body = await req.json().catch(() => null);
+      const action = String(body?.action || '').trim();
+
+      if (action === 'load') {
+        const contentId = String(body?.contentId || body?.lectureId || '').trim();
+        if (!contentId) {
+          return NextResponse.json({ error: 'Missing contentId' }, { status: 400 });
+        }
+
+        const lecture = await loadPdfLecture(contentId);
+        if (!lecture) {
+          return NextResponse.json({ error: 'Lecture not found' }, { status: 404 });
+        }
+
+        const docs = await loadPdfDocuments(contentId);
+        const transcript = docs.map((doc) => doc.pageContent).join('\n\n---\n\n');
+        const summaryDoc = docs.find((doc) => String(doc.metadata?.source || '') === 'pdf-parser') || docs[0] || null;
+        const summary = summaryDoc?.pageContent || transcript;
+
+        return NextResponse.json({
+          ok: true,
+          lecture,
+          transcript,
+          summary,
+          memory: summary,
+          chunks: docs.map((doc) => doc.pageContent),
+          parserOutput: summary,
+        });
+      }
+
+      if (action === 'chat') {
+        const contentId = String(body?.contentId || body?.lectureId || '').trim();
+        const question = String(body?.question || '').trim();
+        if (!contentId) return NextResponse.json({ error: 'Missing contentId' }, { status: 400 });
+        if (!question) return NextResponse.json({ error: 'Missing question' }, { status: 400 });
+
+        const lecture = await loadPdfLecture(contentId);
+        if (!lecture) return NextResponse.json({ error: 'Lecture not found' }, { status: 404 });
+
+        const result = await answerPdfQuestion({
+          contentId,
+          question,
+          history: Array.isArray(body?.history) ? body.history : [],
+          llmModel: String(body?.llmModel || DEFAULT_LLM_MODEL),
+        });
+
+        if ('error' in result) {
+          return NextResponse.json({ error: result.error }, { status: 400 });
+        }
+
+        return NextResponse.json({ ok: true, reply: result.reply, retrieval_notice: `Using ${result.selectedCount} indexed PDF excerpts.` });
+      }
+
+      return NextResponse.json({ error: `Unsupported action: ${action || 'unknown'}` }, { status: 400 });
+    }
+
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     if (!file) {
