@@ -137,6 +137,15 @@ function scoreChunk(query: string, chunk: string) {
   return score;
 }
 
+async function tryPdfSimilaritySearch(question: string, filter: Record<string, any>, k: number) {
+  try {
+    const vectorStore = await getVectorStore();
+    return await vectorStore.similaritySearch(question, k, filter);
+  } catch {
+    return [];
+  }
+}
+
 function buildPdfMemory(docs: Array<{ pageContent: string; metadata: any }>) {
   const parserDoc = docs.find((doc) => String(doc.metadata?.source || '') === 'pdf-parser');
   return parserDoc?.pageContent || docs.map((doc) => doc.pageContent).join('\n\n').slice(0, 12000);
@@ -169,7 +178,18 @@ async function answerPdfQuestion(params: {
   }
 
   const memory = buildPdfMemory(docs);
-  const selected = dedupeAndRankPdfDocs(params.question, docs);
+  const vectorCandidates = [
+    ...(await tryPdfSimilaritySearch(params.question, { contentId: params.contentId, source: 'pdf-table-context' }, 6)),
+    ...(await tryPdfSimilaritySearch(params.question, { contentId: params.contentId, source: 'pdf-parser' }, 3)),
+    ...(await tryPdfSimilaritySearch(params.question, { contentId: params.contentId }, 6)),
+  ];
+
+  const localCandidates = dedupeAndRankPdfDocs(params.question, docs).map((doc) => ({
+    pageContent: doc.pageContent,
+    metadata: doc.metadata,
+  }));
+
+  const selected = dedupeAndRankPdfDocs(params.question, [...vectorCandidates, ...localCandidates]);
   const ctx = selected.map((doc, index) => `(Chunk ${index})\n${doc.pageContent}`).join('\n\n---\n\n');
 
   const messages = [
