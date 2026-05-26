@@ -121,6 +121,8 @@ export default function StudentUploadPage() {
     fd.append("action", "upload");
     fd.append("file", file);
     fd.append("creator", "student");
+    // student uploads use default vision model
+    fd.append("visionModel", "llama3.2-vision");
 
     setUploading(true);
     setStatusMsg("Uploading...");

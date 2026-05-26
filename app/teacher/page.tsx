@@ -158,6 +158,8 @@ export default function TeacherStudioPage() {
     const fd = new FormData();
     fd.append("action", "upload");
     fd.append("file", f);
+    // include selected vision model so server uses the chosen VLM for image/pdf parsing
+    fd.append("visionModel", visionModel);
 
     setLoading(true);
     if (!silent) setStatusMsg("Uploading...");
