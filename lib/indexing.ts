@@ -1,5 +1,5 @@
 import { getVectorStore } from "@/lib/vectorStore";
-import { Document } from "langchain/document";
+import { Document } from "@langchain/core/documents";
 import { buildCaptionPrompt } from "@/lib/prompts";
 import { ollamaText } from "@/lib/llm";
 

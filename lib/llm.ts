@@ -6,12 +6,17 @@ const DEFAULT_LLM_MODEL = "gpt-4.1-mini";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+type LLMMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
 export async function ollamaText(prompt: string, model = OLLAMA_TEXT_MODEL) {
   const res = await ollama.chat({ model, messages: [{ role: "user", content: prompt }] });
   return String(res?.message?.content || "").trim();
 }
 
-export async function llm(messages: { role: string; content: string }[], model = DEFAULT_LLM_MODEL) {
+export async function llm(messages: LLMMessage[], model = DEFAULT_LLM_MODEL) {
   const preferOllama = /llama|llava|gemma|local/i.test(String(model));
   if (preferOllama) {
     try {
@@ -22,7 +27,8 @@ export async function llm(messages: { role: string; content: string }[], model =
     }
   }
 
-  const res = await client.chat.completions.create({ model, temperature: 0.2, messages: messages.map((m) => ({ role: m.role, content: m.content })) });
+  const openAiMessages = messages.map((m) => ({ role: m.role, content: m.content })) as Parameters<typeof client.chat.completions.create>[0]["messages"];
+  const res = await client.chat.completions.create({ model, temperature: 0.2, messages: openAiMessages });
   return res.choices?.[0]?.message?.content?.trim() || "";
 }
 

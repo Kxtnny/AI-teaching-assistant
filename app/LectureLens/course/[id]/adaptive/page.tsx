@@ -24,6 +24,7 @@ export default function AdaptiveAgentPage() {
 
   const contentId = params?.id ?? "";
   const creator = searchParams.get("creator") === "teacher" ? "teacher" : "student";
+  const contentKind = searchParams.get("contentKind") === "document" ? "document" : "video";
 
   const [selectedMode, setSelectedMode] = useState<ToneKey>("guided");
   const modeRef = useRef(selectedMode);
@@ -88,7 +89,7 @@ export default function AdaptiveAgentPage() {
     <div className={styles.chatPage}>
       <nav className={styles.navbar}>
         <div className={styles.navLeft}>
-          <Link href={`/LectureLens/course/${contentId}?creator=${creator}`} className={styles.iconBtn}>
+          <Link href={`/LectureLens/course/${contentId}?creator=${creator}&contentKind=${contentKind}`} className={styles.iconBtn}>
             <ArrowLeft size={16} />
           </Link>
           <h1 className={styles.brand}>Adaptive Agent</h1>

@@ -10,10 +10,11 @@ export default function CourseClient({ contentId }: { contentId: string }) {
   const creator = (searchParams.get("creator") === "teacher" ? "teacher" : "student") as
     | "teacher"
     | "student";
+  const contentKind = searchParams.get("contentKind") === "document" ? "document" : "video";
 
   const apiBase = useMemo(
-    () => (creator === "teacher" ? "/api/teacher-lecture" : "/api/lecture"),
-    [creator]
+    () => (creator === "teacher" && contentKind !== "document" ? "/api/teacher-lecture" : "/api/lecture"),
+    [creator, contentKind]
   );
 
   const [title, setTitle] = useState("Course Topic");
@@ -55,7 +56,7 @@ export default function CourseClient({ contentId }: { contentId: string }) {
     });
   }
 
-  const q = `?creator=${creator}`;
+  const q = `?creator=${creator}&contentKind=${contentKind}`;
 
   return (
     <div className={styles.page}>

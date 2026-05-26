@@ -63,10 +63,14 @@ export default function TeacherStudioPage() {
   const visionMenuRef = useRef<HTMLDivElement | null>(null);
 
   async function api(action: string, payload: any = {}, isForm = false) {
+    const hasContentId = Boolean(payload?.contentId || payload?.lectureId);
+    const shouldUseLectureApi =
+      currentContentKind === "document" && hasContentId && ["load", "chat", "mcq", "tf", "derivation"].includes(action);
+    const apiBase = shouldUseLectureApi ? "/api/lecture" : "/api/teacher-lecture";
     if (isForm) {
-      return fetch("/api/teacher-lecture", { method: "POST", body: payload }).then((r) => r.json());
+      return fetch(apiBase, { method: "POST", body: payload }).then((r) => r.json());
     }
-    return fetch("/api/teacher-lecture", {
+    return fetch(apiBase, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, ...payload }),
@@ -255,6 +259,16 @@ export default function TeacherStudioPage() {
 
     if (!contentId) return alert("Upload/select lecture first.");
 
+    if (currentContentKind === "document") {
+      setLoading(true);
+      await hydrateProcessedLecture(contentId).catch((error: any) => {
+        setLoading(false);
+        setProgress((current) => ({ ...current, done: true, stage: "failed", percent: 100, error: String(error?.message || error) }));
+        alert(String(error?.message || error));
+      });
+      return;
+    }
+
     setLoading(true);
     setProgress({
       contentId: contentId,
@@ -282,7 +296,7 @@ export default function TeacherStudioPage() {
 
       setProgress({ contentId: contentId, stage: "completed", percent: 100, done: true });
       setLoading(false);
-      setStatusMsg(currentContentKind === "document" ? "Content processed and ready." : "Lecture processed and ready for students.");
+      setStatusMsg("Lecture processed and ready for students.");
     });
 
     void api("process", { contentId, language: "en", visionModel }).catch((error) => {

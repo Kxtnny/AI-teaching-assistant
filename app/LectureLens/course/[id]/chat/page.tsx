@@ -14,10 +14,11 @@ export default function ChatPage() {
   const creator = (searchParams.get("creator") === "teacher" ? "teacher" : "student") as
     | "teacher"
     | "student";
+  const contentKind = searchParams.get("contentKind") === "document" ? "document" : "video";
 
   const apiBase = useMemo(
-    () => (creator === "teacher" ? "/api/teacher-lecture" : "/api/lecture"),
-    [creator]
+    () => (creator === "teacher" && contentKind !== "document" ? "/api/teacher-lecture" : "/api/lecture"),
+    [creator, contentKind]
   );
 
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -79,7 +80,7 @@ export default function ChatPage() {
       <div className={styles.chatWrapper}>
         {/* Header */}
         <div className={styles.header}>
-          <Link href={`/LectureLens/course/${contentId}?creator=${creator}`} className={styles.backButton}>
+          <Link href={`/LectureLens/course/${contentId}?creator=${creator}&contentKind=${contentKind}`} className={styles.backButton}>
             ← Back to Course
           </Link>
           <div className={styles.headerInfo}>

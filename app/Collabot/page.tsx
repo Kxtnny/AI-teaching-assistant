@@ -197,12 +197,13 @@ export default function CollabotPage() {
   }, [joined, fetchSession, fetchHistory]);
 
   useEffect(() => {
-    if (!session.discussionEndsAt || session.phase !== "discussion_3min") {
+    const discussionEndsAt = session.discussionEndsAt;
+    if (!discussionEndsAt || session.phase !== "discussion_3min") {
       setSecondsLeft(null);
       return;
     }
     const t = setInterval(() => {
-      const left = Math.max(0, Math.floor((session.discussionEndsAt - Date.now()) / 1000));
+      const left = Math.max(0, Math.floor((discussionEndsAt - Date.now()) / 1000));
       setSecondsLeft(left);
     }, 1000);
     return () => clearInterval(t);

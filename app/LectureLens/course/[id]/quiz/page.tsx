@@ -19,10 +19,11 @@ export default function QuizPage() {
   const creator = (searchParams.get("creator") === "teacher" ? "teacher" : "student") as
     | "teacher"
     | "student";
+  const contentKind = searchParams.get("contentKind") === "document" ? "document" : "video";
 
 const apiBase = useMemo(
-  () => (creator === "teacher" ? "/api/teacher-lecture" : "/api/lecture"),
-  [creator]
+  () => (creator === "teacher" && contentKind !== "document" ? "/api/teacher-lecture" : "/api/lecture"),
+  [creator, contentKind]
 );
 
   const [focus, setFocus] = useState("");
@@ -67,7 +68,7 @@ const apiBase = useMemo(
 
   return (
     <div className={styles.page}>
-      <Link href={`/LectureLens/course/${contentId}?creator=${creator}`} className={styles.back}>
+      <Link href={`/LectureLens/course/${contentId}?creator=${creator}&contentKind=${contentKind}`} className={styles.back}>
         ← Back to course
       </Link>
 

@@ -32,6 +32,7 @@ export default function UploadContentPage() {
   const [description, setDescription] = useState("");
   const [pendingContentFile, setPendingContentFile] = useState<File | null>(null);
   const [contentMode, setContentMode] = useState<"upload" | "chat">("upload");
+  const [currentContentKind, setCurrentContentKind] = useState<"video" | "document" | null>(null);
   const [processedContentOutput, setProcessedContentOutput] = useState("");
   const [rawContent, setRawContent] = useState("");
   const [indexingOk, setIndexingOk] = useState<boolean | null>(null);
@@ -44,8 +45,13 @@ export default function UploadContentPage() {
   const [visionMenuOpen, setVisionMenuOpen] = useState(false);
   const visionMenuRef = useRef<HTMLDivElement | null>(null);
 
+  function getContentApiBase(kind: "video" | "document" | null) {
+    return kind === "document" ? "/api/lecture" : "/api/teacher-lecture";
+  }
+
   async function api(action: string, payload: any = {}, isForm = false) {
-    return fetch("/api/teacher-lecture", {
+    const apiBase = getContentApiBase(currentContentKind);
+    return fetch(apiBase, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, ...payload }),
@@ -117,6 +123,7 @@ export default function UploadContentPage() {
     const file = e.target.files?.[0] || null;
     setPendingContentFile(file);
     setCurrentContentId("");
+    setCurrentContentKind(null);
     setProcessedContentOutput("");
     setChatMessages([]);
     setContentMode("upload");
@@ -134,6 +141,7 @@ export default function UploadContentPage() {
     const file = e.dataTransfer.files?.[0] || null;
     setPendingContentFile(file);
     setCurrentContentId("");
+    setCurrentContentKind(null);
     setProcessedContentOutput("");
     setChatMessages([]);
     setContentMode("upload");
@@ -184,6 +192,7 @@ export default function UploadContentPage() {
     }
 
     setCurrentContentId(contentId);
+    setCurrentContentKind(uploadRes?.lecture?.content_kind === "document" ? "document" : "video");
     setProgress({ contentId, stage: "completed", percent: 100, done: true });
     setProcessedContentOutput(
       uploadRes?.parserOutput || uploadRes?.description || uploadRes?.transcript || uploadRes?.summary || uploadRes?.message ||
@@ -236,6 +245,7 @@ export default function UploadContentPage() {
   function resetContentFlow() {
     setPendingContentFile(null);
     setCurrentContentId("");
+    setCurrentContentKind(null);
     setContentMode("upload");
     setProcessedContentOutput("");
     setContentName("");
@@ -251,6 +261,7 @@ export default function UploadContentPage() {
   function clearPendingContentFile() {
     setPendingContentFile(null);
     setCurrentContentId("");
+    setCurrentContentKind(null);
     setProcessedContentOutput("");
     setContentName("");
     setChatMessages([]);

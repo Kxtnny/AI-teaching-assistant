@@ -151,7 +151,7 @@ export default function StudentHomePage() {
             {items.map((c, idx) => (
                 <Link
                 key={c.lecture_id}
-                href={`/LectureLens/course/${c.lecture_id}?creator=${c.creator || "student"}`}
+                href={`/LectureLens/course/${c.lecture_id}?creator=${c.creator || "student"}&contentKind=${c.content_kind || "video"}`}
                 className={styles.courseCard}
               >
                   {c.creator !== "teacher" && (

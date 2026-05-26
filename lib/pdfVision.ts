@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import ollama from "ollama";
-import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, saveTableEvalReport } from "@/lib/tableUtils";
+import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown } from "@/lib/tableUtils";
+import { saveTableEvalReport } from "@/lib/tableEval";
 
 export function buildDetailedPageExtractionPrompt(pageLabel: string, adjacentText?: string) {
   return `You are extracting a PDF page for an educational RAG system.
