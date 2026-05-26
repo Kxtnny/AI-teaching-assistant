@@ -161,7 +161,11 @@ export default function StudentUploadPage() {
   async function deleteCurrent() {
     if (!currentContentId) return alert("No lecture selected.");
     if (!confirm("Delete current uploaded lecture?")) return;
-    const res = await api("deleteLecture", { contentId: currentContentId });
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteLecture", contentId: currentContentId }),
+    }).then((r) => r.json());
     if (!res?.ok) return alert(res.error || "Delete failed");
     stopPolling();
     setCurrentContentId("");

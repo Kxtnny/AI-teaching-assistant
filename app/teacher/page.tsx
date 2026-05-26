@@ -357,7 +357,11 @@ export default function TeacherStudioPage() {
     if (!confirm("Delete this lecture?")) return;
 
     setDeletingId(id);
-    const res = await api("deleteLecture", { contentId: id });
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteLecture", contentId: id }),
+    }).then((r) => r.json());
     setDeletingId(null);
 
     if (!res?.ok) return alert(res.error || "Delete failed");

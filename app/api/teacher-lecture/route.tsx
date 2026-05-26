@@ -11,7 +11,6 @@ import ollama from "ollama";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Document } from "@langchain/core/documents";
 import { getVectorStore } from "@/lib/vectorStore";
-import { supabase } from "@/lib/supabase";
 import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, ocrExtractTablesFromImage } from "@/lib/tableUtils";
 import { saveTableEvalReport } from "@/lib/tableEval";
 import { summarizeTableMetrics } from "@/lib/tableMetrics";
@@ -156,20 +155,6 @@ async function fileExists(p: string) {
 }
 async function removeIfExists(p: string) {
   if (await fileExists(p)) await fsp.rm(p, { recursive: true, force: true });
-}
-async function deleteLectureVectors(contentId: string) {
-  try {
-    await supabase
-      .from('documents')
-      .delete()
-      .filter('metadata->>contentId', 'eq', contentId);
-  } catch (err: any) {
-    console.warn(`[RAG] Failed to delete Supabase documents for ${contentId}: ${String(err?.message || err)}`);
-  }
-}
-async function removeLectureArtifacts(contentId: string) {
-  await removeIfExists(lectureDir(contentId));
-  await deleteLectureVectors(contentId);
 }
 async function purgeTemporaryLectures() {
   const lib = await loadLibrary();
@@ -1846,19 +1831,6 @@ export async function POST(req: NextRequest) {
 
       const items = extractJsonList(rawOut);
       return NextResponse.json({ ok: true, items });
-    }
-
-    if (action === "deleteLecture") {
-      const { contentId } = body;
-      if (!contentId) return NextResponse.json({ error: "Missing contentId" }, { status: 400 });
-
-      // Delete from library and file system
-      const lib = await loadLibrary();
-      const filtered = lib.filter((x) => x.lecture_id !== contentId);
-      await saveLibrary(filtered);
-      await removeLectureArtifacts(contentId);
-
-      return NextResponse.json({ ok: true });
     }
 
     if (action === "deleteAll") {

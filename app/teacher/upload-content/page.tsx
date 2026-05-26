@@ -272,7 +272,11 @@ export default function UploadContentPage() {
 
       setLoading(true);
       try {
-        const res = await api("deleteLecture", { contentId: currentContentId });
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "deleteLecture", contentId: currentContentId }),
+        }).then((r) => r.json());
         if (!res?.ok) {
           alert(res.error || "Delete failed");
           return;
