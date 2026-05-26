@@ -109,6 +109,8 @@ export default function UploadContentPage() {
 
     const fd = new FormData();
     fd.append("file", f);
+    // include selected vision model so server uses the chosen VLM
+    fd.append("visionModel", visionModel);
 
     const res = await fetch("/api/upload", { method: "POST", body: fd }).then((r) => r.json());
 
