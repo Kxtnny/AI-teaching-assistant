@@ -397,7 +397,9 @@ export default function TeacherStudioPage() {
   }
 
   function previewUrl(item: Lecture) {
-    return `/api/teacher-lecture?contentId=${encodeURIComponent(item.lecture_id)}&preview=1`;
+    return item.content_kind !== "document"
+      ? `/api/upload-video?contentId=${encodeURIComponent(item.lecture_id)}&preview=1`
+      : `/api/teacher-lecture?contentId=${encodeURIComponent(item.lecture_id)}&preview=1`;
   }
 
   const assistanceRows = [

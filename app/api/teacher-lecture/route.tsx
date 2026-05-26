@@ -4,19 +4,19 @@ import fsp from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { spawn } from "child_process";
-import { tmpdir } from "os";
-import { writeFile, unlink } from "fs/promises";
 import OpenAI from "openai";
 import ollama from "ollama";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { ollamaText, llm } from "@/lib/llm";
+import { indexContentChunksToVectorStore, normalizeInsertionErrorMessage } from "@/lib/indexing";
+import { buildCaptionPrompt } from "@/lib/prompts";
+import { visionExtractFromImagesDetailed, buildDetailedPageExtractionPrompt } from "@/lib/pdfVision";
+import { getLecturePreviewBuffer, mimeTypeForFile, previewMimeTypeForFile } from "@/lib/preview";
+import { lectureDir, normalizeTokens, inferContentKindFromExt, inferContentKindFromEntry, globalForTeacherTempCleanup, ensureDir, fileExists, removeIfExists } from "@/lib/utils";
 import { Document } from "@langchain/core/documents";
 import { getVectorStore } from "@/lib/vectorStore";
-import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown, ocrExtractTablesFromImage } from "@/lib/tableUtils";
+import { repairTablesJsonFromText, heuristicExtractTablesFromText, tablesToMarkdown } from "@/lib/tableUtils";
 import { saveTableEvalReport } from "@/lib/tableEval";
-import { summarizeTableMetrics } from "@/lib/tableMetrics";
-import { describePdfImageBlockWithVision } from "@/lib/pdfImageVision";
-import { extractTablesFromPdfNative } from "@/lib/pdfTableExtractor";
-import { extractPdfBlocksFromPdfNative } from "@/lib/pdfBlockExtractor";
+import { deleteContentArtifacts } from "@/lib/uploadCleanup";
 
 type Action =
   | "upload"
@@ -73,7 +73,6 @@ const OLLAMA_VISION_MODEL = process.env.OLLAMA_VISION_MODEL || "llama3.2-vision"
 const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || process.env.OLLAMA_MODEL || "llama3.2";
 const DEFAULT_LLM_MODEL = "gpt-4.1-mini";
 const TRANSCRIBE_MODEL = "whisper-1";
-const VIDEO_THUMBNAIL_SECONDS = Number(process.env.VIDEO_THUMBNAIL_SECONDS || 0.5);
 const PDF_PREVIEW_VERSION = 5;
 const WORD_RE = /[A-Za-z0-9']+/g;
 
@@ -118,51 +117,14 @@ function withTimeout<T>(p: Promise<T>, ms: number, label = "Operation"): Promise
   });
 }
 
-function inferContentKindFromExt(ext: string): ContentKind {
-  return VIDEO_EXTS.has(ext) || AUDIO_EXTS.has(ext) ? "video" : "document";
-}
-
-function inferContentKindFromEntry(entry: Partial<LectureEntry>): ContentKind {
-  if (entry.content_kind === "video" || entry.content_kind === "document") return entry.content_kind;
-  const sourcePath = entry.original_path || entry.audio_path || entry.title || "";
-  return inferContentKindFromExt(path.extname(sourcePath).toLowerCase());
-}
-
-// PDF cache
-const MAX_PDF_CACHE_ENTRIES = 12;
-const globalForPdf = globalThis as unknown as { pdfTextCache?: Map<string, string> };
-if (!globalForPdf.pdfTextCache) globalForPdf.pdfTextCache = new Map();
-const globalForTeacherTempCleanup = globalThis as unknown as {
-  teacherTempCleanupInstalled?: boolean;
-  teacherTempCleanupOnStartRan?: boolean;
-  teacherTempCleanupRunning?: boolean;
-};
-function upsertPdfCache(key: string, value: string) {
-  const cache = globalForPdf.pdfTextCache!;
-  if (cache.has(key)) cache.delete(key);
-  cache.set(key, value);
-  if (cache.size > MAX_PDF_CACHE_ENTRIES) {
-    const oldest = cache.keys().next().value;
-    if (oldest) cache.delete(oldest);
-  }
-}
-
-async function ensureDir(p: string) {
-  await fsp.mkdir(p, { recursive: true });
-}
-async function fileExists(p: string) {
-  try { await fsp.access(p); return true; } catch { return false; }
-}
-async function removeIfExists(p: string) {
-  if (await fileExists(p)) await fsp.rm(p, { recursive: true, force: true });
-}
+// Small utility helpers moved to lib/utils.ts
 async function purgeTemporaryLectures() {
   const lib = await loadLibrary();
   const tempLectures = lib.filter((entry) => Boolean(entry.temporary));
   if (!tempLectures.length) return;
 
   for (const entry of tempLectures) {
-    await removeLectureArtifacts(entry.lecture_id);
+    await deleteContentArtifacts(entry.lecture_id);
   }
 
   await saveLibrary(lib.filter((entry) => !entry.temporary));
@@ -259,158 +221,8 @@ async function computeHash(filePath: string): Promise<string> {
   });
   return h.digest("hex");
 }
-function lectureDir(contentId: string) { return path.join(LECTURES_DIR, contentId); }
-function normalizeTokens(text: string) { return (text.match(WORD_RE) || []).map((x) => x.toLowerCase()); }
-function mimeTypeForFile(filePath: string) {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".pdf") return "application/pdf";
-  if (ext === ".mp4") return "video/mp4";
-  if (ext === ".mov") return "video/quicktime";
-  if (ext === ".mkv") return "video/x-matroska";
-  if (ext === ".mp3") return "audio/mpeg";
-  if (ext === ".wav") return "audio/wav";
-  if (ext === ".m4a") return "audio/mp4";
-  if (ext === ".flac") return "audio/flac";
-  if (ext === ".png") return "image/png";
-  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
-  if (ext === ".webp") return "image/webp";
-  return "application/octet-stream";
-}
-
-function previewMimeTypeForFile(filePath: string) {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".svg") return "image/svg+xml";
-  return mimeTypeForFile(filePath);
-}
-
-function buildAudioPlaceholderSvg(title: string) {
-  const safeTitle = title.replace(/[<&>]/g, "");
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="Audio preview">
-  <defs>
-    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#2f3136" />
-      <stop offset="100%" stop-color="#111827" />
-    </linearGradient>
-  </defs>
-  <rect width="800" height="450" rx="28" fill="url(#g)" />
-  <circle cx="400" cy="170" r="78" fill="#f3f4f6" opacity="0.12" />
-  <path d="M325 170h40l70-56v172l-70-56h-40z" fill="#f9fafb" />
-  <path d="M472 126c18 20 28 46 28 74s-10 54-28 74" fill="none" stroke="#f9fafb" stroke-width="12" stroke-linecap="round" opacity="0.8" />
-  <path d="M505 99c28 31 43 71 43 101s-15 70-43 101" fill="none" stroke="#f9fafb" stroke-width="10" stroke-linecap="round" opacity="0.55" />
-  <text x="400" y="332" text-anchor="middle" fill="#f9fafb" font-family="Arial, sans-serif" font-size="34" font-weight="700">AUDIO</text>
-  <text x="400" y="374" text-anchor="middle" fill="#d1d5db" font-family="Arial, sans-serif" font-size="18">${safeTitle}</text>
-</svg>`;
-}
-
-function escapeSvgText(text: string) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function buildPdfPreviewSvg(title: string, pageText: string) {
-  const safeTitle = escapeSvgText(title);
-  const lines = pageText
-    .replace(/\r/g, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, 10)
-    .map((line) => line.slice(0, 72));
-
-  const textLines = lines.length ? lines : ["No text detected on first page"];
-  const lineEls = textLines
-    .map((line, index) => `<text x="52" y="${140 + index * 30}" fill="#2f2a24" font-family="Arial, sans-serif" font-size="22">${escapeSvgText(line)}</text>`)
-    .join("");
-
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="PDF preview">
-  <defs>
-    <linearGradient id="paper" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#fffdf7" />
-      <stop offset="100%" stop-color="#f0e9dd" />
-    </linearGradient>
-    <linearGradient id="frame" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#7b7469" />
-      <stop offset="100%" stop-color="#4d463e" />
-    </linearGradient>
-  </defs>
-  <rect width="800" height="450" rx="28" fill="url(#frame)" />
-  <rect x="42" y="34" width="716" height="382" rx="20" fill="url(#paper)" />
-  <rect x="42" y="34" width="716" height="58" rx="20" fill="#ece3d6" />
-  <text x="52" y="70" fill="#2a241d" font-family="Arial, sans-serif" font-size="26" font-weight="700">${safeTitle}</text>
-  <rect x="52" y="112" width="696" height="250" rx="14" fill="#ffffff" opacity="0.68" />
-  ${lineEls}
-</svg>`;
-}
-
-async function getLecturePreviewBuffer(lecture: LectureEntry) {
-  if (!lecture.original_path) throw new Error("Missing original_path");
-
-  const sourceExt = path.extname(lecture.original_path).toLowerCase();
-  const previewName = VIDEO_EXTS.has(sourceExt)
-    ? `preview_${String(VIDEO_THUMBNAIL_SECONDS).replace(/\./g, "_")}s.jpg`
-    : `preview_page1_v${PDF_PREVIEW_VERSION}.png`;
-  const previewPath = path.join(path.dirname(lecture.original_path), previewName);
-
-  if (lecture.content_kind === "document") {
-    if (PDF_EXTS.has(sourceExt)) {
-      if (!(await fileExists(previewPath))) {
-        const image = await renderPdfPageToPng(lecture.original_path, 1);
-        await fsp.writeFile(previewPath, image);
-      }
-      return {
-        buffer: await fsp.readFile(previewPath),
-        contentType: previewMimeTypeForFile(previewPath),
-      };
-    }
-
-    if (IMAGE_EXTS.has(sourceExt)) {
-      return {
-        buffer: await fsp.readFile(lecture.original_path),
-        contentType: mimeTypeForFile(lecture.original_path),
-      };
-    }
-  }
-
-  if (VIDEO_EXTS.has(sourceExt)) {
-    if (!(await fileExists(previewPath))) {
-      const result = await runCmd(FFMPEG_BIN, [
-        "-y",
-        "-ss",
-        String(VIDEO_THUMBNAIL_SECONDS),
-        "-i",
-        lecture.original_path,
-        "-frames:v",
-        "1",
-        "-q:v",
-        "2",
-        previewPath,
-      ]);
-      if (result.code !== 0) throw new Error(`Failed to create video preview: ${result.stderr.slice(-400)}`);
-    }
-    return {
-      buffer: await fsp.readFile(previewPath),
-      contentType: previewMimeTypeForFile(previewPath),
-    };
-  }
-
-  if (AUDIO_EXTS.has(sourceExt)) {
-    return {
-      buffer: Buffer.from(buildAudioPlaceholderSvg(lecture.title)),
-      contentType: "image/svg+xml",
-    };
-  }
-
-  return {
-    buffer: await fsp.readFile(lecture.original_path),
-    contentType: mimeTypeForFile(lecture.original_path),
-  };
-}
+// lectureDir and normalizeTokens moved to lib/utils.ts
+// Preview and mime helpers moved to lib/preview.ts
 function scoreChunk(query: string, chunk: string) {
   const q = normalizeTokens(query);
   const c = normalizeTokens(chunk);
@@ -456,10 +268,7 @@ function shortenForLLM(text: string, maxChars = 20000) {
   const tail = t.slice(-(maxChars / 2));
   return `${h}\n\n[...TRUNCATED...]\n\n${tail}`;
 }
-function normalizeInsertionErrorMessage(error: unknown) {
-  const message = String(error instanceof Error ? error.message : error || "unknown error");
-  return message.replace(/^Error inserting:\s*/i, "");
-}
+// normalizeInsertionErrorMessage moved to lib/indexing.ts
 function buildSummaryPrompt(transcript: string) {
   return `You are helping a student learn from multi-modal lecture content.
 Task:
@@ -489,64 +298,7 @@ LECTURE MEMORY:
 Combined Lecture Text:
 ${transcript}`;
 }
-function buildDocumentSummaryPrompt(content: string) {
-  return `You are a local study assistant for class notes and reference files.
-Turn the extracted content into a clean study brief.
-
-Return exactly these sections:
-Summary:
-- 5 concise bullets max, one sentence each.
-
-Key Terms:
-- 8 to 12 terms separated by commas.
-
-Important Details:
-- 3 to 5 bullets covering formulas, definitions, diagrams, or table takeaways.
-
-Extracted Content:
-${content}`;
-}
-function buildDocumentMemoryPrompt(content: string) {
-  return `You are a local study assistant.
-Create a compact lecture memory for this document in the following format:
-LECTURE MEMORY:
-- 10 to 15 short bullets with the main ideas
-- formulas or definitions if present
-- common mistakes or confusing points
-- example question types
-
-Extracted Content:
-${content}`;
-}
-function buildDocumentDescriptionPrompt(pages: Array<{ label: string; content: string }>) {
-  const serializedPages = pages
-    .map((page) => `[${page.label}]\n${shortenForLLM(page.content, 8000)}`)
-    .join("\n\n---\n\n");
-
-  return `You are writing a detailed reading guide for a student.
-Create a structured page-by-page extraction that preserves the page content in reading order and explains all important visible elements.
-
-Rules:
-- Start with the heading "Document Summary:".
-- Write 4 to 8 concise bullet sentences summarizing the whole document.
-- Then write one section per page using the heading "Page X:".
-- For each page, describe the content from top to bottom in the order a reader would encounter it.
-- First narrate the visible text in reading order.
-- Then add component-specific subsections only if they exist on the page.
-- Use these subsection headings exactly when relevant: "Tables:", "Images:", "Diagrams:", "Formulas:", "Definitions:", "Examples:", "Other Important Details:".
-- For tables, output a markdown table row by row with clear column headers and values. Include every row you can infer.
-- For images and diagrams, give a thorough and complete description of what is shown, including labels, arrows, shapes, relationships, legends, captions, and likely purpose.
-- For formulas, transcribe them carefully and explain visible symbols if possible.
-- For definitions, explain the term and surrounding context from the page.
-- Preserve important wording, names, numbers, and labels exactly when possible.
-- Keep the language concrete, factual, and complete.
-- Do not mention a component section if that component does not appear on the page.
-- Do not add commentary about missing information.
-- If the page is dense, prioritize completeness over brevity.
-
-Input pages:
-${serializedPages}`;
-}
+// caption prompt moved to lib/prompts.ts
 function mcqPrompt(memory: string, context: string[], n = 5) {
   return `Create exactly ${n} MCQs from lecture only. Return strict JSON list.
 Lecture Memory:
@@ -595,38 +347,7 @@ async function runCmd(bin: string, args: string[]) {
   });
 }
 
-async function renderPdfPageToPng(pdfPath: string, pageNumber: number) {
-  return new Promise<Buffer>((resolve, reject) => {
-    const script = [
-      "const fs = require('fs');",
-      "(async () => {",
-      "  const { renderPageAsImage } = require('unpdf');",
-      "  const pdfPath = process.argv[1];",
-      "  const pageNumber = Number(process.argv[2]);",
-      "  const pdfBuffer = new Uint8Array(fs.readFileSync(pdfPath));",
-      "  const image = await renderPageAsImage(pdfBuffer, pageNumber, { canvasImport: () => import('@napi-rs/canvas') });",
-      "  process.stdout.write(Buffer.from(image).toString('base64'));",
-      "})().catch((error) => {",
-      "  console.error(error && error.stack ? error.stack : String(error));",
-      "  process.exit(1);",
-      "});",
-    ].join(" ");
-
-    const child = spawn(process.execPath, ["-e", script, pdfPath, String(pageNumber)], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (data) => (stdout += data.toString()));
-    child.stderr.on("data", (data) => (stderr += data.toString()));
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code !== 0) return reject(new Error(stderr.trim() || `PDF render failed with code ${code}`));
-      resolve(Buffer.from(stdout.trim(), "base64"));
-    });
-  });
-}
+// PDF render moved to lib/preview.ts
 async function convertVideoToAudio(input: string, out: string) {
   let r = await runCmd(FFMPEG_BIN, ["-y", "-i", input, "-vn", "-acodec", "copy", out]);
   if (r.code !== 0) {
@@ -655,60 +376,6 @@ async function extractFramesSceneBased(inputVideo: string, outDir: string) {
   }
   return files;
 }
-async function convertPdfToImages(pdfPath: string, outDir: string) {
-  await ensureDir(outDir);
-  const maxPages = Number(process.env.PDF_MAX_PAGES || 8);
-  const files: string[] = [];
-
-  for (let page = 1; page <= maxPages; page += 1) {
-    try {
-      const image = await renderPdfPageToPng(pdfPath, page);
-      const outPath = path.join(outDir, `page_${String(page).padStart(4, "0")}.png`);
-      await fsp.writeFile(outPath, image);
-      files.push(outPath);
-    } catch {
-      break;
-    }
-  }
-
-  return files;
-}
-async function extractPdfTextWithLoader(pdfPath: string): Promise<string> {
-  const pages = await extractPdfPagesWithLoader(pdfPath);
-  return pages.map((p) => p.pageContent).join("\n\n").trim();
-}
-
-async function extractPdfPagesWithLoader(pdfPath: string): Promise<Array<{ pageNumber: number; pageContent: string }>> {
-  const buffer = await fsp.readFile(pdfPath);
-  const hash = crypto.createHash("sha1").update(buffer).digest("hex");
-
-  const cache = globalForPdf.pdfTextCache!;
-  const cached = cache.get(hash);
-  if (cached) {
-    return cached
-      .split("\n\n---PAGE---\n\n")
-      .map((pageContent, index) => ({ pageNumber: index + 1, pageContent }))
-      .filter((page) => page.pageContent.trim());
-  }
-
-  const tempDir = path.join(tmpdir(), "teacher-pdf");
-  await ensureDir(tempDir);
-  const tempPath = path.join(tempDir, `${hash}.pdf`);
-  await writeFile(tempPath, buffer);
-
-  try {
-    const loader = new PDFLoader(tempPath);
-    const docs = await loader.load();
-    const pages = docs
-      .map((d, index) => ({ pageNumber: index + 1, pageContent: String(d.pageContent || "").trim().slice(0, 20000) }))
-      .filter((page) => page.pageContent);
-    const serialised = pages.map((page) => page.pageContent).join("\n\n---PAGE---\n\n");
-    if (serialised) upsertPdfCache(hash, serialised);
-    return pages;
-  } finally {
-    try { await unlink(tempPath); } catch {}
-  }
-}
 async function transcribeAudio(audioPath: string, language: string) {
   const tx = await client.audio.transcriptions.create({
     file: fs.createReadStream(audioPath),
@@ -718,55 +385,7 @@ async function transcribeAudio(audioPath: string, language: string) {
   });
   return String(tx || "").trim();
 }
-function buildDetailedPageExtractionPrompt(pageLabel: string, adjacentText?: string) {
-  return `You are extracting a PDF page for an educational RAG system.
-${pageLabel}
-
-Goal:
-- Read the page top to bottom.
-- Capture the exact visible text first.
-- Then describe special components only if they exist: tables, images, diagrams, formulas, labels, examples, and definitions.
-- If a scanned page is unclear, perform OCR-style transcription as accurately as possible.
-
-Output format:
-1) Top-down text readout:
-- Preserve visible text in the order it appears on the page.
-- Keep line breaks, headings, bullet points, and labels when they matter.
-
-2) Component sections (include only if present):
-- Tables:
-  - Render each table as a markdown table.
-  - Include row-by-row values with clear column headers.
-  - If multiple tables appear, separate them clearly.
-  - IMPORTANT: In addition to markdown, if the page contains any table(s), append a strict machine-readable JSON block between the markers <TABLES_JSON> and </TABLES_JSON> containing an array named "tables" with each table as {"title": string|null, "headers": [..], "rows": [[..],[..]]}. Example:
-
-    <TABLES_JSON>
-    {"tables": [{"title": "Semester 1 Year 1", "headers": ["Course Code","Course Title","AU"], "rows": [["CS101","Intro to CS","4"],["MA100","Calculus","4"]]}]}
-    </TABLES_JSON>
-
-  - The JSON block MUST be valid JSON and must appear at the end of your message exactly between those markers. This allows programmatic extraction of tables.
-- Images:
-  - Give a thorough description of the image, including objects, labels, captions, visual emphasis, and educational purpose.
-- Diagrams:
-  - Give a thorough description of the diagram, including arrows, relationships, labels, shapes, flow direction, and meaning.
-- Formulas:
-  - Transcribe formulas carefully and explain the symbols if visible.
-- Definitions:
-  - Explain the term and its surrounding context.
-- Examples:
-  - Summarize worked examples step by step.
-- Other Important Details:
-  - Include anything else that is visually important, such as side notes, callouts, figure captions, legends, or boxed remarks.
-
-Rules:
-- Be exhaustive and concrete.
-- Do not invent information that is not visible.
-- Do not mention a component section unless that component exists on the page.
-- Prioritize readability and completeness over brevity.
-
-Adjacent text from the PDF text layer (use this to contextualize the image):
-${adjacentText?.trim() ? adjacentText : "[No adjacent text extracted]"}`;
-}
+// detailed page extraction prompt moved to lib/pdfVision.ts
 async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL, adjacentTexts: string[] = [], mode: "generic" | "pdf" = "generic") {
   const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
   const concurrency = Number((mode === "pdf" ? process.env.PDF_VISION_CONCURRENCY : process.env.VISION_CONCURRENCY) || (mode === "pdf" ? 1 : 2));
@@ -810,268 +429,9 @@ async function visionExtractFromImages(imagePaths: string[], visionModel = OLLAM
   await Promise.all(workers);
   return results.join("\n\n");
 }
-async function visionExtractFromImagesDetailed(imagePaths: string[], visionModel = OLLAMA_VISION_MODEL, adjacentTexts: string[] = [], mode: "generic" | "pdf" = "generic", lectureDirPath?: string) {
-  const maxFrames = Number(process.env.VISION_MAX_FRAMES || 8);
-  const concurrency = Number((mode === "pdf" ? process.env.PDF_VISION_CONCURRENCY : process.env.VISION_CONCURRENCY) || (mode === "pdf" ? 1 : 2));
-  const perImageTimeoutMs = Number((mode === "pdf" ? process.env.PDF_VISION_TIMEOUT_MS : process.env.VISION_TIMEOUT_MS) || (mode === "pdf" ? 60000 : 20000));
-
-  const limited = imagePaths.slice(0, maxFrames);
-  const results: Array<{ label: string; content: string; parsedTables?: any; tableExtractionMethod?: string }> = [];
-  if (!limited.length) return results;
-
-  for (let idx = 0; idx < limited.length; idx++) {
-    const imgPath = limited[idx];
-    try {
-      const b64 = await fsp.readFile(imgPath, { encoding: "base64" });
-      const res = await withTimeout(
-        ollama.chat({
-          model: visionModel,
-          messages: [{ role: "user", content: buildDetailedPageExtractionPrompt(`Page ${idx + 1}`, adjacentTexts[idx]), images: [b64] }],
-        }),
-        perImageTimeoutMs,
-        `Vision page ${idx + 1}`
-      );
-
-      const txt = String(res?.message?.content || "").trim();
-      let finalText = txt;
-      let extractedTables: any = null;
-      let tableExtractionMethod: string | undefined = undefined;
-
-      try {
-        const m = txt.match(/<TABLES_JSON>([\s\S]*?)<\/TABLES_JSON>/i);
-        if (m && m[1]) {
-          try {
-            extractedTables = JSON.parse(m[1].trim());
-            tableExtractionMethod = "vision";
-          } catch (_e) {
-            const repair = await repairTablesJsonFromText(m[1].trim() || txt);
-            if (repair) {
-              extractedTables = repair;
-              tableExtractionMethod = "repair";
-            }
-          }
-        } else {
-          const repair = await repairTablesJsonFromText(txt);
-          if (repair) {
-            extractedTables = repair;
-            tableExtractionMethod = "repair";
-          }
-        }
-
-        if ((!extractedTables || !Array.isArray(extractedTables.tables) || !extractedTables.tables.length)) {
-          const heur = heuristicExtractTablesFromText(txt || adjacentTexts[idx] || "");
-          if (heur && Array.isArray(heur.tables) && heur.tables.length) {
-            extractedTables = heur;
-            tableExtractionMethod = tableExtractionMethod || "heuristic";
-          }
-        }
-
-        if ((!extractedTables || !Array.isArray(extractedTables.tables) || !extractedTables.tables.length) && mode === "pdf") {
-          const ocr = await ocrExtractTablesFromImage(imgPath);
-          if (ocr && Array.isArray(ocr.tables) && ocr.tables.length) {
-            extractedTables = ocr;
-            tableExtractionMethod = tableExtractionMethod || "ocr";
-          }
-        }
-
-        if (extractedTables && Array.isArray(extractedTables.tables) && extractedTables.tables.length) {
-          const tablesMd = tablesToMarkdown(extractedTables);
-          finalText = `=== Extracted Tables ===\n${tablesMd}\n\n${txt.replace(/<TABLES_JSON>[\s\S]*?<\/TABLES_JSON>/i, "")}`;
-          if (lectureDirPath) {
-            try {
-              await saveTableEvalReport(lectureDirPath, `page_${idx + 1}`, { method: tableExtractionMethod || "vision", tables: extractedTables.tables });
-            } catch (e) {
-              // ignore
-            }
-          }
-        }
-      } catch (e) {
-        console.warn(`[VISION] table extraction fallback failed on page ${idx + 1}: ${String(e)}`);
-      }
-
-      results.push({ label: `Page ${idx + 1}`, content: finalText, parsedTables: extractedTables || undefined, tableExtractionMethod });
-    } catch (err: any) {
-      console.warn(`[VISION] page ${idx + 1} skipped: ${err?.message || err}`);
-    }
-  }
-
-  return results;
-}
-async function indexContentChunksToVectorStore(params: {
-  contentId: string;
-  fileName: string;
-  fileType: string;
-  parserModel: string;
-  contentKind: ContentKind;
-  parserOutput: string;
-  chunks: string[];
-}) {
-  try {
-    const vectorStore = await getVectorStore();
-    const docs = params.chunks.map((text, chunkIndex) => new Document({
-      pageContent: text,
-      metadata: {
-        contentId: params.contentId,
-        fileName: params.fileName,
-        fileType: params.fileType,
-        parserModel: params.parserModel,
-        contentKind: params.contentKind,
-        source: "teacher-upload-chunk",
-        chunkIndex,
-        uploadDate: new Date().toISOString(),
-      },
-    }));
-
-    // Index the raw parser output as a summary doc as before
-    if (params.parserOutput.trim()) {
-      docs.push(new Document({
-        pageContent: `File parser output (${params.parserModel}) for ${params.fileName}:\n\n${params.parserOutput}`,
-        metadata: {
-          contentId: params.contentId,
-          fileName: params.fileName,
-          fileType: params.fileType,
-          parserModel: params.parserModel,
-          contentKind: params.contentKind,
-          source: "teacher-upload-summary",
-          chunkIndex: -1,
-          uploadDate: new Date().toISOString(),
-        },
-      }));
-
-      // Attempt to generate sentence-level page captions and an overall summary for better RAG
-      try {
-        const captionPrompt = buildCaptionPrompt(params.parserOutput);
-        const captionsRaw = await ollamaText(captionPrompt, OLLAMA_TEXT_MODEL);
-        try {
-          const parsedCaptions = JSON.parse(captionsRaw);
-          if (Array.isArray(parsedCaptions.pages)) {
-            for (const p of parsedCaptions.pages) {
-              if (p && p.summary) {
-                docs.push(new Document({
-                  pageContent: String(p.summary),
-                  metadata: {
-                    contentId: params.contentId,
-                    fileName: params.fileName,
-                    fileType: params.fileType,
-                    parserModel: params.parserModel,
-                    contentKind: params.contentKind,
-                    source: "teacher-upload-caption",
-                    page: Number(p.page) || -1,
-                    chunkIndex: -1,
-                    uploadDate: new Date().toISOString(),
-                  },
-                }));
-              }
-            }
-          }
-
-          if (parsedCaptions && parsedCaptions.overall) {
-            docs.push(new Document({
-              pageContent: String(parsedCaptions.overall),
-              metadata: {
-                contentId: params.contentId,
-                fileName: params.fileName,
-                fileType: params.fileType,
-                parserModel: params.parserModel,
-                contentKind: params.contentKind,
-                source: "teacher-upload-llm-summary",
-                chunkIndex: -1,
-                uploadDate: new Date().toISOString(),
-              },
-            }));
-          }
-        } catch (e) {
-          // If parsing JSON fails, still index the raw caption text as a helpful doc
-          docs.push(new Document({
-            pageContent: `LLM captions for ${params.fileName}:\n\n${captionsRaw}`,
-            metadata: {
-              contentId: params.contentId,
-              fileName: params.fileName,
-              fileType: params.fileType,
-              parserModel: params.parserModel,
-              contentKind: params.contentKind,
-              source: "teacher-upload-llm-summary-raw",
-              chunkIndex: -1,
-              uploadDate: new Date().toISOString(),
-            },
-          }));
-        }
-      } catch (err) {
-        console.warn(`[RAG] Caption generation failed for ${params.fileName}: ${String(err)}`);
-      }
-    }
-
-    if (docs.length) {
-      // Add documents in small batches with retries to avoid large single requests failing
-      const batchSize = Number(process.env.RAG_INDEX_BATCH_SIZE || 8);
-      const maxAttempts = Number(process.env.RAG_INDEX_MAX_ATTEMPTS || 3);
-      let anyFailed = false;
-      let lastErr: any = null;
-
-      for (let i = 0; i < docs.length; i += batchSize) {
-        const batch = docs.slice(i, i + batchSize);
-        let succeeded = false;
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-          try {
-            await vectorStore.addDocuments(batch);
-            succeeded = true;
-            break;
-          } catch (err: any) {
-            lastErr = err;
-            console.warn(`[RAG] addDocuments attempt ${attempt} failed for batch ${i}/${docs.length}: ${String(err?.message || err)}`);
-            // exponential backoff
-            await new Promise((res) => setTimeout(res, 250 * attempt));
-          }
-        }
-        if (!succeeded) {
-          anyFailed = true;
-          // continue attempting remaining batches but record failure
-        }
-      }
-
-      if (anyFailed) {
-        throw new Error(`Error inserting: ${normalizeInsertionErrorMessage(lastErr)}`);
-      }
-    }
-    return { ok: true };
-  } catch (error: any) {
-    console.warn(
-      `[RAG] Skipping vector indexing for ${params.fileName}: ${normalizeInsertionErrorMessage(error)}`
-    );
-    return { ok: false, error: `Error inserting: ${normalizeInsertionErrorMessage(error)}` };
-  }
-}
-async function ollamaText(prompt: string, model = OLLAMA_TEXT_MODEL) {
-  const res = await ollama.chat({
-    model,
-    messages: [{ role: "user", content: prompt }],
-  });
-  return String(res?.message?.content || "").trim();
-}
-async function llm(messages: ChatMessage[], model = DEFAULT_LLM_MODEL) {
-  // Prefer local Ollama models when the model name indicates a local/Llama family.
-  const preferOllama = /llama|llava|gemma|local/i.test(String(model));
-  if (preferOllama) {
-    try {
-      const res = await ollama.chat({
-        model,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      });
-      return String(res?.message?.content || "").trim();
-    } catch (err) {
-      console.warn('[LLM] Ollama call failed, falling back to OpenAI:', String(err));
-      // fallthrough to OpenAI fallback
-    }
-  }
-
-  // Fallback to OpenAI (keeps existing behavior for non-local models)
-  const res = await client.chat.completions.create({
-    model,
-    temperature: 0.2,
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-  });
-  return res.choices?.[0]?.message?.content?.trim() || "";
-}
+// detailed vision extraction moved to lib/pdfVision.ts
+// indexing moved to lib/indexing.ts
+// LLM helpers moved to lib/llm.ts
 
 export async function GET(req: NextRequest) {
   try {
@@ -1272,211 +632,54 @@ export async function POST(req: NextRequest) {
       const contentKind = inferContentKindFromEntry(lecture);
 
       if (contentKind === "document") {
-        let extractedText = "";
+        const extractedText = "";
         let visualText = "";
-        let notesText = "";
-        let parserOutput = "";
-        let descriptionPages: Array<{ label: string; content: string }> = [];
 
-        if (PDF_EXTS.has(ext)) {
-          await setProgress({ stage: "extracting PDF text", percent: 35 });
-          const nativeTablesByPage = new Map<number, any[]>();
-
-          try {
-            const timeoutMs = Number(process.env.PDF_TEXT_TIMEOUT_MS || 20000);
-            const pages = await withTimeout(extractPdfPagesWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
-            notesText = pages.map((page) => page.pageContent).join("\n\n");
-            descriptionPages = pages.map((page) => ({ label: `Page ${page.pageNumber}`, content: page.pageContent }));
-
-            // Native block and table extraction: try local PyMuPDF/pdfplumber helpers first.
-            try {
-              const blocks = await extractPdfBlocksFromPdfNative(lecture.original_path);
-              const imageBlocks = Array.isArray(blocks?.pages)
-                ? blocks.pages.flatMap((page: any) => {
-                    if (!page || page.type !== "page" || !Array.isArray(page.image_blocks)) return [];
-                    return page.image_blocks.map((imageBlock: any) => ({
-                      page: Number(page.page) || 1,
-                      ...imageBlock,
-                    }));
-                  })
-                : [];
-
-              const imageDescriptions = await Promise.all(
-                imageBlocks.map(async (imageBlock: any, imageIndex: number) => {
-                  if (!imageBlock?.image_base64) return null;
-                  try {
-                    const description = await describePdfImageBlockWithVision({
-                      imageBase64: imageBlock.image_base64,
-                      imageExtension: imageBlock.ext,
-                      surroundingText: imageBlock.surrounding_text,
-                      pageLabel: `Page ${imageBlock.page} / Block ${imageBlock.rect_index ?? imageIndex}`,
-                      modelName: visionModel,
-                    });
-                    return {
-                      page: imageBlock.page,
-                      blockIndex: imageBlock.rect_index ?? imageIndex,
-                      content: description,
-                      metadata: imageBlock,
-                    };
-                  } catch {
-                    return {
-                      page: imageBlock.page,
-                      blockIndex: imageBlock.rect_index ?? imageIndex,
-                      content: String(imageBlock.surrounding_text || "").trim(),
-                      metadata: imageBlock,
-                    };
-                  }
-                })
-              );
-
-              if (Array.isArray(blocks?.pages) && blocks.pages.length && imageDescriptions.length) {
-                const descriptionsByPage = new Map<number, string[]>();
-                for (const imageDescription of imageDescriptions.filter(Boolean)) {
-                  const pageNumber = Number((imageDescription as any).page) || 1;
-                  const list = descriptionsByPage.get(pageNumber) || [];
-                  list.push((imageDescription as any).content);
-                  descriptionsByPage.set(pageNumber, list);
-                }
-
-                for (const page of blocks.pages) {
-                  if (!page || page.type !== "page") continue;
-                  const pageNumber = Number(page.page) || 1;
-                  const idx = Math.max(0, pageNumber - 1);
-                  const pageContextParts = [String(page.text || "").trim()];
-                  const imageTexts = descriptionsByPage.get(pageNumber) || [];
-                  if (imageTexts.length) pageContextParts.push(`Image blocks:\n${imageTexts.map((text) => `- ${text}`).join("\n")}`);
-                  const pageContext = pageContextParts.filter(Boolean).join("\n\n");
-                  if (descriptionPages[idx] && pageContext) {
-                    descriptionPages[idx].content = `${pageContext}\n\n${descriptionPages[idx].content}`.trim();
-                  }
-                }
-              }
-
-              if (blocks && Array.isArray(blocks.pages) && blocks.pages.length) {
-                for (const page of blocks.pages) {
-                  if (!page || page.type !== "page") continue;
-                  const idx = Math.max(0, Number(page.page || 1) - 1);
-                  const pageContextParts = [String(page.text || "").trim()];
-                  if (Array.isArray(page.image_blocks) && page.image_blocks.length) {
-                    for (const img of page.image_blocks) {
-                      const ctx = String(img?.surrounding_text || "").trim();
-                      if (ctx) pageContextParts.push(`Image context: ${ctx}`);
-                    }
-                  }
-                  const pageContext = pageContextParts.filter(Boolean).join("\n\n");
-                  if (descriptionPages[idx] && pageContext) {
-                    descriptionPages[idx].content = `${pageContext}\n\n${descriptionPages[idx].content}`.trim();
-                  }
-                }
-              }
-
-              const native = await extractTablesFromPdfNative(lecture.original_path);
-              if (native && Array.isArray(native.tables) && native.tables.length) {
-                // integrate native tables into per-page descriptionPages by prepending markdown
-                for (const t of native.tables) {
-                  const pnum = Number(t.page) || 1;
-                  const tableList = nativeTablesByPage.get(pnum) || [];
-                  tableList.push(t);
-                  nativeTablesByPage.set(pnum, tableList);
-                  const md = tablesToMarkdown({ tables: [t] });
-                  const idx = pnum - 1;
-                  if (descriptionPages[idx]) {
-                    descriptionPages[idx].content = `=== Native Extracted Tables ===\n${md}\n\n${descriptionPages[idx].content}`;
-                  }
-                }
-                // save eval reports
-                try {
-                  for (const t of native.tables) {
-                    await saveTableEvalReport(ldir, `native_page_${t.page}`, { method: "native", table: t });
-                  }
-                } catch (e) {
-                  console.warn(`[EVAL] failed to save native table eval reports: ${String(e)}`);
-                }
-              }
-            } catch (e) {
-              console.warn(`[PDF_NATIVE] native table extractor failed: ${String(e)}`);
-            }
-
-          } catch (e: any) {
-            console.warn("[PDF] loader extraction failed:", e?.message || e);
-          }
-
-          await setProgress({ stage: "rendering PDF pages", percent: 45 });
-          const pdfPagesDir = path.join(ldir, "pdf_pages");
-          const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
-
-          await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
-          const pageContexts = descriptionPages.map((page) => page.content);
-          const visionPages = await visionExtractFromImagesDetailed(pageImages, visionModel, pageContexts, "pdf", ldir);
-          visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
-          if (visionPages.length) descriptionPages = visionPages;
-
-          try {
-            for (const page of visionPages) {
-              const pageNumber = Number(String(page.label).replace(/\D+/g, "")) || 0;
-              const nativeTables = nativeTablesByPage.get(pageNumber);
-              const parsedTables = (page as any).parsedTables;
-              if (nativeTables && nativeTables.length && parsedTables && Array.isArray(parsedTables.tables) && parsedTables.tables.length) {
-                const visionTable = parsedTables.tables[0];
-                const nativeTable = nativeTables[0];
-                const metrics = summarizeTableMetrics(visionTable, nativeTable);
-                await saveTableEvalReport(ldir, `page_${pageNumber}`, {
-                  method: (page as any).tableExtractionMethod || "vision",
-                  metrics,
-                  native_table: nativeTable,
-                  vision_table: visionTable,
-                });
-              }
-            }
-          } catch (e) {
-            console.warn(`[EVAL] failed to save comparison table metrics: ${String(e)}`);
-          }
-
-          extractedText = [
-            notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
-            visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
-          ].filter(Boolean).join("\n\n");
-        } else if (IMAGE_EXTS.has(ext)) {
+        if (IMAGE_EXTS.has(ext)) {
           await setProgress({ stage: "reading image notes (vision)", percent: 45 });
           const visionPages = await visionExtractFromImagesDetailed([lecture.original_path], visionModel, [], undefined, ldir);
           visualText = visionPages.map((page) => `=== ${page.label} ===\n${page.content}`).join("\n\n");
-          extractedText = visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "";
-          descriptionPages = visionPages;
         } else {
           return NextResponse.json({ error: `Unsupported file type for document processing: ${ext}` }, { status: 400 });
         }
 
-        if (!extractedText.trim()) {
+        if (!visualText.trim()) {
           await setProgress({ stage: "failed", percent: 100, done: true, error: "No extractable text found." });
           return NextResponse.json({ error: "No extractable text found." }, { status: 400 });
         }
 
         await setProgress({ stage: "merging extracted content", percent: 75 });
 
-        const chunks = chunkText(extractedText, 3500, 400);
-        const localInput = shortenForLLM(extractedText, 20000);
-        const descriptionInput = descriptionPages.length ? descriptionPages : [{ label: "Page 1", content: extractedText }];
-
-        await setProgress({ stage: "creating document description", percent: 82 });
-        parserOutput = await ollamaText(buildDocumentDescriptionPrompt(descriptionInput), OLLAMA_TEXT_MODEL);
-        if (!parserOutput.trim()) parserOutput = extractedText;
+        const extractedTextCombined = `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}`;
+        const chunks = chunkText(extractedTextCombined, 3500, 400);
+        const localInput = shortenForLLM(extractedTextCombined, 20000);
 
         await setProgress({ stage: "creating summary", percent: 84 });
-        const summary = await ollamaText(buildDocumentSummaryPrompt(localInput), OLLAMA_TEXT_MODEL);
+        const summary = await llm(
+          [
+            { role: "system", content: "You are a helpful tutor who produces structured study notes from multimodal inputs." },
+            { role: "user", content: buildSummaryPrompt(localInput) },
+          ],
+          llmModel
+        );
 
         await setProgress({ stage: "creating lecture memory", percent: 90 });
-        const memory = await ollamaText(buildDocumentMemoryPrompt(localInput), OLLAMA_TEXT_MODEL);
+        const memory = await llm(
+          [
+            { role: "system", content: "You are a helpful tutor who creates compact lecture memories from multimodal inputs." },
+            { role: "user", content: buildMemoryPrompt(localInput) },
+          ],
+          llmModel
+        );
 
         await setProgress({ stage: "saving outputs", percent: 96 });
 
         const transcriptPath = path.join(ldir, "transcript.txt");
-        const descriptionPath = path.join(ldir, "description.txt");
         const summaryPath = path.join(ldir, "summary.txt");
         const memoryPath = path.join(ldir, "memory.txt");
         const chunksPath = path.join(ldir, "chunks.json");
 
-        await fsp.writeFile(transcriptPath, extractedText, "utf-8");
-        await fsp.writeFile(descriptionPath, parserOutput, "utf-8");
+        await fsp.writeFile(transcriptPath, extractedTextCombined, "utf-8");
         await fsp.writeFile(summaryPath, summary, "utf-8");
         await fsp.writeFile(memoryPath, memory, "utf-8");
         await fsp.writeFile(chunksPath, JSON.stringify(chunks.map((text, i) => ({ chunk_id: i, text })), null, 2), "utf-8");
@@ -1485,15 +688,14 @@ export async function POST(req: NextRequest) {
           contentId,
           fileName: path.basename(lecture.original_path),
           fileType: path.extname(lecture.original_path).toLowerCase(),
-          parserModel: visionModel,
+          parserModel: llmModel,
           contentKind: "document",
-          parserOutput,
+          parserOutput: extractedTextCombined,
           chunks,
         });
 
         const updated = await patchByHash(lecture.file_hash, {
           transcript_path: transcriptPath,
-          description_path: descriptionPath,
           summary_path: summaryPath,
           memory_path: memoryPath,
           chunks_path: chunksPath,
@@ -1506,14 +708,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           ok: true,
           lecture: updated,
-          transcript: extractedText,
-          description: parserOutput,
+          transcript: extractedTextCombined,
           summary,
           memory,
           chunks,
-          parserOutput,
           sources_used: {
-            pdf: !!notesText,
             vision: !!visualText,
             local: true,
           },
@@ -1524,7 +723,6 @@ export async function POST(req: NextRequest) {
 
       let audioText = "";
       let visualText = "";
-      let notesText = "";
       let audioPath = lecture.audio_path;
 
       if (VIDEO_EXTS.has(ext)) {
@@ -1556,35 +754,6 @@ export async function POST(req: NextRequest) {
 
         await setProgress({ stage: "transcribing audio", percent: 55 });
         audioText = await transcribeAudio(audioPath, language);
-      } else if (PDF_EXTS.has(ext)) {
-        await setProgress({ stage: "extracting PDF text", percent: 35 });
-
-        let pdfVisionText = "";
-        try {
-          const timeoutMs = Number(process.env.PDF_TEXT_TIMEOUT_MS || 20000);
-          notesText = await withTimeout(extractPdfTextWithLoader(lecture.original_path), timeoutMs, "PDF text extraction");
-        } catch (e: any) {
-          console.warn("[PDF] loader extraction failed:", e?.message || e);
-        }
-
-        await setProgress({ stage: "rendering PDF pages", percent: 45 });
-        const pdfPagesDir = path.join(ldir, "pdf_pages");
-        const pageImages = await convertPdfToImages(lecture.original_path, pdfPagesDir);
-
-        await setProgress({ stage: "reading PDF pages (vision)", percent: 55 });
-        pdfVisionText = await visionExtractFromImages(pageImages, visionModel, [], "pdf");
-
-        if (!notesText.trim() && !pdfVisionText.trim()) {
-          await setProgress({
-            stage: "failed",
-            percent: 100,
-            done: true,
-            error: "Could not extract text from PDF (text layer + vision fallback failed).",
-          });
-          return NextResponse.json({ error: "Could not extract text from PDF." }, { status: 400 });
-        }
-
-        visualText = pdfVisionText;
       } else if (IMAGE_EXTS.has(ext)) {
         await setProgress({ stage: "reading image notes (vision)", percent: 45 });
         visualText = await visionExtractFromImages([lecture.original_path], visionModel);
@@ -1596,7 +765,6 @@ export async function POST(req: NextRequest) {
 
       const combinedTranscript = [
         audioText ? `=== AUDIO TRANSCRIPT ===\n${audioText}` : "",
-        notesText ? `=== PDF/NOTES TEXT ===\n${notesText}` : "",
         visualText ? `=== VISUAL NOTES (OLLAMA VISION) ===\n${visualText}` : "",
       ].filter(Boolean).join("\n\n");
 
@@ -1669,11 +837,9 @@ export async function POST(req: NextRequest) {
         chunks,
         sources_used: {
           audio: !!audioText,
-          pdf: !!notesText,
           vision: !!visualText,
         },
         indexing_ok: Boolean(indexingResult2 && indexingResult2.ok),
-            hierarchical_pdf_pipeline: PDF_EXTS.has(ext),
         indexing_error: indexingResult2 && (indexingResult2.error || null),
       });
     }
@@ -1901,31 +1067,4 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
-}
-
-async function extractFirstPageTextFromPdf(pdfPath: string) {
-  const buffer = await fsp.readFile(pdfPath);
-  const tempDir = path.join(tmpdir(), "teacher-pdf-preview");
-  await ensureDir(tempDir);
-  const tempPath = path.join(tempDir, `${crypto.createHash("sha1").update(buffer).digest("hex")}.pdf`);
-  await writeFile(tempPath, buffer);
-
-  try {
-    const loader = new PDFLoader(tempPath);
-    const docs = await loader.load();
-    return String(docs[0]?.pageContent || "").trim().slice(0, 2000);
-  } finally {
-    try { await unlink(tempPath); } catch {}
-  }
-}
-function buildCaptionPrompt(extractedContent: string) {
-  return `You are a precise document describer. The input contains extracted text from pages or image frames of a document. For each logical page or frame, produce 1-3 short, complete declarative sentences that describe what is visible (headings, main idea, figures, formulas, and important labels). Also produce a short overall 2-4 sentence summary for the entire input.
-
-Return strict JSON with this shape:
-{ "pages": [{ "page": 1, "summary": "..." }, ...], "overall": "..." }
-
-Be concise and factual. Do not include extraneous commentary.
-
-ExtractedContent:
-${extractedContent}`;
 }
