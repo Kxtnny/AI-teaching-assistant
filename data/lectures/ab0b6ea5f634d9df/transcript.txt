@@ -1,0 +1,280 @@
+=== PDF/NOTES TEXT ===
+CZ3005 Artificial Intelligence
+Week 11a – Default Logic
+Yu Han
+han.yu@ntu.edu.sg
+Associate Professor
+College of Computing and Data Science (CCDS)
+Nanyang Technological University (NTU)
+Singapore
+
+Learning Goals
+Understanding the:
+•Default Rules
+•Default Theory
+•Default Logic Inference
+–Reiter Default Logic (RDL) inference
+–Limitations of RDL
+2
+
+Default Logic
+•Standard logic can only express that something is true or 
+that something is false.
+–Explicitly given rules (i.e., something is true if and only if it is 
+explicitly stated as true in the knowledge base)
+•Default logic is proposed to formalize reasoning with default 
+assumptions.
+–Common sense (i.e., if there is nothing in the knowledge base 
+that conflicts with our common sense, then we apply our 
+common sense)
+•It can express facts like 
+–“by default, something is true”.
+3
+
+Default Logic
+•What do we see here?
+–A child is using his handphone
+•What do we intuitively think is going on?
+–He is playing a mobile game
+•What do we intuitively conclude?
+–Doing so might negatively affect his study
+4
+
+Default Logic
+5
+•Default Rules
+•Knowledge Base
+•Default Logic Inference
+–Reiter Default Logic Inference
+–Makinson Approach
+–Process Tree
+Default Theory
+
+Default Rule
+According to this default:
+–If we believe that Prerequisite is true;
+–AND each of Justifications is consistent with our current beliefs; 
+–THEN, we are led to believe that the Conclusion is true.
+6
+
+Default Rule
+where 풙=푥
+1
+,...,푥
+푚
+, and 훼풙,훽
+1
+풙,...,훽
+푛
+풙,훾(풙) are 
+formulae whose free variables are among 푥
+1
+,...,푥
+푚
+.
+e.g.,:
+“By default, a bird can fly, unless we know that a particular bird 
+has lost its wings”
+7
+훼풙: 훽
+1
+풙,...,훽
+푛
+(풙)
+훾(풙)
+prerequisite
+justification
+conclusion
+푏푖푟푑풙: ℎ푎푠_푤푖푛푔푠풙
+푓푙푦(풙)
+
+Default Rule
+The default is applied by substituting c (the ground instance) into 
+훼 and 훽 to infer 훾:
+•Trigger: 훼(풄) belongs to our set of beliefs.
+•Justification: the set of our beliefs is consistent with each 
+훽(풄).
+e.g.,:
+8
+Our KB does not 
+entail ¬훽(풄) 
+푏푖푟푑풙: ℎ푎푠_푤푖푛푔푠풙
+푓푙푦(풙)
+푏푖푟푑푇푤푒푒푡푦,¬ℎ푎푠_푤푖푛푔푠(푇푤푒푒푡푦)
+
+Types of Default Rules
+•Normal Defaults:  
+훼푥 ∶ 훾(푥) 
+훾(푥)
+•Semi-Normal Defaults:  
+훼푥 ∶ 훽(푥) 
+훾(푥)
+, where 훽(푥)⊢훾(푥)
+ E.g.,  
+푏푖푟푑푥 ∶ ℎ푎푠_푤푖푛푔푠(푥) 
+푓푙푖푒푠(푥)
+,
+    where ℎ푎푠_푤푖푛푔푠(푥)⊢푓푙푖푒푠(푥)
+9
+
+Types of Default Rules
+•Open Defaults (Default Schemas) have unbounded variables, 
+e.g., x
+훼푥 ∶ 훽
+1
+푥,...,훽
+푛
+(푥) 
+훾(푥)
+•Closed (Grounded) Defaults use ground terms, e.g., x=c
+훼푐 ∶ 훽
+1
+푐,...,훽
+푛
+(푐) 
+훾(푐)
+10
+
+Default Theory
+Example – the default rule that “birds typically fly”:
+•Δ=
+푏푖푟푑푥 ∶ 푓푙푖푒푠(푥) 
+푓푙푖푒푠(푥)
+•This rule means that, "if x is a bird, and there is no fact in the knowledge 
+base suggesting that x cannot fly, then we can conclude that x flies".
+•Φ=푏푖푟푑푇푤푒푒푡푦,푐푎푡(푆푦푙푣푒푠푡푒푟) 
+11
+Δ,Φ
+Delta: Set of Default 
+Rules
+Phi: A given KB (a 
+set of “Facts”)
+
+Example
+•What do we see here?
+–A child is using his handphone (Pre-requisite)
+•What do we intuitively think is going on?
+–He is playing a mobile game (Justification)
+•What do we intuitively conclude?
+–Doing so might negatively affect his study (Conclusion)
+12
+
+Example
+•What do we see here?
+–A child is using his handphone (Pre-requisite)
+•What do we intuitively think is going on?
+–He is playing a mobile game (Justification)
+•What do we intuitively conclude?
+–Doing so might negatively affect his study (Conclusion)
+13
+He is attending online class (not 
+playing game)
+Conflict with our 
+default justification
+
+Reiter Default Logic (RDL) Inference
+•Guess the extension Ξ (pronounced as “Xi”)
+•Initialise beliefs Ξ
+∗
+=Φ
+•(loop over) c-ground instance of an (unused) default 
+훼푥 ∶ 훽(푥) 
+훾(푥)
+:
+•Check two conditions
+•Triggered?: Ξ
+∗
+⊢훼(푐)
+•Justified?: 훽(푐) is consistent with Ξ
+•If yes: update beliefs Ξ
+∗
+←Ξ
+∗
+∪{훾(푐)}
+•(end loop)
+•If Ξ=Ξ
+∗
+ then extension found/confirmed
+14
+The extension is added to our KB as 
+new knowledge
+
+Example
+Given Theory: T=ർ
+඀
+Δ=
+푏푖푟푑푥 ∶ 푓푙푖푒푠(푥) 
+푓푙푖푒푠(푥)
+,Φ=
+푏푖푟푑푇푤푒푒푡푦,푐푎푡(푆푦푙푣푒푠푡푒푟), 
+•Guess the extension =Cn(푓푙푖푒푠(푇푤푒푒푡푦)∪Φ)
+•Our initial knowledge is 퐹=Φ
+•Sylvester-instance of default not applicable: 
+•not hold Φ⊢푏푖푟푑(푆푦푙푣푒푠푡푒푟) 
+•Φ⊢푏푖푟푑(푇푤푒푒푡푦) and 푓푙푖푒푠(푇푤푒푒푡푦) is consistent with F
+•F =Φ∪푓푙푖푒푠푇푤푒푒푡푦
+•No more default rules to apply
+•An extension is reached
+15
+
+RDL Limitation - Nixon Diamond
+Let Theory Τ=Δ,Φ
+•=
+푞푢푎푘푒푟푥 ∶ 푝푎푐푖푓푖푠푡 (푥) 
+푝푎푐푖푓푖푠푡(푥)
+,
+푟푒푝푢푏푙푖푐푎푛푥 ∶¬푝푎푐푖푓푖푠푡 (푥) 
+¬푝푎푐푖푓푖푠푡(푥)
+•Φ=
+푞푢푎푘푒푟(푁푖푥표푛),푟푒푝푢푏푙푖푐푎푛(푁푖푥표푛) 
+16
+quaker
+Nixon
+republican
+pacifist
+The default rules may be applied in different orders, and this may 
+lead to different extensions. E.g.:
+
+RDL Limitation - Nixon Diamond
+Given Δ,Φ
+•Δ=
+푞푢푎푘푒푟푥 ∶ 푝푎푐푖푓푖푠푡(푥) 
+푝푎푐푖푓푖푠푡(푥)
+,
+푟푒푝푢푏푙푖푐푎푛푥 ∶¬푝푎푐푖푓푖푠푡(푥) 
+¬푝푎푐푖푓푖푠푡(푥)
+•Φ=푞푢푎푘푒푟(푁푖푥표푛),푟푒푝푢푏푙푖푐푎푛(푁푖푥표푛) 
+There are two extensions:
+1.One that contains: pacifist(Nixon)
+2... and the one that contains: ¬ pacifist(Nixon)
+17
+Conflicting conclusions
+
+Addressing the RDL Limitation
+•A default theory can have 0, 1 or more 
+extensions. 
+•Entailment of a formula from a default theory 
+can be defined in one of two ways:
+–Skeptical:
+•a formula is entailed by a default theory if it is entailed 
+by all its extensions.
+–Credulous:
+•a formula is entailed by a default theory if it is entailed 
+by at least one of its extensions.
+18
+
+Example
+•The Nixon diamond example theory has two extensions:
+–one in which Nixon is a pacifist; and
+–one in which Nixon is not a pacifist. 
+•Thus, we have:
+–Neither Pacifist(Nixon) nor ¬Pacifist(Nixon) are skeptically 
+entailed.
+–Both Pacifist(Nixon) and ¬Pacifist(Nixon) are credulously 
+entailed. 
+•The credulous extensions of a default theory can be 
+inconsistent with each other.
+19
+
+Thank you!
+20

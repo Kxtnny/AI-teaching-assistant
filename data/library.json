@@ -1,5 +1,21 @@
 [
   {
+    "lecture_id": "ab0b6ea5f634d9df",
+    "title": "Week 11a(2)",
+    "file_hash": "ab0b6ea5f634d9dfca3b0fbcd937b96fcf8c4cc650cf3bb10aad0fa8c19ae32d",
+    "creator": "student",
+    "status": "Ready",
+    "time_ago": "Saved",
+    "original_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\ab0b6ea5f634d9df\\original.pdf",
+    "audio_path": null,
+    "transcript_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\ab0b6ea5f634d9df\\transcript.txt",
+    "summary_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\ab0b6ea5f634d9df\\summary.txt",
+    "memory_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\ab0b6ea5f634d9df\\memory.txt",
+    "chunks_path": "C:\\Guitar\\ntu\\ureca\\ai-website\\data\\lectures\\ab0b6ea5f634d9df\\chunks.json",
+    "created_at": "2026-04-24T06:55:51.470Z",
+    "updated_at": "2026-04-24T06:56:12.400Z"
+  },
+  {
     "lecture_id": "26e46d40598d1e24",
     "title": "BU5401-Lect12-DecisionAnalysis (1)",
     "file_hash": "26e46d40598d1e246263a2d392fec0b62bfb29bc2a96af33aeb279351ab57ca2",

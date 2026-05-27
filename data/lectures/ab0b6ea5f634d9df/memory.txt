@@ -1,0 +1,66 @@
+LECTURE MEMORY: Default Logic (CZ3005 Artificial Intelligence, Week 11a)
+
+- Standard logic only expresses explicit truths or falsehoods; default logic formalizes reasoning with default assumptions (common sense).
+- Default logic allows expressing "by default, something is true" unless contradicted.
+- Default Rule structure: If Prerequisite holds and Justifications are consistent, then conclude Conclusion.
+- Default Rule notation: α_x : β_1_x, ..., β_n_x / γ(x)
+  - α: prerequisite
+  - β: justifications
+  - γ: conclusion
+- Example: "By default, birds fly unless known to have lost wings."
+- Default rules apply to ground instances c by checking if α(c) is believed and β(c) is consistent.
+- Types of Default Rules:
+  - Normal Defaults: α_x : γ(x) / γ(x)
+  - Semi-Normal Defaults: α_x : β(x) / γ(x), where β(x) ⊢ γ(x)
+  - Open Defaults: variables unbounded
+  - Closed Defaults: ground terms only
+- Default Theory: pair (Δ, Φ)
+  - Δ: set of default rules
+  - Φ: knowledge base (facts)
+- Reiter Default Logic (RDL) inference:
+  - Guess extension Ξ
+  - Initialize Ξ* = Φ
+  - For each unused default α_x : β(x) / γ(x) and ground instance c:
+    - If Ξ* ⊢ α(c) and β(c) consistent with Ξ*, add γ(c) to Ξ*
+  - Repeat until Ξ = Ξ*, then Ξ is an extension (new knowledge)
+- Example: Bird Tweety flies by default if no contradictory info.
+- Limitation: Nixon Diamond problem
+  - Conflicting defaults (quaker → pacifist, republican → ¬pacifist) lead to multiple extensions.
+  - Theory can have 0, 1, or multiple extensions.
+- Entailment types:
+  - Skeptical entailment: formula true in all extensions.
+  - Credulous entailment: formula true in at least one extension.
+- Nixon Diamond shows credulous entailment can be inconsistent; skeptical entailment is more cautious.
+- Default logic captures non-monotonic reasoning but can produce multiple or no extensions, reflecting uncertainty.
+
+Formulas/Theorems:
+- Default rule: α_x : β_1_x, ..., β_n_x / γ(x)
+- Normal default: α_x : γ(x) / γ(x)
+- Semi-normal default: α_x : β(x) / γ(x), with β(x) ⊢ γ(x)
+- Extension computation (RDL):
+  - Initialize Ξ* = Φ
+  - For each default and ground instance c:
+    - If Ξ* ⊢ α(c) and β(c) consistent with Ξ*, then Ξ* ← Ξ* ∪ {γ(c)}
+  - Repeat until fixed point Ξ = Ξ*
+
+Pitfalls:
+- Multiple extensions can cause ambiguity in conclusions.
+- Conflicting defaults (Nixon Diamond) may yield contradictory extensions.
+- Skeptical entailment may be too conservative; credulous entailment may be inconsistent.
+- Default logic requires careful handling of justifications to avoid contradictions.
+
+Example Problem Types:
+- Applying default rules to infer conclusions from incomplete knowledge bases.
+- Computing extensions of a default theory using RDL inference.
+- Analyzing conflicting defaults and determining skeptical vs. credulous entailments.
+- Modeling common-sense reasoning scenarios with default assumptions.
+- Identifying when default rules do not apply due to inconsistency in justifications.
+
+Combined Lecture Text:
+The lecture introduces Default Logic as an extension of classical logic to handle reasoning with default assumptions or common sense. Unlike standard logic, which only deals with explicit truths, default logic allows conclusions to be drawn "by default" unless contradicted by knowledge. Default rules have a prerequisite, justifications, and a conclusion, and apply when the prerequisite is believed and justifications are consistent.
+
+Types of defaults include normal, semi-normal, open, and closed defaults. A default theory consists of a set of default rules (Δ) and a knowledge base (Φ). Reiter Default Logic (RDL) inference computes extensions by iteratively applying defaults to expand beliefs until a fixed point is reached.
+
+The Nixon Diamond example illustrates a limitation of RDL: conflicting defaults can produce multiple extensions with contradictory conclusions. This leads to two notions of entailment: skeptical (true in all extensions) and credulous (true in some extensions). Default logic thus models non-monotonic reasoning but requires careful interpretation of multiple extensions and conflicts.
+
+The lecture covers the formalism, inference procedure, examples, and limitations of default logic, preparing students to apply it in AI reasoning tasks involving incomplete or uncertain information.

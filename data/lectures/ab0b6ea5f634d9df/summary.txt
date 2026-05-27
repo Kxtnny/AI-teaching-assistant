@@ -1,0 +1,14 @@
+**Summary:**
+- Default logic formalizes reasoning with default assumptions beyond explicit true/false rules.  
+- A default rule infers conclusions if prerequisites hold and justifications are consistent.  
+- Reiter Default Logic (RDL) infers beliefs by iteratively applying default rules to a knowledge base.  
+- RDL can produce multiple conflicting extensions, illustrated by the Nixon Diamond example.  
+- Entailment in default logic can be skeptical (all extensions) or credulous (some extensions).  
+
+**Key Terms:**
+Default logic, Default rule, Knowledge base, Reiter Default Logic, Default theory, Extension, Prerequisite, Justification, Conclusion, Nixon Diamond, Skeptical entailment, Credulous entailment  
+
+**Action Items:**
+- Review the formal structure of default rules and how they apply to knowledge bases.  
+- Practice applying Reiter Default Logic inference on example default theories.  
+- Study the Nixon Diamond example to understand limitations and types of entailment in default logic.

@@ -299,7 +299,7 @@ export default function SoloSprintUI() {
         <Link href="/" style={styles.backBtn}><ArrowLeft className="w-5 h-5" /></Link>
         <div style={styles.headerIcon}>🎓</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 900 }}>SoloSprint Classroom</div>
+          <div style={{ fontWeight: 900, color: "#6b7280" }}>SoloSprint Classroom</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>{session.topic} • Room: {session.roomId} • {session.language}</div>
         </div>
         {session.privateFeedbackReady && (
@@ -641,7 +641,7 @@ const styles: Record<string, React.CSSProperties> = {
   dot: { width: 8, height: 8, borderRadius: "50%" },
   feedbackBtn: { border: "1px solid #8b5cf6", background: "#f5f3ff", color: "#6d28d9", borderRadius: 8, padding: "6px 12px", fontWeight: 600, cursor: "pointer", marginRight: 8 },
   
-  main: { display: "grid", gridTemplateColumns: "280px 1fr 420px", gap: 16, padding: 20, flex: 1, minHeight: 0, overflow: "hidden" },
+  main: { color: "#6b7280",display: "grid", gridTemplateColumns: "280px 1fr 420px", gap: 16, padding: 20, flex: 1, minHeight: 0, overflow: "hidden" },
   
   // Left panel
   leftPanel: { display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" },
