@@ -1,579 +1,511 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChatOllama } from "@langchain/ollama";
-import { SystemMessage } from "@langchain/core/messages";
+import { ChatOpenAI } from "@langchain/openai";
+import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import fs from "fs/promises";
+import path from "path";
 
-type Role = "student" | "facilitator";
-type SessionPhase = "waiting" | "discussion_3min" | "personal_feedback";
+// Types
 type Verdict = "good" | "bad" | "neutral";
-type Listener = (msg: Msg) => void;
+type QuestionType = "clarity" | "precision" | "accuracy" | "relevance" | "depth" | "breadth" | "logic";
+type Listener = (msg: any) => void;
 
-interface Msg {
-  id: string;
-  role: Role;
-  username: string;
-  content: string;
-  timestamp: number;
+interface Turn {
+  questionType: QuestionType;
+  question: string;
+  answer: string;
+  verdict: Verdict;
+  points: number;
+  feedback: string;
 }
 
 interface RoomState {
   id: string;
   topic: string;
-  language: string;
-  createdAt: number;
-  phase: SessionPhase;
-  discussionStartAt: number | null;
-  discussionEndsAt: number | null;
-  participants: Set<string>;
-  msgs: Msg[];
+  lectureId: string;
+  msgs: any[];
   subs: Set<Listener>;
-  busy: boolean;
-  busySince: number;
-  feedbackGenerated: boolean;
-  privateFeedbackByStudent: Record<string, string>;
-  privateFeedbackReady: boolean;
-  treeScore: number;
-  lastTreeEvalAt: number;
+  phase: "init" | "explaining" | "feedback";
+  startTime: number;
+  summary: string | null;
+  turns: Turn[];
+  totalPoints: number;
+  lastQuestion: string | null;
+  lastType: QuestionType | null;
 }
 
-const TOPIC_POOL = [
-  "Newton's First Law of Motion (Inertia)",
-  "Photosynthesis — how plants convert sunlight to energy",
-  "Supply and Demand in Economics",
-  "The Water Cycle",
-  "How does DNA replication work?",
-  "What causes the seasons on Earth?",
-  "Ohm's Law in electricity",
-  "The concept of recursion in computer science",
-];
+// Paths
+const DATA_DIR = path.resolve(process.cwd(), "data", "teachersdata");
+const LIBRARY_PATH = path.join(DATA_DIR, "library.json");
+const QUESTION_TYPES: QuestionType[] = ["clarity", "precision", "accuracy", "relevance", "depth", "breadth", "logic"];
+const SESSION_DURATION = 180;
+const MAX_POINTS = 100;
 
-const MIN_STUDENTS_TO_START = 1; // CHANGED: now starts with 1 student
-const MAX_PER_ROOM = 3;
-const DISCUSSION_MS = 3 * 60 * 1000;
-const HEARTBEAT_MS = 1200;
+// LLM
+const llm = new ChatOpenAI({
+  modelName: process.env.OPENAI_MODEL || "gpt-4o-mini",
+  temperature: 0.3,
+  openAIApiKey: process.env.OPENAI_API_KEY,
+});
 
-const llm = new ChatOllama({ model: "llama3.2", temperature: 0.25 });
-const llmFast = new ChatOllama({ model: "llama3.2", temperature: 0, numPredict: 90 });
+const llmFast = new ChatOpenAI({
+  modelName: process.env.OPENAI_MODEL || "gpt-4o-mini",
+  temperature: 0,
+  maxTokens: 300,
+  openAIApiKey: process.env.OPENAI_API_KEY,
+});
 
-const g = globalThis as unknown as {
-  rooms: Map<string, RoomState>;
-  userRoom: Map<string, string>;
-  heartbeatStarted: boolean;
-};
+// Global state
+const g = globalThis as any;
+if (!g.rooms) g.rooms = new Map<string, RoomState>();
+if (!g.userRoom) g.userRoom = new Map<string, string>();
 
-if (!g.rooms) g.rooms = new Map();
-if (!g.userRoom) g.userRoom = new Map();
-if (!g.heartbeatStarted) g.heartbeatStarted = false;
-
-// ---------- utils ----------
-const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
-const now = () => Date.now();
-const makeRoomId = (topic: string, idx: number) => `${topic}::${idx}`;
-const students = (room: RoomState) => [...room.participants];
-const trim = (v: unknown) => String(v ?? "").trim();
-
-const jsonSessionEmpty = {
-  phase: "waiting",
-  topic: "",
-  students: [],
-  roomId: null,
-  language: "English",
-  discussionEndsAt: null,
-  privateFeedbackReady: false,
-  treeScore: 0,
-};
-
-function createRoom(topic: string, language: string, index: number): RoomState {
-  return {
-    id: makeRoomId(topic, index),
-    topic,
-    language,
-    createdAt: now(),
-    phase: "waiting",
-    discussionStartAt: null,
-    discussionEndsAt: null,
-    participants: new Set(),
-    msgs: [],
-    subs: new Set(),
-    busy: false,
-    busySince: 0,
-    feedbackGenerated: false,
-    privateFeedbackByStudent: {},
-    privateFeedbackReady: false,
-    treeScore: 0,
-    lastTreeEvalAt: 0,
-  };
-}
-
-function getOrCreateRoom(topic: string, language: string): RoomState {
-  const same = [...g.rooms.values()].filter((r) => r.topic === topic);
-  const open = same.find((r) => r.participants.size < MAX_PER_ROOM);
-  if (open) return open;
-  const room = createRoom(topic, language, same.length + 1);
-  g.rooms.set(room.id, room);
-  return room;
-}
-
-function getRoomByUser(username: string): RoomState | null {
-  const id = g.userRoom.get(username);
-  return id ? g.rooms.get(id) ?? null : null;
-}
-
-function broadcast(room: RoomState, msg: Msg) {
-  room.msgs.push(msg);
-  room.subs.forEach((fn) => fn(msg));
-}
-
-async function postFacilitator(room: RoomState, content: string, suffix = "") {
-  const text = trim(content);
-  if (!text) return;
-  broadcast(room, {
-    id: `f-${now()}${suffix ? `-${suffix}` : ""}`,
-    role: "facilitator",
-    username: "Dr. Feynman",
-    content: text,
-    timestamp: now(),
+// ---------------- Retrieval ----------------
+function retrieveTopK(query: string, chunks: string[], k = 3) {
+  const WORD_RE = /[A-Za-z0-9']+/g;
+  const normalize = (t: string) => (t.match(WORD_RE) || []).map(x => x.toLowerCase());
+  const q = normalize(query);
+  const qset = new Set(q);
+  
+  const scored = chunks.map((ch, i) => {
+    const c = normalize(ch);
+    const counts = new Map<string, number>();
+    for (const t of c) counts.set(t, (counts.get(t) || 0) + 1);
+    let score = 0;
+    for (const t of qset) {
+      const n = counts.get(t);
+      if (n) score += 1 + Math.log(1 + n);
+    }
+    return { i, s: score, text: ch };
   });
+  
+  scored.sort((a, b) => b.s - a.s);
+  return scored.slice(0, k).filter(x => x.s > 0);
 }
 
-function buildTranscript(room: RoomState, limit = 260) {
-  return room.msgs
-    .slice(-limit)
-    .map((m) => (m.role === "facilitator" ? `System: ${m.content}` : `${m.username}: ${m.content}`))
-    .join("\n");
-}
-
-function studentMsgs(room: RoomState, username: string) {
-  return room.msgs.filter((m) => m.role === "student" && m.username === username);
-}
-
-function studentOnlyTranscript(room: RoomState, username: string, limit = 180) {
-  return studentMsgs(room, username)
-    .slice(-limit)
-    .map((m) => `${m.username}: ${m.content}`)
-    .join("\n");
-}
-
-function studentEvidence(room: RoomState, username: string) {
-  return [...studentMsgs(room, username)]
-    .sort((a, b) => b.content.length - a.content.length)
-    .slice(0, 3)
-    .map((m) => `- "${m.content.slice(0, 160)}"`)
-    .join("\n") || "- (No substantial message captured)";
-}
-
-function studentStats(room: RoomState, username: string) {
-  const mine = studentMsgs(room, username);
-  const total = mine.length;
-  const avgLen = total ? Math.round(mine.reduce((n, m) => n + m.content.length, 0) / total) : 0;
-  const conceptual = mine.filter((m) => /(because|therefore|means|process|input|output|example|energy|sunlight|oxygen|glucose|water|carbon dioxide|law|force|demand|supply)/i.test(m.content)).length;
-  const uncertain = mine.filter((m) => /(idk|not sure|i don't know|no idea|confused|maybe)/i.test(m.content)).length;
-  return { total, avgLen, conceptual, uncertain };
-}
-
-// ---------- tree scoring ----------
-const TREE_EVAL_PROMPT = `Evaluate one student message in a collaborative learning chat.
-
-Topic: {TOPIC}
-Message: {MESSAGE}
-
-Return ONLY JSON:
-{"verdict":"good"|"bad"|"neutral"}
-
-good = mostly correct/helpful concept explanation
-bad = incorrect/confused/misleading concept statement
-neutral = social/chit-chat/too short/unclear`;
-
-function heuristicVerdict(message: string): Verdict {
-  const t = message.toLowerCase().trim();
-  if (t.length < 12) return "neutral";
-  if (/^(ok|okay|yes|no|idk|i don't know|not sure|maybe)\b/.test(t)) return "neutral";
-  if (/(not sure|i don't know|no idea|confused|wrong|nonsense|don't understand)/.test(t)) return "bad";
-  if (/(because|therefore|means|process|input|output|example|chlorophyll|sunlight|glucose|oxygen|carbon dioxide|water|energy|inertia|force|demand|supply)/.test(t)) return "good";
-  return "neutral";
-}
-
-function parseVerdict(raw: string): Verdict | null {
-  try {
-    const parsed = JSON.parse(raw) as { verdict?: string };
-    if (parsed.verdict === "good" || parsed.verdict === "bad" || parsed.verdict === "neutral") return parsed.verdict;
-  } catch {
-    const m = raw.match(/\{[\s\S]*\}/);
-    if (m) {
-      try {
-        const parsed = JSON.parse(m[0]) as { verdict?: string };
-        if (parsed.verdict === "good" || parsed.verdict === "bad" || parsed.verdict === "neutral") return parsed.verdict;
-      } catch {}
-    }
-  }
-  return null;
-}
-
-async function evaluateContribution(topic: string, message: string): Promise<Verdict> {
-  const text = message.trim();
-  if (text.length < 10) return "neutral";
-  try {
-    const out = await llmFast.invoke([new SystemMessage(TREE_EVAL_PROMPT.replace("{TOPIC}", topic).replace("{MESSAGE}", text))]);
-    const raw = typeof out.content === "string" ? out.content : JSON.stringify(out.content);
-    return parseVerdict(raw) ?? heuristicVerdict(text);
-  } catch {
-    return heuristicVerdict(text);
-  }
-}
-
-// ---------- feedback ----------
-const FEEDBACK_PROMPT = `You are Dr. Feynman writing personalized feedback for ONE student.
-
-Language: {LANG}
-Topic: {TOPIC}
-Student: {STUDENT}
-
-Student-only transcript:
-{STUDENT_ONLY}
-
-Evidence snippets from this student:
-{EVIDENCE}
-
-Class transcript:
-{FULL_TRANSCRIPT}
-
-Student stats:
-- total_messages={TOTAL}
-- avg_message_length={AVG}
-- conceptual_messages={CONCEPT}
-- uncertainty_signals={UNCERTAIN}
-
-Return STRICTLY in this exact markdown structure:
-
-**✅ What went well**
-1) Message contribution: mention exact number of messages and what that suggests about engagement.
-2) Thinking style: describe the student's response style (e.g., concise, exploratory, corrective, cause-effect).
-3) Correct content: mention at least one thing they got correct in topic content (if none, say "No clearly correct claim yet").
-
-**🛠️ Improvements**
-- Mention what was missing in the student's explanation (precision, sequence, terminology, mechanism, examples).
-- Mention one concept correction if needed.
-- You may include one shared class-level gap if applicable.
-
-**🌟 Encouragement**
-- 2–3 sentences of motivation tailored to this student's effort and style.
-
-Rules:
-- Must reference this student's actual messages (quote/paraphrase).
-- Must be specific and different per student.
-- Keep concise but meaningful (8-12 sentences total).`;
-
-function fallbackStructuredFeedback(
-  name: string,
-  stats: ReturnType<typeof studentStats>,
-  evidence: string,
-  topic: string
-) {
-  return `**✅ What went well**
-1) Message contribution: You sent ${stats.total} message(s), which shows you stayed involved in the collaboration.
-2) Thinking style: Your responses were ${stats.avgLen < 30 ? "brief and direct" : "detailed and explanatory"}, showing how you process ideas during discussion.
-3) Correct content: You made attempts to connect key ideas to ${topic}. ${stats.conceptual > 0 ? "Some parts showed conceptual intent." : "No clearly correct claim yet."}
-
-**🛠️ Improvements**
-- Your explanations need clearer step-by-step logic and more precise scientific wording.
-- Add one concrete example after each major claim to show understanding.
-- Class-level gap: both students should explain the process flow more accurately and avoid unsupported statements.
-
-**🌟 Encouragement**
-${name}, your participation is a strong foundation.
-If you keep explaining with clearer cause-and-effect links, your understanding will improve quickly.
-You are close—focus on precision and examples in your next round.`;
-}
-
-async function generatePrivateFeedbackForAll(room: RoomState) {
-  const fullTranscript = buildTranscript(room, 300);
-  const map: Record<string, string> = {};
-
-  for (const name of students(room)) {
-    const own = studentOnlyTranscript(room, name, 180);
-    const evidence = studentEvidence(room, name);
-    const stats = studentStats(room, name);
-
-    if (!own.trim()) {
-      map[name] = `**✅ What went well**
-1) Message contribution: You joined the room, which is a good first step.
-2) Thinking style: There were too few responses to infer your thinking style clearly.
-3) Correct content: No clearly correct claim yet.
-
-**🛠️ Improvements**
-- Share at least 2-3 content messages so your understanding can be assessed.
-- Explain one concept in sequence: definition → mechanism → example.
-- Class-level gap: both students should provide clearer process-based explanations.
-
-**🌟 Encouragement**
-You can improve very fast once you start sharing your reasoning openly.
-Your next session can be much stronger with just a few clear concept explanations.`;
-      continue;
-    }
-
-    const prompt = FEEDBACK_PROMPT
-      .replace("{LANG}", room.language || "English")
-      .replace("{TOPIC}", room.topic)
-      .replace("{STUDENT}", name)
-      .replace("{STUDENT_ONLY}", own)
-      .replace("{EVIDENCE}", evidence)
-      .replace("{FULL_TRANSCRIPT}", fullTranscript || "(No transcript)")
-      .replace("{TOTAL}", String(stats.total))
-      .replace("{AVG}", String(stats.avgLen))
-      .replace("{CONCEPT}", String(stats.conceptual))
-      .replace("{UNCERTAIN}", String(stats.uncertain));
-
+function extractJSON(text: string): any {
+  try { return JSON.parse(text); } catch {}
+  const match = text.match(/\{[\s\S]*\}/);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch {}
     try {
-      const out = await llm.invoke([new SystemMessage(prompt)]);
-      const text = typeof out.content === "string" ? out.content.trim() : JSON.stringify(out.content);
-      const validStructure = text.includes("**✅ What went well**") && text.includes("**🛠️ Improvements**") && text.includes("**🌟 Encouragement**");
-      map[name] = validStructure ? text : fallbackStructuredFeedback(name, stats, evidence, room.topic);
-    } catch {
-      map[name] = fallbackStructuredFeedback(name, stats, evidence, room.topic);
-    }
+      return JSON.parse(match[0]
+        .replace(/(\w+):/g, '"$1":')
+        .replace(/:\s*'([^']*)'/g, ':"$1"')
+        .replace(/,\s*}/g, '}'));
+    } catch {}
   }
-
-  room.privateFeedbackByStudent = map;
-  room.privateFeedbackReady = true;
+  throw new Error("No JSON found");
 }
 
-// ---------- timer ----------
-async function maybeAdvanceRoom(room: RoomState) {
-  if (room.busy && now() - room.busySince < HEARTBEAT_MS) return;
-  room.busy = true;
-  room.busySince = now();
-
-  try {
-    const ended = room.phase === "discussion_3min" && room.discussionEndsAt && now() >= room.discussionEndsAt;
-    if (ended && !room.feedbackGenerated) {
-      room.phase = "personal_feedback";
-      room.feedbackGenerated = true;
-      await generatePrivateFeedbackForAll(room);
-      await postFacilitator(room, "✅ Time is up. Personalized feedback is ready. Click \"View My Feedback\".", "feedback-ready");
-    }
-  } catch (e) {
-    console.error("[ROOM_HEARTBEAT]", e);
-  } finally {
-    room.busy = false;
-  }
+// ---------------- Storage ----------------
+async function loadLibrary() {
+  try { return JSON.parse(await fs.readFile(LIBRARY_PATH, "utf-8")); }
+  catch { return []; }
 }
 
-function startHeartbeat() {
-  if (g.heartbeatStarted) return;
-  g.heartbeatStarted = true;
-  setInterval(() => {
-    for (const room of g.rooms.values()) {
-      if (room.participants.size > 0) maybeAdvanceRoom(room).catch(console.error);
-    }
-  }, HEARTBEAT_MS);
+async function getProcessedLectures() {
+  return (await loadLibrary())
+    .filter((l: any) => l.status === "Ready")
+    .map((l: any) => ({ topic: l.title, lectureId: l.lecture_id }));
 }
-startHeartbeat();
 
-// ---------- dto ----------
-function sessionDto(room: RoomState) {
+async function getLectureData(lectureId: string) {
+  const lib = await loadLibrary();
+  const lec = lib.find((l: any) => l.lecture_id === lectureId);
+  if (!lec?.memory_path || !lec?.chunks_path) return null;
   return {
-    phase: room.phase,
-    topic: room.topic,
-    students: [...room.participants],
-    roomId: room.id,
-    language: room.language,
-    discussionEndsAt: room.discussionEndsAt,
-    privateFeedbackReady: room.privateFeedbackReady,
-    treeScore: room.treeScore,
+    memory: await fs.readFile(lec.memory_path, "utf-8"),
+    chunks: JSON.parse(await fs.readFile(lec.chunks_path, "utf-8")).map((c: any) => c.text).filter(Boolean)
   };
 }
 
-function lobbyDto() {
-  return TOPIC_POOL.map((topic) => {
-    const rooms = [...g.rooms.values()].filter((r) => r.topic === topic);
-    const totalStudents = rooms.reduce((n, r) => n + r.participants.size, 0);
-    const nextRoomCount = rooms.length === 0 ? 0 : rooms.find((r) => r.participants.size < MAX_PER_ROOM)?.participants.size ?? 0;
-    return {
-      topic,
-      openSeats: rooms.length === 0 || rooms.some((r) => r.participants.size < MAX_PER_ROOM),
-      activeRooms: rooms.length,
-      totalStudents,
-      nextRoomCount,
-      maxPerRoom: MAX_PER_ROOM,
-    };
-  });
+// ---------------- Socratic Logic ----------------
+function pickNextType(turns: Turn[], lastType: QuestionType | null): QuestionType {
+  const recent = turns.slice(-4);
+  const good = recent.filter(t => t.verdict === "good").length;
+  const bad = recent.length - good;
+  
+  const pool = bad >= 3 ? ["clarity", "precision", "accuracy", "relevance"] :
+               good >= 2 ? ["depth", "breadth", "logic", "precision"] :
+               QUESTION_TYPES;
+  
+  const filtered = lastType ? pool.filter(t => t !== lastType) : pool;
+  return (filtered.length ? filtered : pool)[Math.floor(Math.random() * (filtered.length || pool.length))] as QuestionType;
 }
 
-// ---------- API ----------
+async function generateQuestion(topic: string, targetType: QuestionType, summary: string | null, lastQ: string | null, turns: Turn[], memory: string): Promise<{ type: QuestionType; question: string }> {
+  const recent = turns.slice(-3).map((t, i) => 
+    `Q: "${t.question}" → A: "${t.answer}" (${t.verdict})`
+  ).join("\n");
+
+  const prompt = `You are an encouraging tutor. Generate ONE simple, short Socratic question (max 15 words) about "${topic}".
+
+Question type: ${targetType}
+Student's understanding: ${summary || "beginner"}
+${recent ? `Recent conversation:\n${recent}` : ""}
+Last question: ${lastQ || "none"}
+
+Make the question:
+- Short and clear (under 15 words)
+- Encouraging tone
+- Based on the lecture content below
+- Different from the last question
+
+Lecture context: ${memory.slice(0, 1000)}
+
+Return ONLY: {"questionType":"${targetType}","question":"your short question here"}`;
+
+  try {
+    const res = await llmFast.invoke([new SystemMessage(prompt)]);
+    const obj = extractJSON(res.content as string);
+    return {
+      type: QUESTION_TYPES.includes(obj.questionType) ? obj.questionType : targetType,
+      question: String(obj.question || "What else can you tell me about this topic?").slice(0, 150)
+    };
+  } catch {
+    const fallbacks: Record<string, string[]> = {
+      clarity: ["Can you explain that in simpler terms?"],
+      precision: ["Can you give an example?"],
+      accuracy: ["How do you know this?"],
+      relevance: ["Why is this important?"],
+      depth: ["Can you go deeper into that?"],
+      breadth: ["What's another way to look at this?"],
+      logic: ["How does this connect to what we discussed?"]
+    };
+    const qs = fallbacks[targetType] || ["Tell me more!"];
+    return { type: targetType, question: qs[Math.floor(Math.random() * qs.length)] };
+  }
+}
+
+async function evaluateAnswer(topic: string, question: string, answer: string, summary: string | null, memory: string): Promise<{ verdict: Verdict; score: number; feedback: string }> {
+  const prompt = `Grade this student answer about "${topic}" against the lecture content. Be GENEROUS and ENCOURAGING.
+
+Lecture: ${memory.slice(0, 2500)}
+Student Summary: ${summary || "none"}
+Question: "${question}"
+Answer: "${answer}"
+
+GRADING GUIDELINES (be lenient):
+- "good": Answer is mostly correct, shows understanding, even if not perfectly detailed. Score 7-10.
+- "neutral": Answer has some correct elements but could be more specific. Score 4-7.
+- "bad": Only if completely wrong or off-topic. Score 1-4.
+
+IMPORTANT:
+- If the student shows ANY understanding, lean toward "good" or "neutral"
+- Give partial credit for partial understanding
+- Encourage the student even when correcting
+- Short answers with correct info can still be "good"
+
+Return ONLY: {"verdict":"good|neutral|bad","score":0-10,"feedback":"short encouraging feedback max 25 words"}`;
+
+  try {
+    const res = await llm.invoke([new SystemMessage(prompt)]);
+    const obj = extractJSON(res.content as string);
+    const verdict = ["good", "neutral", "bad"].includes(obj.verdict) ? obj.verdict : "neutral";
+    let score = Math.max(0, Math.min(10, Number(obj.score) || 5));
+    
+    // Boost scores to be more generous
+    if (verdict === "neutral" && score >= 5) score = Math.min(7, score + 1);
+    if (verdict === "good" && score < 8) score = Math.max(7, score);
+    
+    return {
+      verdict,
+      score,
+      feedback: String(obj.feedback || "Good effort! Keep going.").slice(0, 200)
+    };
+  } catch {
+    return { verdict: "neutral", score: 5, feedback: "Good effort! Try adding more specific details from the lecture." };
+  }
+}
+
+async function generateFeedback(topic: string, summary: string | null, turns: Turn[], totalPoints: number, timeSpent: number, memory: string): Promise<string> {
+  const mins = Math.floor(timeSpent / 60);
+  const secs = timeSpent % 60;
+  
+  const goodCount = turns.filter(t => t.verdict === "good").length;
+  const neutralCount = turns.filter(t => t.verdict === "neutral").length;
+  const badCount = turns.filter(t => t.verdict === "bad").length;
+  
+  const turnsText = turns.map((t, i) => {
+    const e = t.verdict === "good" ? "✅" : t.verdict === "bad" ? "❌" : "⚠️";
+    return `${i+1}. ${e} Q: ${t.question}\n   A: ${t.answer}\n   Feedback: ${t.feedback} (+${t.points}pts)`;
+  }).join("\n\n");
+
+  const prompt = `Write an encouraging learning report for a student who practiced explaining "${topic}".
+
+Time: ${mins}m ${secs}s | Score: ${totalPoints}/${MAX_POINTS}
+Answers: ${goodCount} great, ${neutralCount} okay, ${badCount} needs work
+Summary: ${summary || "none"}
+Turns:\n${turnsText || "none"}
+Lecture Reference:\n${memory.slice(0, 1500)}
+
+Write EXACT sections:
+1) Overall (2-3 sentences, encouraging tone)
+2) Strengths (3 bullets, be specific and positive)
+3) Areas to grow (2-3 bullets, gentle suggestions)
+4) Key concepts from the lecture (2-3 paragraphs, Feynman style - simple and clear)
+5) Practice plan (3-5 numbered steps, concrete and achievable)
+
+Tone: Warm, encouraging, specific. Celebrate effort. No markdown.`;
+
+  try {
+    const res = await llmFast.invoke([new SystemMessage(prompt)]);
+    return (res.content as string)?.trim() || `Great effort on "${topic}"! You scored ${totalPoints}/${MAX_POINTS}. Keep practicing and you'll master this topic!`;
+  } catch {
+    return `🌟 Excellent work on "${topic}"!\n\nScore: ${totalPoints}/${MAX_POINTS}\n\nYou showed great effort and understanding. Review the lecture material and practice explaining the main ideas aloud. You're making good progress!`;
+  }
+}
+
+// ---------------- Messaging ----------------
+const now = () => Date.now();
+
+function getRoom(username: string): RoomState | null {
+  return g.userRoom.has(username) ? g.rooms.get(g.userRoom.get(username)) : null;
+}
+
+function broadcast(room: RoomState, msg: any) {
+  room.msgs.push(msg);
+  room.subs.forEach(fn => fn(msg));
+}
+
+async function sendBot(room: RoomState, content: string) {
+  broadcast(room, { id: `f-${now()}`, role: "facilitator", username: "Dr. Feynman", content, timestamp: now() });
+}
+
+function timeLeft(room: RoomState) {
+  if (!room.startTime) return SESSION_DURATION;
+  return Math.max(0, SESSION_DURATION - Math.floor((now() - room.startTime) / 1000));
+}
+
+// ---------------- API ----------------
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams;
+  const username = q.get("username")?.trim();
 
-  if (q.has("topics")) return NextResponse.json({ topics: lobbyDto() });
+  if (q.has("topics")) {
+    return NextResponse.json({ topics: await getProcessedLectures() });
+  }
 
   if (q.has("session")) {
-    const username = trim(q.get("username"));
-    const room = username ? getRoomByUser(username) : null;
-    return NextResponse.json(room ? sessionDto(room) : jsonSessionEmpty);
+    const room = username ? getRoom(username) : null;
+    if (!room) return NextResponse.json({ inSession: false });
+    return NextResponse.json({
+      inSession: true,
+      topic: room.topic,
+      phase: room.phase,
+      totalPoints: room.totalPoints,
+      maxPoints: MAX_POINTS,
+      remainingTime: timeLeft(room),
+      timeLimit: SESSION_DURATION,
+      feedbackReady: room.phase === "feedback"
+    });
   }
 
   if (q.has("history")) {
-    const username = trim(q.get("username"));
-    const room = username ? getRoomByUser(username) : null;
-    return NextResponse.json({
-      messages: room?.msgs ?? [],
-      phase: room?.phase ?? "waiting",
-      topic: room?.topic ?? "",
-      language: room?.language ?? "English",
-      treeScore: room?.treeScore ?? 0,
-    });
+    const room = username ? getRoom(username) : null;
+    return NextResponse.json({ messages: room?.msgs || [] });
   }
 
-  if (q.has("my_feedback")) {
-    const username = trim(q.get("username"));
-    const room = username ? getRoomByUser(username) : null;
-    if (!room) return NextResponse.json({ ready: false, feedback: "" });
-    return NextResponse.json({ ready: room.privateFeedbackReady, feedback: room.privateFeedbackByStudent[username] || "" });
+  if (q.has("feedback")) {
+    const room = username ? getRoom(username) : null;
+    return NextResponse.json({ 
+      ready: room?.phase === "feedback", 
+      feedback: room?.phase === "feedback" ? room.msgs.find(m => m.feedback)?.content || "" : "" 
+    });
   }
 
   if (q.has("stream")) {
-    const username = trim(q.get("username"));
-    const room = username ? getRoomByUser(username) : null;
-    if (!room) return new Response("No room", { status: 400 });
+    if (!username) return new Response("Username required", { status: 400 });
+    const room = getRoom(username);
+    if (!room) return new Response("No session", { status: 400 });
 
-    const enc = new TextEncoder();
+    const encoder = new TextEncoder();
     const stream = new ReadableStream({
-      start(ctrl) {
-        ctrl.enqueue(enc.encode(": ok\n\n"));
-        const fn = (msg: Msg) => {
-          try {
-            ctrl.enqueue(enc.encode(`data: ${JSON.stringify(msg)}\n\n`));
-          } catch {
-            room.subs.delete(fn);
-          }
+      start(controller) {
+        controller.enqueue(encoder.encode(": connected\n\n"));
+        const listener = (msg: any) => {
+          try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(msg)}\n\n`)); }
+          catch { room.subs.delete(listener); }
         };
-        room.subs.add(fn);
-        
-        const hb = setInterval(() => {
-          try {
-            ctrl.enqueue(enc.encode(": hb\n\n"));
-          } catch {
-            clearInterval(hb);
-            room.subs.delete(fn);
-          }
-        }, 15000);
-
-        (ctrl as any)._cleanup = () => {
-          clearInterval(hb);
-          room.subs.delete(fn);
-        };
+        room.subs.add(listener);
+        const interval = setInterval(() => controller.enqueue(encoder.encode(": heartbeat\n\n")), 30000);
+        (controller as any)._cleanup = () => { clearInterval(interval); room.subs.delete(listener); };
       },
-      cancel(ctrl) {
-        (ctrl as any)?._cleanup?.();
-      },
+      cancel(controller) { (controller as any)._cleanup?.(); }
     });
 
     return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-      },
+      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }
     });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  if (body.action === "join_room") {
-    const username = trim(body.username);
-    const topic = trim(body.topic);
-    const language = trim(body.language || "English");
-    if (!username || !topic) return NextResponse.json({ error: "username and topic required" }, { status: 400 });
+    // Start session
+    if (body.action === "start_session") {
+      const { username, topic, lectureId } = body;
+      if (!username || !topic || !lectureId) {
+        return NextResponse.json({ error: "username, topic, lectureId required" }, { status: 400 });
+      }
 
-    const room = getOrCreateRoom(topic, language);
-    const prev = getRoomByUser(username);
-    if (prev && prev.id !== room.id) prev.participants.delete(username);
+      const room: RoomState = {
+        id: `${topic}::${Math.random().toString(36).slice(2, 8)}`,
+        topic, lectureId,
+        msgs: [], subs: new Set(),
+        phase: "init", startTime: 0,
+        summary: null, turns: [], totalPoints: 0,
+        lastQuestion: null, lastType: null
+      };
 
-    room.participants.add(username);
-    g.userRoom.set(username, room.id);
+      g.rooms.set(room.id, room);
+      g.userRoom.set(username, room.id);
 
-    // CHANGED: Always start discussion when first student joins
-    if (room.phase === "waiting") {
-      // Welcome message
-      await postFacilitator(room, `👋 Welcome ${username}! Let's explore ${topic} together.`, "welcome");
-      
-      // Start discussion immediately (no waiting for second student)
-      room.phase = "discussion_3min";
-      room.discussionStartAt = now();
-      room.discussionEndsAt = room.discussionStartAt + DISCUSSION_MS;
-      room.feedbackGenerated = false;
-      room.privateFeedbackReady = false;
-      room.privateFeedbackByStudent = {};
-      room.treeScore = 0;
-      room.lastTreeEvalAt = 0;
+      await sendBot(room, `👋 Welcome ${username}! I'm Dr. Feynman.`);
+      await sendBot(room, `📚 Topic: "${topic}"`);
+      await sendBot(room, `⏱️ You have 3 minutes.`);
+      await sendBot(room, `Step 1) Summarize what "${topic}" is about in your own words.`);
+      await sendBot(room, `Then I'll ask Socratic questions to deepen your understanding.`);
+      await sendBot(room, `Type "start" when ready.`);
 
-      await postFacilitator(
-        room,
-        `🧠 Let's begin! You have 3 minutes to explore this topic.
-Instructions:
-1) Explain concepts clearly with examples.
-2) Build on your ideas step by step.
-3) Use cause-effect reasoning.
-🌳 The tree grows when you explain accurately and shrinks when statements are misleading.
-Start now!`,
-        "instructions"
-      );
-    } else if (room.phase === "discussion_3min" && room.participants.size > 0) {
-      // Additional student joins during active discussion
-      await postFacilitator(room, `👋 Welcome ${username}! Join the discussion—you have ${Math.max(0, Math.floor((room.discussionEndsAt! - now()) / 1000))} seconds left.`, "late-join");
+      return NextResponse.json({ ok: true, roomId: room.id });
     }
 
-    return NextResponse.json({ ok: true, ...sessionDto(room) });
-  }
+    // Reset
+    if (body.action === "reset") {
+      const { username } = body;
+      if (username) g.userRoom.delete(username);
+      return NextResponse.json({ ok: true });
+    }
 
-  if (body.action === "reset_room") {
-    const username = trim(body.username);
-    const room = username ? getRoomByUser(username) : null;
-    if (!room) return NextResponse.json({ ok: true });
+    // Messages
+    const { username, content } = body;
+    if (!username || !content) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
-    room.phase = "waiting";
-    room.discussionStartAt = null;
-    room.discussionEndsAt = null;
-    room.feedbackGenerated = false;
-    room.msgs = [];
-    room.privateFeedbackByStudent = {};
-    room.privateFeedbackReady = false;
-    room.treeScore = 0;
-    room.lastTreeEvalAt = 0;
-    room.busy = false;
+    const room = getRoom(username);
+    if (!room) return NextResponse.json({ error: "No session" }, { status: 400 });
+
+    // Check timeout
+    if (room.phase === "explaining" && timeLeft(room) <= 0) {
+      room.phase = "feedback";
+      const data = await getLectureData(room.lectureId);
+      const timeSpent = SESSION_DURATION - timeLeft(room);
+      const fb = await generateFeedback(room.topic, room.summary, room.turns, room.totalPoints, timeSpent, data?.memory || "");
+      await sendBot(room, `⏰ Time's up! Great effort!\n\n${fb}`);
+      return NextResponse.json({ ok: true, sessionEnded: true });
+    }
+
+    // Commands
+    const cmd = content.toLowerCase().trim();
+
+    if (cmd === "start" && room.phase === "init") {
+      room.phase = "explaining";
+      room.startTime = now();
+      await sendBot(room, `🎯 Summarize "${room.topic}" in your own words.`);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (cmd === "feedback" && room.phase === "feedback") {
+      const fb = room.msgs.find(m => m.content?.includes("1) Overall"));
+      if (fb) {
+        const chunks = fb.content.match(/.{1,500}/g) || [fb.content];
+        for (const c of chunks) await sendBot(room, c);
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    if (cmd === "hint" && room.phase === "explaining") {
+      if (room.lastQuestion) {
+        await sendBot(room, `💡 Think about: ${room.lastQuestion}\nTry to use specific terms from the lecture.`);
+      } else {
+        await sendBot(room, `💡 Try to explain "${room.topic}" in your own words first.`);
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    // Broadcast student message
+    broadcast(room, { id: `m-${now()}`, role: "student", username, content, timestamp: now() });
+
+    // Explaining phase
+    if (room.phase === "explaining") {
+      const data = await getLectureData(room.lectureId);
+      if (!data) { await sendBot(room, "Lecture not found."); return NextResponse.json({ ok: true }); }
+
+      // First message = summary (give 5 free points for starting)
+      if (!room.summary) {
+        room.summary = content;
+        room.totalPoints = 5; // Give 5 points just for providing a summary
+        
+        const nextType = pickNextType(room.turns, null);
+        const q = await generateQuestion(room.topic, nextType, room.summary, null, room.turns, data.memory);
+        room.lastQuestion = q.question;
+        room.lastType = q.type;
+        
+        await sendBot(room, `🌟 Great summary! +5 points to start your tree!`);
+        await sendBot(room, `${"🌳" + "🌿".repeat(Math.floor(room.totalPoints / 10)) + "⬜".repeat(10 - Math.floor(room.totalPoints / 10))} ${room.totalPoints}/${MAX_POINTS}`);
+        await sendBot(room, `Now let's deepen your understanding.`);
+        await sendBot(room, `(${q.type}) ${q.question}`);
+        return NextResponse.json({ ok: true });
+      }
+
+      // Evaluate answer - LENIENT SCORING
+      const evalResult = await evaluateAnswer(room.topic, room.lastQuestion!, content, room.summary, data.memory);
+
+      // Generous scoring: neutral gets partial credit too
+      let points = 0;
+      if (evalResult.verdict === "good") {
+        points = Math.min(14, 8 + Math.floor(evalResult.score * 0.6));
+      } else if (evalResult.verdict === "neutral") {
+        points = Math.min(7, Math.floor(evalResult.score * 0.7)); // 2-7 points for neutral
+      }
+      // Only truly bad answers get 0, but even then give 1 point for trying
+      if (evalResult.verdict === "bad" && evalResult.score >= 3) {
+        points = 1; // 1 pity point for trying
+      }
+      
+      room.totalPoints = Math.min(MAX_POINTS, room.totalPoints + points);
+      room.turns.push({
+        questionType: room.lastType!,
+        question: room.lastQuestion!,
+        answer: content,
+        verdict: evalResult.verdict,
+        points,
+        feedback: evalResult.feedback
+      });
+
+      const tree = "🌳" + "🌿".repeat(Math.floor(room.totalPoints / 10)) + "⬜".repeat(10 - Math.floor(room.totalPoints / 10));
+      const emoji = evalResult.verdict === "good" ? "✅" : evalResult.verdict === "bad" ? "❌" : "⚠️";
+      
+      const pointMsg = points > 0 ? `+${points} pts! ` : "";
+      const encouragement = points > 0 ? "🌱" : "💪 Keep trying!";
+      
+      await sendBot(room, `${emoji} ${pointMsg}${evalResult.feedback} ${encouragement}`);
+      await sendBot(room, `${tree} ${room.totalPoints}/${MAX_POINTS}`);
+
+      // Max points reached
+      if (room.totalPoints >= MAX_POINTS) {
+        room.phase = "feedback";
+        const timeSpent = SESSION_DURATION - timeLeft(room);
+        const fb = await generateFeedback(room.topic, room.summary, room.turns, room.totalPoints, timeSpent, data.memory);
+        await sendBot(room, `🎉 Amazing! Perfect score!\n\n${fb}`);
+        return NextResponse.json({ ok: true, sessionEnded: true });
+      }
+
+      // Next question
+      const nextType = pickNextType(room.turns, room.lastType);
+      const q = await generateQuestion(room.topic, nextType, room.summary, room.lastQuestion, room.turns, data.memory);
+      room.lastQuestion = q.question;
+      room.lastType = q.type;
+      await sendBot(room, `(${q.type}) ${q.question}`);
+    }
 
     return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[SOLOSPRINT]", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-
-  const username = trim(body.username);
-  const content = trim(body.content);
-  if (!username || !content) return NextResponse.json({ error: "username and content required" }, { status: 400 });
-
-  const room = getRoomByUser(username);
-  if (!room) return NextResponse.json({ error: "Join a topic room first." }, { status: 400 });
-  if (room.phase === "personal_feedback") return NextResponse.json({ error: "Discussion ended. Click View My Feedback." }, { status: 400 });
-
-  broadcast(room, {
-    id: `m-${now()}-${Math.random().toString(36).slice(2, 7)}`,
-    role: "student",
-    username,
-    content,
-    timestamp: now(),
-  });
-
-  if (room.phase === "discussion_3min") {
-    const prevMsg = [...room.msgs].slice(0, -1).reverse().find((m) => m.role === "student" && m.username === username);
-    const repeated = !!prevMsg && prevMsg.content.trim().toLowerCase() === content.toLowerCase();
-    if (!repeated) {
-      const verdict = await evaluateContribution(room.topic, content);
-      if (verdict === "good") room.treeScore = clamp(room.treeScore + 10, 0, 100);
-      if (verdict === "bad") room.treeScore = clamp(room.treeScore - 7, 0, 100);
-      room.lastTreeEvalAt = now();
-    }
-  }
-
-  maybeAdvanceRoom(room).catch(console.error);
-  return NextResponse.json({ ok: true, treeScore: room.treeScore });
 }

@@ -17,7 +17,7 @@ type ProcessProgress = {
   error?: string;
 };
 
-type TabKey = "overview" | "upload" | "courses" | "analytics";
+type TabKey = "overview" | "upload" | "courses" ;
 
 export default function TeacherStudioPage() {
   const [library, setLibrary] = useState<Lecture[]>([]);
@@ -233,9 +233,9 @@ export default function TeacherStudioPage() {
           <button className={`navItem ${activeTab === "courses" ? "active" : ""}`} onClick={() => setActiveTab("courses")}>
             My Lectures
           </button>
-          <button className={`navItem ${activeTab === "analytics" ? "active" : ""}`} onClick={() => setActiveTab("analytics")}>
-            Doubt Analytics
-          </button>
+          <a href="/teacher/dashboard" className="navItem">
+            Dashboard
+          </a>
         </nav>
       </aside>
 
@@ -339,92 +339,7 @@ export default function TeacherStudioPage() {
           </section>
         )}
 
-        {activeTab === "analytics" && (
-          <section className="analyticsWrap">
-            <div className="analyticsStats">
-              <div className="card"><h3>Total Students</h3><p>128</p></div>
-              <div className="card"><h3>Avg. Struggle Index</h3><p>62%</p></div>
-              <div className="card"><h3>Topics with High Difficulty</h3><p>7</p></div>
-              <div className="card"><h3>Students Needing Support</h3><p>23</p></div>
-            </div>
-
-            <div className="figGrid">
-              <div className="figCard">
-                <h4>Difficulty by Topic</h4>
-                <div className="bars">
-                  <div className="barRow"><span>Backprop</span><div className="bar"><i style={{ width: "86%" }} /></div><b>86</b></div>
-                  <div className="barRow"><span>Thermo</span><div className="bar"><i style={{ width: "78%" }} /></div><b>78</b></div>
-                  <div className="barRow"><span>Grad Desc</span><div className="bar"><i style={{ width: "64%" }} /></div><b>64</b></div>
-                  <div className="barRow"><span>Chain Rule</span><div className="bar"><i style={{ width: "58%" }} /></div><b>58</b></div>
-                  <div className="barRow"><span>Matrices</span><div className="bar"><i style={{ width: "41%" }} /></div><b>41</b></div>
-                </div>
-              </div>
-
-              <div className="figCard">
-                <h4>Weekly Assistance Requests</h4>
-                <div className="spark">
-                  <div style={{ height: 34 }} />
-                  <div style={{ height: 52 }} />
-                  <div style={{ height: 46 }} />
-                  <div style={{ height: 70 }} />
-                  <div style={{ height: 64 }} />
-                  <div style={{ height: 82 }} />
-                  <div style={{ height: 60 }} />
-                </div>
-                <div className="sparkLabels">
-                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                </div>
-              </div>
-
-              <div className="figCard">
-                <h4>Students by Severity</h4>
-                <div className="donutWrap">
-                  <div className="donut" />
-                  <ul className="legend">
-                    <li><em className="dot high" /> High (9)</li>
-                    <li><em className="dot med" /> Medium (10)</li>
-                    <li><em className="dot low" /> Low (4)</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="tableCard">
-              <h3>Students requiring assistance by topic</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Topic</th>
-                    <th>Severity</th>
-                    <th>Sessions flagged</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assistanceRows.map((r, i) => (
-                    <tr key={i}>
-                      <td>
-                        <span className="studentHover">
-                          {r.student}
-                          <span className="studentTooltip">
-                            <strong>{r.student}</strong>
-                            <small>{r.email}</small>
-                            <small><b>Weak areas:</b> {r.weakAreas}</small>
-                            <small><b>Completion:</b> {r.completion}</small>
-                            <small><b>Last active:</b> {r.lastSeen}</small>
-                          </span>
-                        </span>
-                      </td>
-                      <td>{r.topic}</td>
-                      <td><span className={`sev ${r.severity.toLowerCase()}`}>{r.severity}</span></td>
-                      <td>{r.sessions}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+        
       </main>
 
       <style jsx>{`

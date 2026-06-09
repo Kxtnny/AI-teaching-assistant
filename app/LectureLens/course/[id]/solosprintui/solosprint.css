@@ -1,0 +1,50 @@
+/* Paste your entire CSS exactly as you wrote it. */
+/* Join Screen */
+.solosprint-join-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 16px;
+}
+
+.solosprint-join-card {
+  background: white;
+  border-radius: 24px;
+  width: min(500px, 100%);
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* ... keep the rest of your CSS exactly ... */
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .solosprint-main {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .solosprint-right-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .solosprint-main {
+    grid-template-columns: 1fr;
+  }
+
+  .solosprint-left-panel {
+    display: none;
+  }
+
+  .solosprint-header {
+    padding: 12px 16px;
+  }
+
+  .solosprint-message-content {
+    max-width: 85%;
+  }
+}

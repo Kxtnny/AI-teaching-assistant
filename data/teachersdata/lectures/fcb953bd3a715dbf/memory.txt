@@ -1,0 +1,29 @@
+LECTURE MEMORY:  
+- Large Language Models (LLMs) are transformer-based neural networks trained on massive text corpora using self-supervised learning.  
+- LLMs process text by tokenizing it into words, subwords, or characters, which are converted into embeddings capturing semantic relationships.  
+- Popular LLMs like ChatGPT have billions of parameters enabling accurate next-token prediction.  
+- Prompts are critical inputs that guide LLM outputs; small changes in prompts can significantly affect performance.  
+- Prompt engineering customizes LLM behavior by providing contextual instructions to control style, format, and content.  
+- Structured prompts improve relevance and accuracy in task-specific responses.  
+- Automatic Prompt Engineer (APE) techniques automatically generate task-specific instructions, improving zero-shot performance without training examples.  
+- Chain-of-Thought (CoT) prompting asks the model to generate intermediate reasoning steps, enhancing multi-step reasoning accuracy.  
+- Active Prompting selects informative examples to further boost CoT performance on reasoning benchmarks.  
+- Existing research on LLM reliability and hallucinations often focuses on high-level analysis rather than dedicated educational chatbot prompting tools.  
+- Manual prompt design is often inefficient and challenging for non-expert users.  
+- The proposed prompting tool integrates APE and Active CoT in an educational chatbot to automatically refine user prompts.  
+- This tool aims to improve answer reliability, reduce hallucinations, and enforce clear task constraints and stepwise reasoning.  
+- Emphasizing step-by-step reasoning discourages unsupported or fabricated outputs in educational contexts.  
+
+Formulas/Theorems:  
+- No explicit formulas or theorems presented; focus is on methods and techniques for prompt design and evaluation.  
+
+Pitfalls:  
+- LLM outputs are highly sensitive to subtle prompt changes, which can degrade performance.  
+- Manual prompt engineering can be inefficient and inaccessible to non-experts.  
+- Hallucinations (fabricated or unsupported outputs) remain a challenge in educational applications.  
+- Overly vague or poorly structured prompts reduce answer accuracy and reliability.  
+
+Example Problem Types:  
+- Multi-step reasoning tasks requiring chain-of-thought explanations (e.g., MultiArith, GSM8K benchmarks).  
+- Zero-shot tasks where no training examples are provided, relying solely on prompt instructions.  
+- Educational chatbot queries needing accurate, stepwise, and reliable responses.

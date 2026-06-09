@@ -99,6 +99,10 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
               <h4 className={styles.cardTitle}>Solo Feynman Sprint</h4>
               <p className={styles.cardText}>practise your understanding using this gamified approach.</p>
             </Link>
+            <Link href={`/LectureLens/course/${lectureId}/activelearning${q}`} className={styles.card}>
+              <h4 className={styles.cardTitle}>Active Learning</h4>
+              <p className={styles.cardText}>Engage with the material through interactive exercises.</p>
+            </Link>
           </div>
         </article>
       </section>
