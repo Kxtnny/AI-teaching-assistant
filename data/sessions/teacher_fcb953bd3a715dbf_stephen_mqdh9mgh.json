@@ -1,0 +1,23 @@
+{
+  "sessionId": "teacher:fcb953bd3a715dbf:stephen:mqdh9mgh",
+  "studentName": "stephen",
+  "lectureId": "fcb953bd3a715dbf",
+  "creator": "teacher",
+  "topic": "",
+  "tone": "guided",
+  "createdAt": 1781423013627,
+  "phase": "primer",
+  "primer": {
+    "sections": [
+      {
+        "title": "Large Language Model",
+        "bullets": [
+          "A quick look at Large Language Model before we explore it together."
+        ]
+      }
+    ],
+    "keyTerms": [],
+    "createdAt": 1781423017409
+  },
+  "treePoints": 0
+}

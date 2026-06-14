@@ -1,165 +1,162 @@
-// app/api/doubts/route.ts
-// Single API route handling all doubt analytics queries.
+// app/api/analytics/route.ts
+// Single API route powering all four dashboard visualizations.
 // Usage:
-//   GET /api/doubts?type=all                    -> full doubt list
-//   GET /api/doubts?type=students               -> per-student summary
-//   GET /api/doubts?type=topic-difficulty       -> doubt counts per topic
-//   GET /api/doubts?type=weekly                 -> Mon-Sun activity
-// Add &studentId=1 to any of them to scope to one student.
+//   GET /api/analytics?type=questions-per-topic   -> bar chart (count of questions per topic)
+//   GET /api/analytics?type=topic-percentage      -> pie (% of questions asked by topic)
+//   GET /api/analytics?type=material-percentage    -> pie (% of course material by topic)
+//   GET /api/analytics?type=context               -> pie (question context breakdown)
+//   GET /api/analytics?type=all                   -> raw question list (joined w/ topic)
+// Add &studentId=1 to scope question-based stats to a single student.
 
-// Inline mock data (move to JSON files when ready)
+// ---------- Mock data (swap for JSON imports when ready) ----------
+const topics = [
+    { topicId: 1, name: "Python Basics and Syntax" },
+    { topicId: 2, name: "Variables and Data Types" },
+    { topicId: 3, name: "Control Flow (Conditionals and Loops)" },
+    { topicId: 4, name: "Functions and Modular Programming" },
+    { topicId: 5, name: "Built-in Data Structures (Lists, Tuples, Dictionaries, Sets)" },
+    { topicId: 6, name: "File Handling and Input/Output" },
+    { topicId: 7, name: "Error Handling and Debugging" }
+];
+
+// Number of course-material documents/pieces per topic.
+// Used for the "Percentage of Course Material" pie, compared against questions asked.
+const courseMaterial = [
+    { topicId: 1, documents: 6 },
+    { topicId: 2, documents: 5 },
+    { topicId: 3, documents: 8 },
+    { topicId: 4, documents: 7 },
+    { topicId: 5, documents: 6 },
+    { topicId: 6, documents: 3 },
+    { topicId: 7, documents: 4 }
+];
+
 const students = [
     { id: 1, name: "Ava Lim" },
     { id: 2, name: "Noah Tan" },
     { id: 3, name: "Mia Chen" },
     { id: 4, name: "Liam Goh" },
-    { id: 5, name: "Ethan Raj" },
-    { id: 6, name: "Sophia Lee" },
-    { id: 7, name: "Jacob Wong" },
-    { id: 8, name: "Isabella Ng" }
+    { id: 5, name: "Ethan Raj" }
 ];
 
-const topics = [
-    { topicId: 1, name: "Backpropagation" },
-    { topicId: 2, name: "Thermodynamics Laws" },
-    { topicId: 3, name: "Gradient Descent" },
-    { topicId: 4, name: "Chain Rule" },
-    { topicId: 5, name: "Matrix Multiplication" },
-    { topicId: 6, name: "Neural Networks" },
-    { topicId: 7, name: "Linear Algebra" }
-];
-
-const doubts = [
-    { doubtId: 1, studentId: 1, topicId: 1, severity: "High", context: "Lecture", dayOfWeek: "Mon" },
-    { doubtId: 2, studentId: 1, topicId: 1, severity: "High", context: "Homework", dayOfWeek: "Tue" },
-    { doubtId: 3, studentId: 1, topicId: 1, severity: "Medium", context: "Exam", dayOfWeek: "Wed" },
-    { doubtId: 4, studentId: 1, topicId: 3, severity: "Medium", context: "Practice", dayOfWeek: "Thu" },
-    { doubtId: 5, studentId: 2, topicId: 3, severity: "Medium", context: "Homework", dayOfWeek: "Mon" },
-    { doubtId: 6, studentId: 2, topicId: 3, severity: "Medium", context: "Lecture", dayOfWeek: "Wed" },
-    { doubtId: 7, studentId: 2, topicId: 4, severity: "Low", context: "Practice", dayOfWeek: "Fri" },
-    { doubtId: 8, studentId: 3, topicId: 2, severity: "High", context: "Lecture", dayOfWeek: "Tue" },
-    { doubtId: 9, studentId: 3, topicId: 2, severity: "High", context: "Exam", dayOfWeek: "Thu" },
-    { doubtId: 10, studentId: 3, topicId: 2, severity: "High", context: "Homework", dayOfWeek: "Sat" },
-    { doubtId: 11, studentId: 3, topicId: 6, severity: "Medium", context: "Lecture", dayOfWeek: "Sat" },
-    { doubtId: 12, studentId: 4, topicId: 5, severity: "Low", context: "Practice", dayOfWeek: "Wed" },
-    { doubtId: 13, studentId: 4, topicId: 5, severity: "Low", context: "Homework", dayOfWeek: "Fri" },
-    { doubtId: 14, studentId: 5, topicId: 4, severity: "Medium", context: "Lecture", dayOfWeek: "Mon" },
-    { doubtId: 15, studentId: 5, topicId: 4, severity: "Medium", context: "Practice", dayOfWeek: "Thu" },
-    { doubtId: 16, studentId: 5, topicId: 4, severity: "Medium", context: "Homework", dayOfWeek: "Sun" },
-    { doubtId: 17, studentId: 6, topicId: 1, severity: "High", context: "Exam", dayOfWeek: "Sat" },
-    { doubtId: 18, studentId: 6, topicId: 6, severity: "Medium", context: "Lecture", dayOfWeek: "Tue" },
-    { doubtId: 19, studentId: 7, topicId: 7, severity: "Low", context: "Practice", dayOfWeek: "Fri" },
-    { doubtId: 20, studentId: 7, topicId: 1, severity: "High", context: "Homework", dayOfWeek: "Thu" },
-    { doubtId: 21, studentId: 8, topicId: 2, severity: "Medium", context: "Lecture", dayOfWeek: "Sat" },
-    { doubtId: 22, studentId: 8, topicId: 3, severity: "Low", context: "Practice", dayOfWeek: "Sun" },
-    { doubtId: 23, studentId: 1, topicId: 6, severity: "High", context: "Lecture", dayOfWeek: "Fri" }
+// context values: chat_with_educator | forum | lecture | self_study_chatbot
+const questions = [
+    { questionId: 1, studentId: 1, topicId: 1, context: "lecture" },
+    { questionId: 2, studentId: 2, topicId: 2, context: "forum" },
+    { questionId: 3, studentId: 3, topicId: 2, context: "self_study_chatbot" },
+    { questionId: 4, studentId: 1, topicId: 3, context: "lecture" },
+    { questionId: 5, studentId: 2, topicId: 3, context: "forum" },
+    { questionId: 6, studentId: 3, topicId: 3, context: "self_study_chatbot" },
+    { questionId: 7, studentId: 4, topicId: 3, context: "chat_with_educator" },
+    { questionId: 8, studentId: 5, topicId: 3, context: "lecture" },
+    { questionId: 9, studentId: 1, topicId: 3, context: "forum" },
+    { questionId: 10, studentId: 2, topicId: 3, context: "self_study_chatbot" },
+    { questionId: 11, studentId: 3, topicId: 3, context: "lecture" },
+    { questionId: 12, studentId: 4, topicId: 3, context: "forum" },
+    { questionId: 13, studentId: 1, topicId: 4, context: "self_study_chatbot" },
+    { questionId: 14, studentId: 2, topicId: 4, context: "lecture" },
+    { questionId: 15, studentId: 3, topicId: 4, context: "forum" },
+    { questionId: 16, studentId: 4, topicId: 4, context: "self_study_chatbot" },
+    { questionId: 17, studentId: 5, topicId: 4, context: "lecture" },
+    { questionId: 18, studentId: 1, topicId: 5, context: "forum" },
+    { questionId: 19, studentId: 2, topicId: 5, context: "self_study_chatbot" },
+    { questionId: 20, studentId: 3, topicId: 5, context: "lecture" },
+    { questionId: 21, studentId: 4, topicId: 5, context: "chat_with_educator" },
+    { questionId: 22, studentId: 5, topicId: 5, context: "forum" },
+    { questionId: 23, studentId: 1, topicId: 6, context: "self_study_chatbot" },
+    { questionId: 24, studentId: 2, topicId: 6, context: "lecture" },
+    { questionId: 25, studentId: 3, topicId: 6, context: "forum" },
+    { questionId: 26, studentId: 4, topicId: 6, context: "self_study_chatbot" },
+    { questionId: 27, studentId: 5, topicId: 7, context: "lecture" },
+    { questionId: 28, studentId: 1, topicId: 7, context: "forum" },
+    { questionId: 29, studentId: 2, topicId: 7, context: "chat_with_educator" },
+    { questionId: 30, studentId: 3, topicId: 7, context: "self_study_chatbot" }
 ];
 
 export async function GET(request: Request) {
     const url = new URL(request.url);
-    const type = url.searchParams.get('type') || 'all';
+    const type = url.searchParams.get('type') || 'questions-per-topic';
     const studentId = url.searchParams.get('studentId');
-    const topicId = url.searchParams.get('topicId');
-    const severity = url.searchParams.get('severity');
 
-    // Apply common filters
-    let filtered = doubts;
-    if (studentId) filtered = filtered.filter(d => d.studentId === Number(studentId));
-    if (topicId) filtered = filtered.filter(d => d.topicId === Number(topicId));
-    if (severity) filtered = filtered.filter(d => d.severity === severity);
+    // Scope questions to a student if requested
+    let filtered = questions;
+    if (studentId) filtered = filtered.filter(q => q.studentId === Number(studentId));
 
     let result: any;
 
-    // --- TYPE: full doubt list (joined with student + topic) ---
-    if (type === 'all') {
-        result = filtered.map(item => {
-            const topic = topics.find(t => t.topicId === item.topicId);
-            const student = students.find(s => s.id === item.studentId);
+    // --- Bar chart: number of questions per topic ---
+    if (type === 'questions-per-topic' || type === 'topic-percentage') {
+        const counts: Record<number, number> = {};
+        filtered.forEach(q => { counts[q.topicId] = (counts[q.topicId] || 0) + 1; });
+        result = topics
+            .map(t => ({ topicId: t.topicId, name: t.name, count: counts[t.topicId] || 0 }))
+            .filter(t => t.count > 0);
+    }
+
+    // --- Pie: percentage of course material by topic ---
+    else if (type === 'material-percentage') {
+        result = courseMaterial.map(m => {
+            const topic = topics.find(t => t.topicId === m.topicId);
+            return { topicId: m.topicId, name: topic?.name || `Topic ${m.topicId}`, documents: m.documents };
+        });
+    }
+
+    // --- Pie: question context breakdown ---
+    else if (type === 'context') {
+        const counts: Record<string, number> = {};
+        filtered.forEach(q => { counts[q.context] = (counts[q.context] || 0) + 1; });
+        result = Object.entries(counts).map(([context, count]) => ({ context, count }));
+    }
+
+    // --- Raw question list joined with topic ---
+    else if (type === 'all') {
+        result = filtered.map(q => {
+            const topic = topics.find(t => t.topicId === q.topicId);
+            const student = students.find(s => s.id === q.studentId);
             return {
-                doubtId: item.doubtId,
-                studentId: item.studentId,
+                questionId: q.questionId,
+                studentId: q.studentId,
                 studentName: student?.name,
-                topic: topic,
-                severity: item.severity,
-                context: item.context,
-                dayOfWeek: item.dayOfWeek
+                topic,
+                context: q.context
             };
         });
     }
 
-    // --- TYPE: per-student summary (for the dashboard table) ---
+    // --- Per-student summary (for table) ---
     else if (type === 'students') {
-        const studentMap: Record<number, { topics: Set<number>, severities: string[], sessions: number }> = {};
-        filtered.forEach(d => {
-            if (!studentMap[d.studentId]) {
-                studentMap[d.studentId] = { topics: new Set(), severities: [], sessions: 0 };
-            }
-            studentMap[d.studentId].topics.add(d.topicId);
-            studentMap[d.studentId].severities.push(d.severity);
-            studentMap[d.studentId].sessions++;
+        const map: Record<number, { topics: Set<number>, total: number }> = {};
+        questions.forEach(q => {
+            if (!map[q.studentId]) map[q.studentId] = { topics: new Set(), total: 0 };
+            map[q.studentId].topics.add(q.topicId);
+            map[q.studentId].total++;
         });
-
-        const severityRank: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
-
-        result = Object.entries(studentMap).map(([sid, data]) => {
+        result = Object.entries(map).map(([sid, data]) => {
             const student = students.find(s => s.id === Number(sid));
-            const topSeverity = data.severities.reduce(
-                (a, b) => (severityRank[a] || 0) >= (severityRank[b] || 0) ? a : b, 'Low'
-            );
-
-            const topicFreq: Record<number, number> = {};
-            filtered.filter(d => d.studentId === Number(sid)).forEach(d => {
-                topicFreq[d.topicId] = (topicFreq[d.topicId] || 0) + 1;
+            // most asked topic
+            const freq: Record<number, number> = {};
+            questions.filter(q => q.studentId === Number(sid)).forEach(q => {
+                freq[q.topicId] = (freq[q.topicId] || 0) + 1;
             });
-            const topTopicId = Object.entries(topicFreq).sort((a, b) => b[1] - a[1])[0]?.[0];
+            const topTopicId = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0];
             const topTopic = topics.find(t => t.topicId === Number(topTopicId));
-
             return {
                 studentId: Number(sid),
                 studentName: student?.name,
                 primaryTopic: topTopic?.name,
-                severity: topSeverity,
-                sessionsFlagged: data.sessions
+                topicsCovered: data.topics.size,
+                totalQuestions: data.total
             };
         });
-    }
-
-    // --- TYPE: topic difficulty (for bar chart) ---
-    else if (type === 'topic-difficulty') {
-        const topicCounts: Record<number, number> = {};
-        filtered.forEach(d => {
-            topicCounts[d.topicId] = (topicCounts[d.topicId] || 0) + 1;
-        });
-        result = Object.entries(topicCounts).map(([tid, count]) => {
-            const topic = topics.find(t => t.topicId === Number(tid));
-            return {
-                topicId: Number(tid),
-                name: topic?.name || `Topic ${tid}`,
-                count
-            };
-        }).sort((a, b) => b.count - a.count);
-    }
-
-    // --- TYPE: weekly activity ---
-    else if (type === 'weekly') {
-        const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const dayCounts: Record<string, number> = {};
-        daysOrder.forEach(d => { dayCounts[d] = 0; });
-        filtered.forEach(d => {
-            if (dayCounts[d.dayOfWeek] !== undefined) dayCounts[d.dayOfWeek]++;
-        });
-        result = daysOrder.map(day => ({ day, requests: dayCounts[day] }));
     }
 
     else {
         return new Response(JSON.stringify({ error: 'Invalid type parameter' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
+            status: 400, headers: { 'Content-Type': 'application/json' }
         });
     }
 
     return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        status: 200, headers: { 'Content-Type': 'application/json' }
     });
 }

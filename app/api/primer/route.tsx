@@ -1,6 +1,9 @@
-// app/api/primer/route.tsx
-// GROVE · Feature 1 — "Primer": teaches/summarises the lecture before the dialogue.
-// Self-contained: no shared lib imports. Creates the shared session record.
+// app/api/primer/route.tsx  (v11)
+// GROVE · Feature 1 — "Lecture / Primer": teaches the lecture before the dialogue.
+// v11 change: each section is now a short TITLE + a list of concise BULLETS
+// (lecture-slide style) rather than a prose paragraph. The UI reveals the bullets
+// one at a time while a tutor avatar "speaks" them.
+// Still self-contained; still creates the shared session record.
 
 import { NextRequest, NextResponse } from "next/server";
 import { SystemMessage } from "@langchain/core/messages";
@@ -9,7 +12,7 @@ import path from "path";
 import fsp from "fs/promises";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
-const fastModel = new ChatOpenAI({ modelName: MODEL, temperature: 0, maxTokens: 600, openAIApiKey: process.env.OPENAI_API_KEY });
+const fastModel = new ChatOpenAI({ modelName: MODEL, temperature: 0, maxTokens: 700, openAIApiKey: process.env.OPENAI_API_KEY });
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const SESSIONS_DIR = path.join(DATA_DIR, "sessions");
@@ -39,17 +42,27 @@ function extractJSON(text: string): any {
 }
 const slug = (s: string) => (s || "anon").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "anon";
 
+// Split a prose body into bullet-sized lines (fallback only).
+function splitToBullets(text: string): string[] {
+  return String(text || "")
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
 function buildPrimerPrompt(topic: string, memory: string) {
-  return `You are a teacher introducing the topic "${topic}". Using ONLY the lecture content below, write a short, friendly overview the student can read in about 60-90 seconds BEFORE you discuss it together.
+  return `You are a teacher giving a short, friendly lecture on "${topic}". Using ONLY the lecture content below, produce a slide-style primer the student can absorb in about 60-90 seconds BEFORE you discuss it together.
 
 Requirements:
-- 3 to 5 sections, ordered so understanding builds naturally
-- Each section: a short title and a body of 2-4 sentences in plain language
-- No markdown, no bullet symbols inside the body text
-- Also list 4-8 key terms the student should recognise
+- 3 to 5 sections, ordered so understanding builds naturally.
+- Each section has a SHORT title (max 6 words) and 2-4 BULLET POINTS.
+- Each bullet is ONE short, plain-language idea (max 16 words). No sub-bullets, no markdown symbols, no trailing period needed.
+- Bullets should read like lecture talking points, not full paragraphs.
+- Also list 4-8 key terms the student should recognise.
 
 Return ONLY JSON:
-{"sections":[{"title":"...","body":"..."}],"keyTerms":["...","..."]}
+{"sections":[{"title":"...","bullets":["...","...","..."]}],"keyTerms":["...","..."]}
 
 Lecture content:
 ${memory.slice(0, 3000)}`;
@@ -81,27 +94,40 @@ export async function POST(req: NextRequest) {
       };
       await saveSession(session);
     }
-    if (session.primer) return NextResponse.json({ sessionId, primer: session.primer, cached: true });
-
     const lec = await getLecture(lectureId, creator);
     if (!lec) return NextResponse.json({ error: "Lecture not found or not ready" }, { status: 404 });
+
+    // serve cached primer, but only if it's already in the new bullet shape
+    if (session.primer && Array.isArray(session.primer.sections) && session.primer.sections[0]?.bullets) {
+      return NextResponse.json({ sessionId, primer: session.primer, title: lec.title, cached: true });
+    }
 
     let primer: any;
     try {
       const res = await fastModel.invoke([new SystemMessage(buildPrimerPrompt(lec.title, lec.memory))]);
       const obj = extractJSON(res.content as string);
       primer = {
-        sections: (obj.sections || []).slice(0, 5).map((x: any) => ({ title: String(x.title || "").slice(0, 80), body: String(x.body || "").slice(0, 600) })),
+        sections: (obj.sections || []).slice(0, 5).map((x: any) => {
+          const bullets = Array.isArray(x.bullets) && x.bullets.length
+            ? x.bullets.map((bl: any) => String(bl).replace(/^[-•\s]+/, "").slice(0, 140)).filter(Boolean).slice(0, 4)
+            : splitToBullets(x.body);            // fallback if the model returned prose
+          return { title: String(x.title || "").slice(0, 60), bullets };
+        }).filter((s: any) => s.bullets.length),
         keyTerms: (obj.keyTerms || []).slice(0, 8).map((t: any) => String(t).slice(0, 40)),
         createdAt: Date.now(),
       };
+      if (!primer.sections.length) throw new Error("empty");
     } catch {
-      primer = { sections: [{ title: lec.title, body: `Here's a quick look at ${lec.title} before we explore it together through conversation.` }], keyTerms: [], createdAt: Date.now() };
+      primer = {
+        sections: [{ title: lec.title, bullets: [`A quick look at ${lec.title} before we explore it together.`] }],
+        keyTerms: [],
+        createdAt: Date.now(),
+      };
     }
 
     session.primer = primer;
     await saveSession(session);
-    return NextResponse.json({ sessionId, primer });
+    return NextResponse.json({ sessionId, primer, title: lec.title });
   } catch (e: any) {
     console.error("[primer] error:", e);
     return NextResponse.json({ error: e?.message || "primer error" }, { status: 500 });

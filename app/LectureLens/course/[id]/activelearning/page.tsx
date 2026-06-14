@@ -1,19 +1,17 @@
 "use client";
 
-// app/LectureLens/learn/[id]/page.tsx  (v8)
-// Two focused fixes from v7:
+// app/LectureLens/learn/[id]/page.tsx  (v9)
 //
-// 1) Challenge composer is now scoped to fit its container (.grv-q at 620px),
-//    so the answer field lines up with the question and the tree above it.
-//    Done by giving the base .grv-composer width:100% and only widening it
-//    for the mentor scene specifically.
-//
-// 2) Mentor (adaptive) scene re-polished:
-//      • Tutor AND student now use the SAME font (Fraunces) and SAME size (28px).
-//      • Both messages are centered horizontally on the page.
-//      • The student's voice is distinguished only by a small uppercase "YOU"
-//        pill centered ABOVE the message, plus a slightly lighter ink shade.
-//      • Generous vertical rhythm, soft fade-in per message, vignette for focus.
+// Changes from v8 — challenge only. Mentor + primer are byte-identical.
+//   1) Format picker is now a TWO-STEP card:
+//        step 1 → choose MCQ or Open
+//        step 2 → configure: number of questions (5/7/10) for MCQ, or level (kid/teen/adult) for Open
+//   2) Assessment header replaces the timer with:
+//        - MCQ: "Question 3 of 7" progress
+//        - Open: "open reflection · {level}" + a Done button so the student can wrap up
+//          whenever they're happy with their tree.
+//   3) Timer state removed. The session ends when the question count is reached (MCQ)
+//      or the student presses Done / hits the safety cap (Open).
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
@@ -21,16 +19,23 @@ import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Volume2, VolumeX } from "lucide-react";
 
 type Phase = "entry" | "primer" | "learning" | "bridge" | "format" | "assessment" | "summary";
 type Tone = "playful" | "guided" | "accurate";
 type Format = "mcq" | "open";
+type Level = "kid" | "teen" | "adult";
 
 const TONES: { key: Tone; label: string }[] = [
   { key: "playful", label: "Playful" }, { key: "guided", label: "Guided" }, { key: "accurate", label: "Accurate" },
 ];
 const STARTERS = ["Teach me the basics", "Walk me through an example", "Why does this matter?"];
+const COUNT_OPTIONS = [5, 7, 10];
+const LEVEL_OPTIONS: { k: Level; l: string; hint: string }[] = [
+  { k: "kid",   l: "Explain to me like a kid",       hint: "everyday words, concrete examples" },
+  { k: "teen",  l: "Explain to me like a teenager",  hint: "some technical terms, clear reasoning" },
+  { k: "adult", l: "Explain to me like an adult",    hint: "precise terminology and depth" },
+];
 const THRESHOLD = 4;
 const slug = (s: string) => (s || "anon").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "anon";
 const fade = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -14 }, transition: { duration: 0.5 } };
@@ -156,7 +161,7 @@ function GrowthTree({ points = 0, max = 100, stage, size = 160 }: { points?: num
   );
 }
 
-// ─── Whiteboard (entry + primer only) ─────────────────────────────────────────
+// ─── Whiteboard ──────────────────────────────────────────────────────────────
 function Whiteboard({ children, minHeight = 440 }: { children: React.ReactNode; minHeight?: number }) {
   return (
     <div className="grv-board">
@@ -172,7 +177,118 @@ function Whiteboard({ children, minHeight = 440 }: { children: React.ReactNode; 
   );
 }
 
-interface Primer { sections: { title: string; body: string }[]; keyTerms: string[] }
+interface Primer { sections: { title: string; bullets: string[] }[]; keyTerms: string[] }
+
+// ─── Tutor avatar — sits beside the board and "speaks" while bullets reveal ───
+function TutorAvatar({ speaking }: { speaking: boolean }) {
+  return (
+    <div className={`grv-avatar ${speaking ? "speaking" : ""}`}>
+      <svg viewBox="0 0 240 360" width="210" height="315" aria-hidden="true">
+        <defs>
+          <linearGradient id="grvSkin" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#f3c79f" /><stop offset="1" stopColor="#e3a878" />
+          </linearGradient>
+          <linearGradient id="grvSkinArm" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#eebd92" /><stop offset="1" stopColor="#dca06f" />
+          </linearGradient>
+          <linearGradient id="grvHair" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#6f5743" /><stop offset="1" stopColor="#46362a" />
+          </linearGradient>
+          <linearGradient id="grvCardi" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#5d8a6c" /><stop offset="1" stopColor="#3a5a46" />
+          </linearGradient>
+          <radialGradient id="grvCheek" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#e98f68" stopOpacity="0.55" /><stop offset="1" stopColor="#e98f68" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* ground shadow */}
+        <ellipse cx="120" cy="348" rx="62" ry="9" fill="#3a2f23" opacity=".10" />
+
+        {/* torso / cardigan */}
+        <path d="M58 360 C54 280 70 246 120 246 C170 246 186 280 182 360 Z" fill="url(#grvCardi)" />
+        {/* cardigan shading on the right */}
+        <path d="M120 246 C170 246 186 280 182 360 L150 360 C156 300 150 262 120 250 Z" fill="#34503f" opacity=".45" />
+        {/* shirt V */}
+        <path d="M120 248 C104 248 92 258 86 274 L120 296 L154 274 C148 258 136 248 120 248 Z" fill="#fbf6e6" />
+        <path d="M120 250 L120 300" stroke="#e2dac4" strokeWidth="3" />
+        {/* collar */}
+        <path d="M104 250 L120 270 L136 250" fill="none" stroke="#fbf6e6" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+        {/* buttons */}
+        <circle cx="120" cy="312" r="3" fill="#2f4a39" /><circle cx="120" cy="332" r="3" fill="#2f4a39" />
+
+        {/* resting left arm */}
+        <path d="M64 280 C48 300 46 326 56 348" fill="none" stroke="url(#grvCardi)" strokeWidth="26" strokeLinecap="round" />
+        <circle cx="58" cy="348" r="13" fill="url(#grvSkinArm)" />
+
+        {/* gesturing right arm toward the board */}
+        <g className="grv-avatar-arm">
+          <path d="M176 276 C212 262 226 244 234 224" fill="none" stroke="url(#grvCardi)" strokeWidth="26" strokeLinecap="round" />
+          <circle cx="234" cy="221" r="13.5" fill="url(#grvSkinArm)" />
+          {/* thumb hint */}
+          <path d="M228 212 q8 -3 12 4" fill="none" stroke="#cf9163" strokeWidth="3" strokeLinecap="round" />
+        </g>
+
+        {/* neck + chin shadow */}
+        <rect x="106" y="198" width="28" height="34" rx="12" fill="#e3a878" />
+        <ellipse cx="120" cy="200" rx="30" ry="12" fill="#cf9163" opacity=".4" />
+
+        {/* head */}
+        <ellipse cx="120" cy="150" rx="50" ry="54" fill="url(#grvSkin)" />
+        {/* ears */}
+        <ellipse cx="71" cy="152" rx="9" ry="12" fill="#e3a878" />
+        <ellipse cx="169" cy="152" rx="9" ry="12" fill="#e3a878" />
+        <ellipse cx="71" cy="152" rx="4" ry="6" fill="#cf9163" opacity=".6" />
+        <ellipse cx="169" cy="152" rx="4" ry="6" fill="#cf9163" opacity=".6" />
+
+        {/* hair — swept side part */}
+        <path d="M70 150 C64 96 92 74 120 74 C150 74 178 96 172 150 C170 128 166 118 150 112 C150 100 140 96 128 98 C108 84 86 100 84 120 C80 128 72 132 70 150 Z" fill="url(#grvHair)" />
+        <path d="M120 74 C150 74 178 96 172 150 C170 128 166 118 150 112 C150 100 140 96 128 98 Z" fill="#3a2c21" opacity=".35" />
+
+        {/* cheeks */}
+        <ellipse cx="92" cy="166" rx="13" ry="9" fill="url(#grvCheek)" />
+        <ellipse cx="148" cy="166" rx="13" ry="9" fill="url(#grvCheek)" />
+
+        {/* glasses */}
+        <g stroke="#3a2f23" strokeWidth="3.2" fill="#fffdf6" fillOpacity=".10">
+          <rect x="80" y="140" width="30" height="26" rx="11" />
+          <rect x="130" y="140" width="30" height="26" rx="11" />
+        </g>
+        <path d="M110 152 q10 -5 20 0" fill="none" stroke="#3a2f23" strokeWidth="3.2" />
+        <path d="M80 150 L70 148" stroke="#3a2f23" strokeWidth="3" strokeLinecap="round" />
+        <path d="M160 150 L170 148" stroke="#3a2f23" strokeWidth="3" strokeLinecap="round" />
+
+        {/* eyes (blink via CSS group) */}
+        <g className="grv-avatar-eyes">
+          <ellipse cx="95" cy="153" rx="5.4" ry="6.2" fill="#fff" />
+          <ellipse cx="145" cy="153" rx="5.4" ry="6.2" fill="#fff" />
+          <circle cx="96" cy="154" r="3.4" fill="#3a2a1e" />
+          <circle cx="146" cy="154" r="3.4" fill="#3a2a1e" />
+          <circle cx="94.4" cy="152" r="1.1" fill="#fff" />
+          <circle cx="144.4" cy="152" r="1.1" fill="#fff" />
+        </g>
+
+        {/* brows */}
+        <g className="grv-avatar-brows">
+          <path d="M84 132 q11 -6 22 -1" fill="none" stroke="#4a3a2c" strokeWidth="3.4" strokeLinecap="round" />
+          <path d="M134 131 q11 -5 22 1" fill="none" stroke="#4a3a2c" strokeWidth="3.4" strokeLinecap="round" />
+        </g>
+
+        {/* nose */}
+        <path d="M118 158 q-5 12 3 16" fill="none" stroke="#cf9163" strokeWidth="3" strokeLinecap="round" />
+
+        {/* mouth — opens/closes when speaking */}
+        <g className="grv-avatar-mouth-g">
+          <path className="grv-avatar-lip" d="M104 184 q16 6 32 0" fill="none" stroke="#9c5a44" strokeWidth="3.2" strokeLinecap="round" />
+          <ellipse className="grv-avatar-mouth" cx="120" cy="186" rx="11" ry="3" fill="#7a3f30" />
+        </g>
+      </svg>
+
+      <span className="grv-speech-waves" aria-hidden><span /><span /><span /></span>
+      <span className="grv-avatar-name">Your tutor</span>
+    </div>
+  );
+}
 
 export default function GrovePage() {
   const params = useParams<{ id: string }>();
@@ -198,38 +314,103 @@ export default function GrovePage() {
   useEffect(() => { if (name) localStorage.setItem("grove_name", name); }, [name]);
   useEffect(() => { localStorage.setItem("grove_tone", tone); }, [tone]);
 
-  // primer typewriter
+  // ── primer / lecture (bullet slides) ──────────────────────────────────────
   const [primer, setPrimer] = useState<Primer | null>(null);
-  const [primerIdx, setPrimerIdx] = useState(0);
+  const [primerIdx, setPrimerIdx] = useState(0);     // 0 = journey intro, 1.. = lecture sections
   const [primerLoading, setPrimerLoading] = useState(false);
-  const primerContext = useMemo(() => (primer ? primer.sections.map((s) => `${s.title}: ${s.body}`).join("\n") : ""), [primer]);
-  const section = primer?.sections[primerIdx];
-  const title = section?.title || "";
-  const body = section?.body || "";
-  const total = title.length + body.length;
-  const [revealed, setRevealed] = useState(0);
-  useEffect(() => { setRevealed(0); }, [primerIdx, primer]);
+
+  // a static "what to expect" slide that maps the whole 3-scene journey
+  const introSlide = useMemo(() => ({
+    kind: "intro" as const,
+    title: "How this session works",
+    bullets: [
+      `First — the Lecture. I'll walk you through ${displayTopic} one key point at a time.`,
+      "Next — the Conversation. We explore it together; ask anything and I adapt to how you think.",
+      "Finally — the Challenge. Answer questions to grow your tree and see what's taken root.",
+    ],
+  }), [displayTopic]);
+
+  const lectureSlides = useMemo(
+    () => (primer?.sections || []).map((s) => ({ kind: "lecture" as const, title: s.title, bullets: s.bullets })),
+    [primer]
+  );
+  const slides = useMemo(() => [introSlide, ...lectureSlides], [introSlide, lectureSlides]);
+  const slide = slides[primerIdx];
+  const bullets = slide?.bullets || [];
+  const isIntro = slide?.kind === "intro";
+  const isLastSlide = primerIdx === slides.length - 1;
+  const isLastLecture = !isIntro && isLastSlide;
+
+  // mentor context built from the lecture bullets
+  const primerContext = useMemo(
+    () => (primer ? primer.sections.map((s) => `${s.title}: ${s.bullets.join("; ")}`).join("\n") : ""),
+    [primer]
+  );
+
+  // reveal bullets one at a time; the tutor reads each aloud (Web Speech API)
+  const [shown, setShown] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const slideDone = !!slide && shown >= bullets.length;
+
+  // pace + narrate the current bullet (index = shown - 1)
   useEffect(() => {
-    if (!total || revealed >= total) return;
-    const delay = revealed < title.length ? 50 : 30;
-    const t = setTimeout(() => setRevealed((n) => Math.min(total, n + 1)), delay);
-    return () => clearTimeout(t);
-  }, [revealed, total, title.length]);
-  const titleShown = title.slice(0, Math.min(revealed, title.length));
-  const bodyShown = revealed > title.length ? body.slice(0, revealed - title.length) : "";
-  const revealDone = revealed >= total;
+    if (phase !== "primer" || !slide || bullets.length === 0) { setSpeaking(false); return; }
+    const idx = Math.min(shown, bullets.length) - 1;
+    if (idx < 0) return;
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+
+    // muted or unsupported → silent timer pacing, mouth still moves for life
+    if (muted || !synth) {
+      setSpeaking(shown < bullets.length);
+      if (shown >= bullets.length) return;
+      const t = setTimeout(() => setShown((n) => Math.min(bullets.length, n + 1)), 1100);
+      return () => clearTimeout(t);
+    }
+
+    // spoken → read this bullet, advance when it finishes.
+    let cancelled = false;
+    let startTimer: any;
+    const u = new SpeechSynthesisUtterance(bullets[idx]);
+    u.rate = 0.98; u.pitch = 1.02;
+    u.onstart = () => { if (!cancelled) setSpeaking(true); };
+    u.onend = () => {
+      if (cancelled) return;
+      setSpeaking(false);
+      setShown((n) => (n < bullets.length ? n + 1 : n));
+    };
+    u.onerror = () => { if (!cancelled) { setSpeaking(false); setShown((n) => (n < bullets.length ? n + 1 : n)); } };
+    // Chrome drops an utterance if speak() is called in the same tick as cancel();
+    // cancel first, then speak on the next tick. The cleanup clears this timer, so a
+    // stale slide's utterance is discarded before it can start.
+    try { synth.cancel(); } catch {}
+    startTimer = setTimeout(() => {
+      if (cancelled) return;
+      try { synth.resume(); synth.speak(u); } catch {}
+    }, 70);
+    return () => { cancelled = true; clearTimeout(startTimer); try { synth.cancel(); } catch {} };
+  }, [shown, slide, bullets.length, muted, phase]);
+
+  // stop any narration when leaving the lecture or unmounting
+  useEffect(() => {
+    if (phase !== "primer") { try { window.speechSynthesis?.cancel(); } catch {} setSpeaking(false); }
+  }, [phase]);
+  useEffect(() => () => { try { window.speechSynthesis?.cancel(); } catch {} }, []);
+
+  // change slide + reset the reveal in the same batch (no stale-state window)
+  function goToSlide(n: number) { setShown(1); setSpeaking(false); setPrimerIdx(Math.max(0, n)); }
 
   async function beginJourney() {
     setErr("");
     if (!name.trim()) return setErr("Please enter your name.");
     const sid = `${creator}:${lectureId}:${slug(name)}:${Date.now().toString(36)}`;
-    setSessionId(sid); setPhase("primer"); setPrimerLoading(true);
+    setSessionId(sid); setPhase("primer"); setPrimerLoading(true); setPrimerIdx(0); setShown(1);
     try {
       const r = await fetch("/api/primer", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lectureId, creator, sessionId: sid, studentName: name, topic: validParam, tone }) });
       const data = await r.json();
       if (data.title) setTopicName(data.title);
-      if (data.primer) setPrimer(data.primer); else setErr(data.error || "Could not load the overview.");
+      if (data.primer) setPrimer(data.primer); else setErr(data.error || "Could not load the lecture.");
     } catch { setErr("Could not start the session."); } finally { setPrimerLoading(false); }
   }
 
@@ -249,29 +430,46 @@ export default function GrovePage() {
   const composerRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (phase === "learning") composerRef.current?.focus(); }, [phase, messages.length]);
 
-  // challenge
+  // ─── challenge — v9 ─────────────────────────────────────────────────────────
+  // format picker has a "configure" sub-step
+  const [pendingFormat, setPendingFormat] = useState<Format | null>(null);
+  const [mcqCount, setMcqCount] = useState<number>(7);
+  const [openLevel, setOpenLevel] = useState<Level>("teen");
+  useEffect(() => { if (phase === "format") setPendingFormat(null); }, [phase]);
+
+  // active-session state
   const [format, setFormat] = useState<Format>("open");
+  const [activeLevel, setActiveLevel] = useState<Level>("teen");
+  const [activeCount, setActiveCount] = useState<number>(7);
   const [assessMsgs, setAssessMsgs] = useState<any[]>([]);
   const [points, setPoints] = useState(0);
-  const [remaining, setRemaining] = useState(180);
+  const [progress, setProgress] = useState<{ asked: number; total: number } | null>(null);
+  const [remaining, setRemaining] = useState(180);   // open-mode countdown
+  const timerRef = useRef<any>(null);
   const [ended, setEnded] = useState(false);
   const [endHeadline, setEndHeadline] = useState("");
   const [feedback, setFeedback] = useState("");
   const [grading, setGrading] = useState(false);
   const [answer, setAnswer] = useState("");
   const esRef = useRef<EventSource | null>(null);
-  const timerRef = useRef<any>(null);
   const currentMCQ = useMemo(() => [...assessMsgs].reverse().find((m) => m.kind === "mcq"), [assessMsgs]);
   const lastBotText = useMemo(() => [...assessMsgs].reverse().find((m) => m.role === "facilitator" && m.kind === "text"), [assessMsgs]);
 
-  async function startAssessment(fmt: Format) {
+  async function startAssessment(fmt: Format, opts: { questionCount?: number; level?: Level }) {
     setFormat(fmt); setPhase("assessment");
-    setAssessMsgs([]); setEnded(false); setFeedback(""); setEndHeadline(""); setPoints(0);
+    setAssessMsgs([]); setEnded(false); setFeedback(""); setEndHeadline(""); setPoints(0); setProgress(null);
+    if (fmt === "mcq") setActiveCount(opts.questionCount || 7);
+    if (fmt === "open") setActiveLevel(opts.level || "teen");
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     const transcript = messages.map((m) => `${m.role}: ${txt(m)}`).join("\n");
     const r = await fetch("/api/challenge", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start_session", sessionId, format: fmt, topic: displayTopic, lectureId, creator, studentName: name, transcript }) });
-    const data = await r.json();
-    if (data.startTime) {
+      body: JSON.stringify({
+        action: "start_session", sessionId, format: fmt,
+        questionCount: opts.questionCount, level: opts.level,
+        topic: displayTopic, lectureId, creator, studentName: name, transcript,
+      }) });
+    const data = await r.json().catch(() => ({}));
+    if (fmt === "open" && data?.startTime && data?.duration) {
       const end = data.startTime + data.duration * 1000;
       const tick = () => setRemaining(Math.max(0, Math.round((end - Date.now()) / 1000)));
       tick(); timerRef.current = setInterval(tick, 1000);
@@ -280,13 +478,32 @@ export default function GrovePage() {
     esRef.current = es;
     es.onmessage = (ev) => {
       let msg: any; try { msg = JSON.parse(ev.data); } catch { return; }
-      if (msg.kind === "status") { setPoints(msg.totalPoints); setRemaining(msg.remainingTime); return; }
-      if (msg.kind === "ended") { setEnded(true); setFeedback(msg.feedback || ""); setEndHeadline(msg.headline || "Session complete"); setPoints(msg.totalPoints ?? 0); return; }
+      if (msg.kind === "status") {
+        setPoints(msg.totalPoints);
+        if (msg.progress) setProgress(msg.progress);
+        if (typeof msg.remainingTime === "number") setRemaining(msg.remainingTime);
+        return;
+      }
+      if (msg.kind === "ended") {
+        setEnded(true); setFeedback(msg.feedback || "");
+        setEndHeadline(msg.headline || "Session complete");
+        setPoints(msg.totalPoints ?? 0);
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        return;
+      }
       setAssessMsgs((prev) => [...prev, msg]);
       if (msg.role === "facilitator") setGrading(false);
     };
   }
   useEffect(() => () => { esRef.current?.close(); if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  // open-mode: when the countdown hits zero, ask the server to wrap up
+  useEffect(() => {
+    if (phase === "assessment" && format === "open" && !ended && remaining === 0) {
+      endChallenge();
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    }
+  }, [remaining, phase, format, ended]);
 
   async function submitOpen() {
     if (!answer.trim()) return; setGrading(true);
@@ -298,10 +515,19 @@ export default function GrovePage() {
     setGrading(true);
     await fetch("/api/challenge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId, pickedIndex: idx }) }).catch(() => setGrading(false));
   }
-  function goSummary() { esRef.current?.close(); if (timerRef.current) clearInterval(timerRef.current); setPhase("summary"); }
+  async function endChallenge() {
+    await fetch("/api/challenge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "end_session", sessionId }) }).catch(() => {});
+  }
+  function goSummary() { esRef.current?.close(); if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } setPhase("summary"); }
 
   const back = `/LectureLens/course/${lectureId}?creator=${creator}`;
-  const mm = String(Math.floor(remaining / 60)), ss = String(remaining % 60).padStart(2, "0");
+
+  // header tag for assessment
+  const headerTag = format === "mcq"
+    ? `multiple choice · question ${Math.min((progress?.asked ?? 0) + (ended ? 0 : 1), activeCount)} of ${activeCount}`
+    : `open reflection · ${activeLevel}`;
+  const mm = String(Math.floor(remaining / 60));
+  const ss = String(remaining % 60).padStart(2, "0");
 
   return (
     <div className="grv-root">
@@ -328,43 +554,85 @@ export default function GrovePage() {
         {phase === "primer" && (
           <motion.div key="primer" {...fade} className="grv-scene center">
             <Link href={back} className="grv-back grv-board-back">← Back</Link>
-            <Whiteboard minHeight={440}>
-              {primerLoading && <p className="grv-serif grv-h2">Preparing your overview…</p>}
-              {primer && (
-                <div className="grv-board-text" onClick={() => setRevealed(total)}>
-                  <h2 className="grv-serif grv-h2">{titleShown}{revealed < title.length && <span className="grv-caret">▍</span>}</h2>
-                  <p className="grv-read">{bodyShown}{revealed >= title.length && revealed < total && <span className="grv-caret">▍</span>}</p>
-                  {primer.keyTerms.length > 0 && primerIdx === primer.sections.length - 1 && revealDone && (
-                    <div className="grv-terms">{primer.keyTerms.map((t) => <span key={t} className="grv-chip term on-board">{t}</span>)}</div>
-                  )}
-                </div>
-              )}
-            </Whiteboard>
-            {primer && (
-              <div className="grv-primer-foot">
-                <div className="grv-dots">{primer.sections.map((_, i) => <span key={i} className={`grv-dot ${i === primerIdx ? "on" : ""}`} />)}</div>
-                <div className="grv-foot-row">
-                  {primerIdx > 0 && <button className="grv-btn ghost" onClick={() => setPrimerIdx((i) => i - 1)}>Back</button>}
-                  {primerIdx < primer.sections.length - 1
-                    ? <button className="grv-btn primary" onClick={() => setPrimerIdx((i) => i + 1)}>Next →</button>
-                    : <button className="grv-btn primary" onClick={() => setPhase("learning")}>Explore this together →</button>}
-                </div>
+
+            <button
+              className={`grv-sound-toggle ${muted ? "muted" : ""}`}
+              onClick={() => setMuted((m) => !m)}
+              aria-label={muted ? "Unmute the tutor" : "Mute the tutor"}
+            >
+              {muted ? <VolumeX size={17} /> : <Volume2 size={17} />}
+              <span>{muted ? "Muted" : "Sound on"}</span>
+            </button>
+
+            <div className="grv-primer-stage">
+              <TutorAvatar speaking={speaking && !!slide} />
+
+              <Whiteboard minHeight={440}>
+                {/* waiting on the lecture (intro is shown instantly; only lecture slides need the API) */}
+                {!slide && (
+                  <p className="grv-serif grv-h2" style={{ color: "var(--ink-board)" }}>Preparing your lecture…</p>
+                )}
+
+                {slide && (
+                  <div className="grv-board-text" onClick={() => setShown(bullets.length)}>
+                    {isIntro && <span className="grv-board-eyebrow">Welcome{name ? `, ${name}` : ""}</span>}
+                    {!isIntro && <span className="grv-board-eyebrow">Lecture · {primerIdx} of {lectureSlides.length}</span>}
+
+                    <h2 className="grv-serif grv-h2">{slide.title}</h2>
+
+                    <ul className="grv-bullets">
+                      <AnimatePresence initial={false}>
+                        {bullets.slice(0, shown).map((bl, i) => (
+                          <motion.li
+                            key={`${primerIdx}-${i}`}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.35, ease: "easeOut" }}
+                            className="grv-bullet"
+                          >
+                            <span className="grv-bullet-mark" aria-hidden>
+                              {isIntro ? <span className="grv-step-num">{i + 1}</span> : "🌱"}
+                            </span>
+                            <span>{bl}</span>
+                          </motion.li>
+                        ))}
+                      </AnimatePresence>
+                    </ul>
+
+                    {primer && primer.keyTerms.length > 0 && isLastLecture && slideDone && (
+                      <div className="grv-terms">{primer.keyTerms.map((t) => <span key={t} className="grv-chip term on-board">{t}</span>)}</div>
+                    )}
+                  </div>
+                )}
+              </Whiteboard>
+            </div>
+
+            <div className="grv-primer-foot">
+              <div className="grv-dots">{slides.map((_, i) => <span key={i} className={`grv-dot ${i === primerIdx ? "on" : ""}`} />)}</div>
+              <div className="grv-foot-row">
+                {primerIdx > 0 && <button className="grv-btn ghost" onClick={() => goToSlide(primerIdx - 1)}>Back</button>}
+
+                {isIntro
+                  ? <button className="grv-btn primary" disabled={!primer} onClick={() => goToSlide(1)}>
+                      {primer ? "Begin the lecture →" : (primerLoading ? "Preparing lecture…" : "Loading…")}
+                    </button>
+                  : isLastLecture
+                    ? <button className="grv-btn primary" onClick={() => setPhase("learning")}>Explore this together →</button>
+                    : <button className="grv-btn primary" onClick={() => goToSlide(primerIdx + 1)}>Next →</button>}
               </div>
-            )}
+            </div>
           </motion.div>
         )}
 
-        {/* ── Mentor — both voices: same font, same size, both centered ──── */}
+        {/* Mentor — unchanged from v8 */}
         {phase === "learning" && (
           <motion.div key="learning" {...fade} className="grv-scene mentor-scene">
             <div className="grv-vignette" aria-hidden />
-
             <div className="grv-topbar mentor">
               <Link href={back} className="grv-back"><ArrowLeft size={20} /></Link>
               <div className="grv-tones grv-center">{TONES.map((t) => <button key={t.key} className={`grv-chip ${tone === t.key ? "on" : ""}`} onClick={() => setTone(t.key)}>{t.label}</button>)}</div>
               <div />
             </div>
-
             <div className="grv-convo">
               {messages.length === 0 && !isThinking && (
                 <>
@@ -372,20 +640,12 @@ export default function GrovePage() {
                     <p className="grv-serif grv-line">What would you like to explore about {displayTopic}?</p>
                   </motion.div>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.25 }} className="grv-starters">
-                    {STARTERS.map((s) => (
-                      <button key={s} className="grv-starter" onClick={() => useStarter(s)}>{s}</button>
-                    ))}
+                    {STARTERS.map((s) => <button key={s} className="grv-starter" onClick={() => useStarter(s)}>{s}</button>)}
                   </motion.div>
                 </>
               )}
               {messages.slice(-3).map((m) => (
-                <motion.div
-                  key={m.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.55, ease: "easeOut" }}
-                  className={m.role === "assistant" ? "grv-msg tutor" : "grv-msg user"}
-                >
+                <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: "easeOut" }} className={m.role === "assistant" ? "grv-msg tutor" : "grv-msg user"}>
                   {m.role === "user" && <span className="grv-user-tag">YOU</span>}
                   <p className="grv-serif grv-line">{txt(m)}</p>
                 </motion.div>
@@ -396,19 +656,10 @@ export default function GrovePage() {
                 </motion.div>
               )}
             </div>
-
             <form onSubmit={submitLearning} className="grv-composer mentor-composer">
-              <input
-                ref={composerRef}
-                className="grv-input big"
-                placeholder="Type your thought…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                autoComplete="off"
-              />
+              <input ref={composerRef} className="grv-input big" placeholder="Type your thought…" value={input} onChange={(e) => setInput(e.target.value)} autoComplete="off" />
               <button className="grv-send" disabled={status !== "ready" || !input.trim()} aria-label="send"><Send size={20} /></button>
             </form>
-
             {userTurns >= THRESHOLD && (
               <button className="grv-ready" onClick={() => setPhase("bridge")}>
                 <span>Ready for the test</span>
@@ -431,23 +682,72 @@ export default function GrovePage() {
           </motion.div>
         )}
 
+        {/* ── FORMAT picker — two-step card ─────────────────────────────── */}
         {phase === "format" && (
           <motion.div key="format" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grv-overlay">
-            <div className="grv-card">
-              <h2 className="grv-serif grv-h2" style={{ marginBottom: 20 }}>How would you like to be tested?</h2>
-              <div className="grv-row">
-                <button className="grv-btn ghost" style={{ flex: 1 }} onClick={() => startAssessment("mcq")}>Multiple choice</button>
-                <button className="grv-btn ghost" style={{ flex: 1 }} onClick={() => startAssessment("open")}>Open reflection</button>
-              </div>
+            <div className="grv-card wide">
+              <AnimatePresence mode="wait">
+                {!pendingFormat && (
+                  <motion.div key="step1" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }}>
+                    <h2 className="grv-serif grv-h2" style={{ marginBottom: 20 }}>How would you like to be tested?</h2>
+                    <div className="grv-row">
+                      <button className="grv-btn ghost" style={{ flex: 1 }} onClick={() => setPendingFormat("mcq")}>Multiple choice</button>
+                      <button className="grv-btn ghost" style={{ flex: 1 }} onClick={() => setPendingFormat("open")}>Open reflection</button>
+                    </div>
+                  </motion.div>
+                )}
+                {pendingFormat === "mcq" && (
+                  <motion.div key="step2-mcq" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }}>
+                    <h2 className="grv-serif grv-h2" style={{ marginBottom: 14 }}>How many questions?</h2>
+                    <p className="grv-sub" style={{ marginBottom: 22 }}>Each correct answer grows your tree by the same amount.</p>
+                    <div className="grv-pick-row">
+                      {COUNT_OPTIONS.map((n) => (
+                        <button key={n} className={`grv-pick ${mcqCount === n ? "on" : ""}`} onClick={() => setMcqCount(n)}>
+                          <span className="grv-pick-num">{n}</span>
+                          <span className="grv-pick-sub">+{Math.floor(100 / n)} pts each</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grv-row" style={{ marginTop: 22 }}>
+                      <button className="grv-btn ghost" onClick={() => setPendingFormat(null)}>← Back</button>
+                      <button className="grv-btn primary" style={{ flex: 1 }} onClick={() => startAssessment("mcq", { questionCount: mcqCount })}>Begin →</button>
+                    </div>
+                  </motion.div>
+                )}
+                {pendingFormat === "open" && (
+                  <motion.div key="step2-open" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }}>
+                    <h2 className="grv-serif grv-h2" style={{ marginBottom: 14 }}>Explain it like I'm a…</h2>
+                    <p className="grv-sub" style={{ marginBottom: 22 }}>You'll have 3 minutes. Answers are graded against the level you choose.</p>
+                    <div className="grv-pick-row stack">
+                      {LEVEL_OPTIONS.map((opt) => (
+                        <button key={opt.k} className={`grv-pick wide ${openLevel === opt.k ? "on" : ""}`} onClick={() => setOpenLevel(opt.k)}>
+                          <span className="grv-pick-num grv-pick-num-sm">{opt.l}</span>
+                          <span className="grv-pick-sub">{opt.hint}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grv-row" style={{ marginTop: 22 }}>
+                      <button className="grv-btn ghost" onClick={() => setPendingFormat(null)}>← Back</button>
+                      <button className="grv-btn primary" style={{ flex: 1 }} onClick={() => startAssessment("open", { level: openLevel })}>Begin →</button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
 
+        {/* ── ASSESSMENT — no timer; progress for mcq; Done for open ───── */}
         {phase === "assessment" && (
           <motion.div key="assessment" {...fade} className="grv-scene challenge">
             <div className="grv-topbar">
-              <span className="grv-tag">{format === "mcq" ? "multiple choice · challenge" : "open reflection · challenge"}</span>
-              <span className="grv-timer">{mm}:{ss}</span>
+              <span className="grv-tag">{headerTag}</span>
+              {format === "open" && !ended && (
+                <div className="grv-open-controls">
+                  <span className={`grv-timer ${remaining <= 30 ? "low" : ""}`}>{mm}:{ss}</span>
+                  <button className="grv-btn ghost small" onClick={endChallenge} disabled={grading}>Done →</button>
+                </div>
+              )}
             </div>
             <div className="grv-challenge-center">
               <GrowthTree points={points} size={200} />
@@ -467,7 +767,7 @@ export default function GrovePage() {
                   {lastBotText && <p className="grv-serif grv-question">{lastBotText.content}</p>}
                   <form className="grv-composer" onSubmit={(e) => { e.preventDefault(); submitOpen(); }}>
                     <input className="grv-input big" placeholder="Your answer…" value={answer} onChange={(e) => setAnswer(e.target.value)} disabled={grading} />
-                    <button className="grv-send" disabled={grading} aria-label="send"><Send size={20} /></button>
+                    <button className="grv-send" disabled={grading || !answer.trim()} aria-label="send"><Send size={20} /></button>
                   </form>
                 </div>
               ) : null)}
@@ -531,15 +831,58 @@ export default function GrovePage() {
         .grv-board-back { display:inline-block; margin:0 auto 22px; }
         .grv-board-inner .grv-h1, .grv-board-inner .grv-h2 { color:var(--ink-board); }
         .grv-board-inner .grv-sub { color:var(--muted-board); }
-        .grv-board-text { display:flex; flex-direction:column; align-items:center; text-align:center; }
+        .grv-board-text { display:flex; flex-direction:column; align-items:center; text-align:center; width:100%; }
         .grv-read { font-size:22px; line-height:1.8; margin:18px 0 0; max-width:46ch; color:var(--ink-board); }
         .grv-caret { color:var(--clay); animation:grvblink 1s steps(1) infinite; margin-left:2px; }
+
+        /* ── primer stage: avatar beside the board ── */
+        .grv-primer-stage { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:1160px; margin:0 auto; }
+        .grv-primer-stage .grv-board { margin:0; flex:1 1 auto; min-width:0; }
+
+        .grv-board-eyebrow { font-family:ui-sans-serif,system-ui,sans-serif; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted-board); margin-bottom:10px; }
+
+        /* bullets — left-aligned lecture points */
+        .grv-bullets { list-style:none; padding:0; margin:22px 0 0; width:100%; max-width:48ch; display:flex; flex-direction:column; gap:16px; text-align:left; }
+        .grv-bullet { display:flex; align-items:flex-start; gap:14px; font-size:21px; line-height:1.5; color:var(--ink-board); }
+        .grv-bullet-mark { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; margin-top:2px; font-size:16px; }
+        .grv-step-num { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:var(--sage); color:#fbf7ee; font-family:"Fraunces",serif; font-size:15px; font-weight:600; }
+
+        /* ── tutor avatar ── */
+        .grv-avatar { flex:0 0 auto; position:relative; display:flex; flex-direction:column; align-items:center; align-self:center; filter:drop-shadow(0 12px 20px rgba(58,54,44,.18)); }
+        .grv-avatar svg { display:block; }
+        .grv-avatar-name { margin-top:4px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+        /* gentle idle bob; livelier when speaking */
+        .grv-avatar { animation:grvBob 5s ease-in-out infinite; }
+        .grv-avatar.speaking { animation:grvBob 2.8s ease-in-out infinite; }
+        @keyframes grvBob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
+        /* eyes blink periodically */
+        .grv-avatar-eyes { transform-box:fill-box; transform-origin:center; animation:grvBlink 5.5s ease-in-out infinite; }
+        @keyframes grvBlink { 0%,94%,100%{ transform:scaleY(1); } 97%{ transform:scaleY(.1); } }
+        /* mouth: still when idle, opening/closing when speaking */
+        .grv-avatar-mouth { transform-box:fill-box; transform-origin:center; transform:scaleY(.35); }
+        .grv-avatar-lip { opacity:.9; }
+        .grv-avatar.speaking .grv-avatar-mouth { animation:grvTalk .3s ease-in-out infinite; }
+        @keyframes grvTalk { 0%,100%{ transform:scaleY(.4); } 50%{ transform:scaleY(1.6); } }
+        .grv-avatar.speaking .grv-avatar-arm { animation:grvGesture 2.8s ease-in-out infinite; transform-box:fill-box; transform-origin:55% 92%; }
+        @keyframes grvGesture { 0%,100%{ transform:rotate(0deg); } 50%{ transform:rotate(-6deg); } }
+        /* speech waves near the mouth side */
+        .grv-speech-waves { position:absolute; top:34%; right:-10px; display:flex; flex-direction:column; gap:5px; opacity:0; transition:opacity .25s; }
+        .grv-avatar.speaking .grv-speech-waves { opacity:1; }
+        .grv-speech-waves span { display:block; width:16px; height:3px; border-radius:2px; background:var(--sage); animation:grvWave 1s ease-in-out infinite; }
+        .grv-speech-waves span:nth-child(2){ width:22px; animation-delay:.15s; }
+        .grv-speech-waves span:nth-child(3){ width:12px; animation-delay:.3s; }
+        @keyframes grvWave { 0%,100%{ opacity:.3; transform:scaleX(.7); } 50%{ opacity:1; transform:scaleX(1); } }
+
+        /* sound toggle */
+        .grv-sound-toggle { position:absolute; top:24px; right:28px; display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:24px; border:1px solid var(--line); background:var(--surface); color:var(--sage-deep); font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(58,54,44,.08); transition:background .15s,color .15s,transform .12s; z-index:5; }
+        .grv-sound-toggle:hover { background:#fbf7ee; transform:translateY(-1px); }
+        .grv-sound-toggle.muted { color:var(--muted); }
         .grv-h1 { font-size:48px; line-height:1.1; margin:0; }
         .grv-h2 { font-size:36px; line-height:1.2; margin:0; }
         .grv-sub { color:var(--muted); margin-top:6px; font-size:19px; }
         .grv-err { color:#b04a3a; margin-top:8px; }
 
-        /* shared inputs/chips/buttons */
+        /* shared */
         .grv-input { width:100%; padding:16px 20px; border:1px solid var(--line); border-radius:14px; background:var(--surface); font-size:19px; color:var(--ink); outline:none; transition:border-color .15s, box-shadow .15s; }
         .grv-input.on-board { max-width:460px; background:#fbf6e6; border-color:rgba(90,72,56,.22); color:var(--ink-board); }
         .grv-input.big { font-size:20px; padding:18px 24px; border-radius:18px; }
@@ -547,18 +890,17 @@ export default function GrovePage() {
         .grv-tones { display:flex; gap:10px; }
         .grv-tones.on-board { justify-content:center; flex-wrap:wrap; }
         .grv-chip { font-size:15px; padding:9px 18px; border-radius:24px; background:#ece6d7; color:var(--sage-deep); border:none; cursor:pointer; transition:background .18s,color .18s,transform .12s; }
-        .grv-chip:hover { background:#e3dcc9; }
-        .grv-chip:active { transform:scale(.97); }
+        .grv-chip:hover { background:#e3dcc9; } .grv-chip:active { transform:scale(.97); }
         .grv-chip.on { background:var(--sage); color:#fff; }
         .grv-chip.term { background:#eef0ea; color:var(--sage-deep); cursor:default; }
         .grv-chip.on-board { background:#fbf6e6; border:1px solid rgba(90,72,56,.18); }
         .grv-chip.on-board.on { background:var(--sage); color:#fff; border-color:var(--sage); }
         .grv-btn { padding:14px 26px; border-radius:14px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-size:17px; cursor:pointer; transition:transform .1s,background .15s,box-shadow .15s; }
-        .grv-btn:hover { background:#fbf7ee; }
-        .grv-btn:active { transform:scale(.98); }
+        .grv-btn:hover { background:#fbf7ee; } .grv-btn:active { transform:scale(.98); }
         .grv-btn.primary { background:var(--sage); color:#fbf7ee; border-color:var(--sage); box-shadow:0 2px 0 rgba(60,94,73,.25); }
         .grv-btn.primary:hover { background:#46704f; }
         .grv-btn.ghost { background:var(--surface); }
+        .grv-btn.small { padding:8px 16px; font-size:14px; border-radius:20px; }
         .grv-stack { display:flex; flex-direction:column; gap:12px; }
         .grv-row { display:flex; gap:12px; }
         .grv-topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
@@ -566,84 +908,54 @@ export default function GrovePage() {
         .grv-back { color:var(--muted); text-decoration:none; font-size:15px; display:inline-flex; align-items:center; gap:6px; }
         .grv-back:hover { color:var(--ink); }
 
-        /* ── BASE composer — fits its parent. Each scene controls its own width. */
+        /* base composer fits its parent */
         .grv-composer { display:flex; gap:12px; width:100%; margin:0 auto; }
         .grv-send { display:flex; align-items:center; justify-content:center; min-width:64px; height:62px; border:none; border-radius:18px; background:var(--sage); color:#fbf7ee; cursor:pointer; transition:transform .12s, background .15s, box-shadow .15s; box-shadow:0 4px 14px rgba(60,94,73,.22); }
         .grv-send:hover { background:#46704f; transform:translateY(-1px); box-shadow:0 6px 18px rgba(60,94,73,.32); }
         .grv-send:active { transform:translateY(0) scale(.97); }
         .grv-send:disabled { opacity:.45; cursor:default; transform:none; box-shadow:none; }
 
-        /* ── Mentor (v8) — unified-size centered exchange ────────────────── */
+        /* mentor */
         .grv-scene.mentor-scene { padding-top:40px; padding-bottom:80px; max-width:none; }
         .grv-vignette { position:fixed; inset:0; z-index:0; pointer-events:none; background: radial-gradient(60% 60% at 50% 50%, transparent 50%, rgba(58,42,30,.06) 90%, rgba(58,42,30,.10) 100%); }
-        .grv-convo {
-          flex:1; display:flex; flex-direction:column; justify-content:center;
-          gap:52px; padding:32px 0;
-          width:min(75vw, 900px); margin:0 auto;
-        }
-        /* both speakers: same family, same size, both centered. Distinguished only by colour + YOU pill. */
+        .grv-convo { flex:1; display:flex; flex-direction:column; justify-content:center; gap:52px; padding:32px 0; width:min(75vw, 900px); margin:0 auto; }
         .grv-msg { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; }
-        .grv-line {
-          font-family:"Fraunces",Georgia,serif;
-          font-size:28px; line-height:1.55;
-          margin:0; max-width:44ch; text-align:center;
-          font-weight:400; letter-spacing:.005em;
-        }
+        .grv-line { font-family:"Fraunces",Georgia,serif; font-size:28px; line-height:1.55; margin:0; max-width:44ch; text-align:center; font-weight:400; letter-spacing:.005em; }
         .grv-msg.tutor .grv-line { color:var(--tutor-ink); }
         .grv-msg.user  .grv-line { color:var(--student-ink); }
-        .grv-user-tag {
-          display:inline-block;
-          font-family:ui-sans-serif,system-ui,sans-serif;
-          font-size:11px; letter-spacing:.18em; text-transform:uppercase;
-          color:var(--student-label);
-          padding:5px 12px; border-radius:14px;
-          background:rgba(138,124,102,.10);
-        }
-
-        /* starters in empty state */
+        .grv-user-tag { display:inline-block; font-family:ui-sans-serif,system-ui,sans-serif; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--student-label); padding:5px 12px; border-radius:14px; background:rgba(138,124,102,.10); }
         .grv-starters { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:6px; }
-        .grv-starter {
-          padding:11px 20px; border-radius:24px;
-          background:rgba(79,122,95,.08); border:1px solid rgba(79,122,95,.22);
-          color:var(--sage-deep);
-          font-family:"Fraunces",Georgia,serif; font-style:italic; font-size:16px;
-          cursor:pointer; transition:background .18s,border-color .18s,transform .12s;
-        }
-        .grv-starter:hover { background:rgba(79,122,95,.16); border-color:var(--sage); }
-        .grv-starter:active { transform:scale(.97); }
-
-        /* thinking dots */
+        .grv-starter { padding:11px 20px; border-radius:24px; background:rgba(79,122,95,.08); border:1px solid rgba(79,122,95,.22); color:var(--sage-deep); font-family:"Fraunces",Georgia,serif; font-style:italic; font-size:16px; cursor:pointer; transition:background .18s,border-color .18s,transform .12s; }
+        .grv-starter:hover { background:rgba(79,122,95,.16); border-color:var(--sage); } .grv-starter:active { transform:scale(.97); }
         .grv-thinking { display:inline-flex; gap:8px; padding:8px 4px; justify-content:center; }
         .grv-thinking span { width:11px; height:11px; border-radius:50%; background:var(--muted); animation:grvDot 1.4s ease-in-out infinite; }
         .grv-thinking span:nth-child(2) { animation-delay:.2s; }
         .grv-thinking span:nth-child(3) { animation-delay:.4s; }
         @keyframes grvDot { 0%,80%,100%{opacity:.25;transform:scale(.85);} 40%{opacity:1;transform:scale(1);} }
-
-        /* mentor-specific composer width — wider than parent, slightly inset from convo column */
         .grv-scene.mentor-scene .grv-composer { width:min(75vw, 800px); margin:0 auto; }
         .grv-scene.mentor-scene .grv-input.big { box-shadow:0 6px 20px rgba(58,54,44,.06); }
 
-        /* ── ready widget ── */
         .grv-ready { position:fixed; right:28px; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:12px; padding:16px 22px; border-radius:28px; background:var(--surface); color:var(--sage-deep); border:1.5px solid var(--sage); cursor:pointer; font-size:16px; font-weight:500; box-shadow:0 8px 22px rgba(60,94,73,.18); z-index:8; animation:grvReadyPulse 2.5s ease-in-out infinite; }
         .grv-ready:hover { background:var(--sage); color:#fff; box-shadow:0 10px 26px rgba(60,94,73,.28); }
         .grv-ready-arrow { font-size:22px; line-height:1; display:inline-block; }
         @keyframes grvReadyPulse { 0%,100%{box-shadow:0 8px 22px rgba(60,94,73,.18);} 50%{box-shadow:0 8px 28px rgba(60,94,73,.3);} }
 
-        /* primer footer */
         .grv-primer-foot { display:flex; flex-direction:column; align-items:center; gap:16px; margin-top:32px; }
         .grv-foot-row { display:flex; gap:12px; }
         .grv-dots { display:flex; gap:8px; }
         .grv-dot { width:8px; height:8px; border-radius:50%; background:#d6cfbd; } .grv-dot.on { background:var(--sage); }
         .grv-terms { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; justify-content:center; }
 
-        /* ── challenge — composer now sized to parent .grv-q (620px) so it lines up with tree + question ── */
+        /* challenge */
         .grv-scene.challenge { justify-content:flex-start; }
-        .grv-tag { font-size:14px; color:var(--muted); letter-spacing:.02em; }
-        .grv-timer { font-variant-numeric:tabular-nums; color:var(--sage-deep); font-size:20px; font-weight:600; }
+        .grv-tag { font-size:14px; color:var(--muted); letter-spacing:.04em; text-transform:lowercase; }
+        .grv-open-controls { display:flex; align-items:center; gap:14px; }
+        .grv-timer { font-variant-numeric:tabular-nums; color:var(--sage-deep); font-size:20px; font-weight:600; transition:color .2s; }
+        .grv-timer.low { color:var(--clay); animation:grvPulseTime 1s ease-in-out infinite; }
+        @keyframes grvPulseTime { 0%,100%{opacity:1;} 50%{opacity:.55;} }
         .grv-challenge-center { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; max-width:680px; margin:0 auto; width:100%; }
         .grv-score { color:var(--sage-deep); font-size:20px; margin:0; font-weight:600; }
         .grv-q { width:100%; max-width:620px; margin-top:8px; }
-        /* the composer inside .grv-q simply fills the parent (base rule width:100%) — no extra needed */
         .grv-question { font-size:24px; line-height:1.45; text-align:center; margin:0 0 22px; }
         .grv-mcq-list { display:flex; flex-direction:column; gap:12px; }
         .grv-mcq { display:block; width:100%; text-align:left; padding:18px 20px; border-radius:14px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-size:17px; cursor:pointer; transition:background .15s,border-color .15s; }
@@ -658,13 +970,41 @@ export default function GrovePage() {
         /* overlays */
         .grv-overlay { position:fixed; inset:0; background:rgba(58,54,44,.22); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center; z-index:20; padding:24px; }
         .grv-card { background:var(--surface); border-radius:20px; padding:32px 30px; max-width:460px; width:100%; text-align:center; border:1px solid var(--line); box-shadow:0 18px 50px rgba(58,54,44,.14); }
+        .grv-card.wide { max-width:540px; }
+
+        /* picker (count for mcq / level for open) */
+        .grv-pick-row { display:flex; gap:14px; justify-content:center; }
+        .grv-pick-row.stack { flex-direction:column; align-items:stretch; }
+        .grv-pick {
+          flex:1; min-width:0;
+          display:flex; flex-direction:column; align-items:center; gap:6px;
+          padding:20px 14px;
+          background:var(--surface); color:var(--ink);
+          border:2px solid var(--line); border-radius:18px;
+          cursor:pointer; transition:all .18s;
+        }
+        .grv-pick.wide { flex-direction:column; align-items:flex-start; justify-content:center; gap:4px; padding:16px 22px; text-align:left; }
+        .grv-pick.wide .grv-pick-num-sm { font-size:20px; }
+        .grv-pick:hover { background:#fbf7ee; border-color:rgba(79,122,95,.4); }
+        .grv-pick:active { transform:scale(.98); }
+        .grv-pick.on { background:#eef3ed; border-color:var(--sage); box-shadow:0 0 0 3px rgba(79,122,95,.14); }
+        .grv-pick-num { font-family:"Fraunces",Georgia,serif; font-size:36px; line-height:1; color:var(--sage-deep); font-weight:500; }
+        .grv-pick-num-sm { font-size:22px; }
+        .grv-pick-sub { font-size:13px; color:var(--muted); }
 
         @keyframes grvshimmer { 0%,100%{opacity:.4;} 50%{opacity:1;} }
         @keyframes grvblink { 0%,50%{opacity:1;} 51%,100%{opacity:0;} }
-        @media (prefers-reduced-motion:reduce){ .grv-ready,.grv-shimmer,.grv-caret,.grv-thinking span{animation:none;} }
+        @media (prefers-reduced-motion:reduce){ .grv-ready,.grv-shimmer,.grv-caret,.grv-thinking span,.grv-timer.low,.grv-avatar,.grv-avatar.speaking,.grv-avatar-mouth,.grv-avatar-arm,.grv-avatar-eyes,.grv-speech-waves span{animation:none;} }
         @media (max-width:1100px){ .grv-convo,.grv-scene.mentor-scene .grv-composer,.grv-topbar.mentor { width:88vw; } }
-        @media (max-width:960px){ .grv-board-inner { padding:48px 36px; } .grv-board { max-width:100%; } }
-        @media (max-width:640px){ .grv-h1{font-size:36px;} .grv-line{font-size:22px;} .grv-ready { right:14px; padding:12px 16px; font-size:14px; } .grv-board-inner { padding:36px 22px; } }
+        @media (max-width:960px){
+          .grv-board-inner { padding:48px 36px; } .grv-board { max-width:100%; }
+          .grv-primer-stage { flex-direction:column; gap:0; }
+          .grv-avatar { align-self:center; order:-1; margin-bottom:-22px; z-index:2; }
+          .grv-avatar svg { width:132px; height:198px; }
+          .grv-speech-waves { display:none; }
+          .grv-sound-toggle { top:16px; right:16px; }
+        }
+        @media (max-width:640px){ .grv-h1{font-size:36px;} .grv-line{font-size:22px;} .grv-ready { right:14px; padding:12px 16px; font-size:14px; } .grv-board-inner { padding:36px 22px; } .grv-pick-num{font-size:30px;} .grv-bullet{font-size:18px;} }
       `}</style>
     </div>
   );

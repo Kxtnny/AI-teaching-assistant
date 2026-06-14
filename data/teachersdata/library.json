@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "lecture_id": "fcb953bd3a715dbf",
+    "title": "Large Language Model",
+    "file_hash": "fcb953bd3a715dbf73b81fdd998307defc0bae8837da5447b4e6d56a6d8a13a3",
+    "creator": "teacher",
+    "status": "Ready",
+    "time_ago": "Saved",
+    "original_path": "C:\\Users\\steph\\Desktop\\AI-teaching-assistant\\data\\teachersdata\\lectures\\fcb953bd3a715dbf\\original.pdf",
+    "audio_path": null,
+    "transcript_path": "C:\\Users\\steph\\Desktop\\AI-teaching-assistant\\data\\teachersdata\\lectures\\fcb953bd3a715dbf\\transcript.txt",
+    "summary_path": "C:\\Users\\steph\\Desktop\\AI-teaching-assistant\\data\\teachersdata\\lectures\\fcb953bd3a715dbf\\summary.txt",
+    "memory_path": "C:\\Users\\steph\\Desktop\\AI-teaching-assistant\\data\\teachersdata\\lectures\\fcb953bd3a715dbf\\memory.txt",
+    "chunks_path": "C:\\Users\\steph\\Desktop\\AI-teaching-assistant\\data\\teachersdata\\lectures\\fcb953bd3a715dbf\\chunks.json",
+    "created_at": "2026-06-10T01:32:27.090Z",
+    "updated_at": "2026-06-10T01:32:42.080Z"
+  }
+]

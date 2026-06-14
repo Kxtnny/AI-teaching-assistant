@@ -7,54 +7,38 @@ import {
 } from 'recharts';
 
 // ============ TYPES ============
-type Doubt = {
-    doubtId: number,
-    studentId: number,
-    studentName?: string,
-    topic: { topicId: number, name: string },
-    severity: string,
-    context: string,
-    dayOfWeek: string
-};
+type TopicCount = { topicId: number, name: string, count: number };
+type MaterialCount = { topicId: number, name: string, documents: number };
+type ContextCount = { context: string, count: number };
 type StudentSummary = {
     studentId: number, studentName: string,
-    primaryTopic: string, severity: string, sessionsFlagged: number
+    primaryTopic: string, topicsCovered: number, totalQuestions: number
 };
-type TopicDifficulty = { topicId: number, name: string, count: number };
-type WeeklyData = { day: string, requests: number };
 
-const CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28EFF', '#FF6F61', '#FFB347'];
-const SEVERITY_COLORS: Record<string, string> = {
-    'High': '#E63946', 'Medium': '#F4A261', 'Low': '#2A9D8F'
-};
-const SEVERITY_BADGE: Record<string, { bg: string, text: string }> = {
-    'High': { bg: '#fde2e4', text: '#c92a2a' },
-    'Medium': { bg: '#fff3bf', text: '#b08900' },
-    'Low': { bg: '#d3f9d8', text: '#2b8a3e' }
-};
+const CHART_COLORS = ['#A28EFF', '#FFBB28', '#00C49F', '#0088FE', '#FF8042', '#5B5BD6', '#2A9D8F', '#FF6F61'];
 
 // ============ MAIN PAGE ============
 export default function DashboardPage() {
-    const [doubts, setDoubts] = useState<Doubt[]>([]);
+    const [questionsPerTopic, setQuestionsPerTopic] = useState<TopicCount[]>([]);
+    const [materialPercentage, setMaterialPercentage] = useState<MaterialCount[]>([]);
+    const [contextData, setContextData] = useState<ContextCount[]>([]);
     const [studentSummary, setStudentSummary] = useState<StudentSummary[]>([]);
-    const [topicDifficulty, setTopicDifficulty] = useState<TopicDifficulty[]>([]);
-    const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
     useEffect(() => {
         async function fetchAll() {
             const qs = selectedStudentId ? `&studentId=${selectedStudentId}` : '';
-            const [d, s, t, w] = await Promise.all([
-                fetch(`/api/doubts?type=all${qs}`).then(r => r.json()),
-                fetch(`/api/doubts?type=students`).then(r => r.json()),
-                fetch(`/api/doubts?type=topic-difficulty${qs}`).then(r => r.json()),
-                fetch(`/api/doubts?type=weekly${qs}`).then(r => r.json())
+            const [qpt, mat, ctx, stu] = await Promise.all([
+                fetch(`/api/analytics?type=questions-per-topic${qs}`).then(r => r.json()),
+                fetch(`/api/analytics?type=material-percentage`).then(r => r.json()),
+                fetch(`/api/analytics?type=context${qs}`).then(r => r.json()),
+                fetch(`/api/analytics?type=students`).then(r => r.json())
             ]);
-            setDoubts(d);
-            setStudentSummary(s);
-            setTopicDifficulty(t);
-            setWeeklyData(w);
+            setQuestionsPerTopic(qpt);
+            setMaterialPercentage(mat);
+            setContextData(ctx);
+            setStudentSummary(stu);
             setIsLoaded(true);
         }
         fetchAll();
@@ -65,14 +49,14 @@ export default function DashboardPage() {
     }
 
     const isStudentView = selectedStudentId !== null;
-    const currentStudentName = isStudentView ? doubts[0]?.studentName || 'Student' : null;
+    const currentStudentName = isStudentView
+        ? studentSummary.find(s => s.studentId === selectedStudentId)?.studentName || 'Student'
+        : null;
 
-    // Stats
-    const totalStudents = new Set(studentSummary.map(s => s.studentId)).size;
-    const highSeverity = doubts.filter(d => d.severity === 'High').length;
-    const avgStruggleIndex = doubts.length > 0 ? Math.round((highSeverity / doubts.length) * 100) : 0;
-    const topicsWithHighDifficulty = topicDifficulty.filter(t => t.count >= 3).length;
-    const studentsNeedingSupport = studentSummary.filter(s => s.severity === 'High' || s.severity === 'Medium').length;
+    const totalQuestions = questionsPerTopic.reduce((sum, t) => sum + t.count, 0);
+    const totalStudents = studentSummary.length;
+    const topicsCovered = questionsPerTopic.length;
+    const totalMaterial = materialPercentage.reduce((sum, m) => sum + m.documents, 0);
 
     return (
         <div style={{
@@ -105,86 +89,65 @@ export default function DashboardPage() {
                 </h1>
                 <p style={{ color: '#777', marginBottom: '30px' }}>
                     {isStudentView
-                        ? 'Detailed doubt analytics and topic-level struggle profile.'
-                        : 'Upload material, manage lectures, and track student learning difficulty.'}
+                        ? 'Question patterns and topic breakdown for this student.'
+                        : 'Track student questions, course material coverage, and learning contexts.'}
                 </p>
 
                 {/* Top stat cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
-                    {isStudentView ? (
-                        <>
-                            <StatCard label="TOTAL DOUBTS" value={doubts.length} />
-                            <StatCard label="STRUGGLE INDEX" value={`${avgStruggleIndex}%`} />
-                            <StatCard label="TOPICS STRUGGLING" value={new Set(doubts.map(d => d.topic.topicId)).size} />
-                            <StatCard label="HIGH SEVERITY" value={highSeverity} />
-                        </>
-                    ) : (
-                        <>
-                            <StatCard label="TOTAL STUDENTS" value={totalStudents} />
-                            <StatCard label="AVG. STRUGGLE INDEX" value={`${avgStruggleIndex}%`} />
-                            <StatCard label="TOPICS WITH HIGH DIFFICULTY" value={topicsWithHighDifficulty} />
-                            <StatCard label="STUDENTS NEEDING SUPPORT" value={studentsNeedingSupport} />
-                        </>
-                    )}
+                    <StatCard label="TOTAL QUESTIONS" value={totalQuestions} />
+                    <StatCard label={isStudentView ? "TOPICS ASKED" : "TOTAL STUDENTS"} value={isStudentView ? topicsCovered : totalStudents} />
+                    <StatCard label="TOPICS COVERED" value={topicsCovered} />
+                    <StatCard label="COURSE MATERIALS" value={totalMaterial} />
                 </div>
 
-                {/* Charts row 1 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-                    <ChartCard title="Difficulty by Topic">
-                        <DifficultyByTopicChart data={topicDifficulty} />
-                    </ChartCard>
-                    <ChartCard title="Weekly Assistance Requests">
-                        <WeeklyRequestsChart data={weeklyData} />
-                    </ChartCard>
-                    <ChartCard title="Students by Severity">
-                        <SeverityChart doubts={doubts} />
-                    </ChartCard>
-                </div>
-
-                {/* Charts row 2 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-                    <ChartCard title="Doubts by Context">
-                        <ContextChart doubts={doubts} />
-                    </ChartCard>
-                    <ChartCard title="Doubts by Topic (%)">
-                        <TopicPercentageChart doubts={doubts} />
-                    </ChartCard>
-                </div>
-
-                {/* Table */}
+                {/* 1. Number of Questions per Topic */}
                 <div style={cardStyle}>
-                    <h2 style={{ marginTop: 0, fontWeight: 400, fontSize: '24px' }}>
-                        {isStudentView ? 'All flagged doubts' : 'Students requiring assistance by topic'}
-                    </h2>
-                    {isStudentView ? (
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #e0d9cc' }}>
-                                    <th style={thStyle}>Topic</th>
-                                    <th style={thStyle}>Severity</th>
-                                    <th style={thStyle}>Context</th>
-                                    <th style={thStyle}>Day</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {doubts.map(d => (
-                                    <tr key={d.doubtId} style={{ borderBottom: '1px solid #f0ebe0' }}>
-                                        <td style={tdStyle}>{d.topic.name}</td>
-                                        <td style={tdStyle}><SeverityBadge severity={d.severity} /></td>
-                                        <td style={tdStyle}>{d.context}</td>
-                                        <td style={tdStyle}>{d.dayOfWeek}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
+                    <h2 style={sectionTitleStyle}>1. Number of Questions per Topic</h2>
+                    <p style={subTextStyle}>Collected through various student interactions — identifies areas of common struggle.</p>
+                    <QuestionsPerTopicChart data={questionsPerTopic} />
+                </div>
+
+                {/* 2. Course Material Analysis — two pies side by side */}
+                <div style={{ ...cardStyle, marginTop: '30px' }}>
+                    <h2 style={sectionTitleStyle}>2. Course Material Analysis</h2>
+                    <p style={subTextStyle}>
+                        Compare what the course material covers against what students actually ask about.
+                        A topic that's a small slice of material but a large slice of questions signals where to adjust teaching.
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div>
+                            <h3 style={pieTitleStyle}>Percentage of Questions Asked by Topics</h3>
+                            <TopicPie data={questionsPerTopic.map(t => ({ name: t.name, value: t.count }))} />
+                        </div>
+                        <div>
+                            <h3 style={pieTitleStyle}>Percentage of Course Material</h3>
+                            <TopicPie data={materialPercentage.map(m => ({ name: m.name, value: m.documents }))} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Question Context */}
+                <div style={{ ...cardStyle, marginTop: '30px' }}>
+                    <h2 style={sectionTitleStyle}>3. Question Context</h2>
+                    <p style={subTextStyle}>
+                        Where students raise questions — lectures, forums, direct chats with educators, or the self-study chatbot.
+                        Gives insight into students' learning habits.
+                    </p>
+                    <ContextPie data={contextData} />
+                </div>
+
+                {/* Student table */}
+                {!isStudentView && (
+                    <div style={{ ...cardStyle, marginTop: '30px' }}>
+                        <h2 style={sectionTitleStyle}>Questions by student</h2>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #e0d9cc' }}>
                                     <th style={thStyle}>Student</th>
-                                    <th style={thStyle}>Topic</th>
-                                    <th style={thStyle}>Severity</th>
-                                    <th style={thStyle}>Sessions flagged</th>
+                                    <th style={thStyle}>Most asked topic</th>
+                                    <th style={thStyle}>Topics covered</th>
+                                    <th style={thStyle}>Total questions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -198,38 +161,38 @@ export default function DashboardPage() {
                                             </span>
                                         </td>
                                         <td style={tdStyle}>{s.primaryTopic}</td>
-                                        <td style={tdStyle}><SeverityBadge severity={s.severity} /></td>
-                                        <td style={tdStyle}>{s.sessionsFlagged}</td>
+                                        <td style={tdStyle}>{s.topicsCovered}</td>
+                                        <td style={tdStyle}>{s.totalQuestions}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    )}
-                </div>
+                    </div>
+                )}
             </main>
         </div>
     );
 }
 
-// ============ CHART COMPONENTS ============
-function DifficultyByTopicChart({ data }: { data: TopicDifficulty[] }) {
-    const chartData = data.map(d => ({ topic: d.name, difficulty: d.count }));
+// ============ CHARTS ============
+function QuestionsPerTopicChart({ data }: { data: TopicCount[] }) {
+    const chartData = data.map(d => ({ topic: d.name, questions: d.count }));
     return (
-        <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
+        <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
                 <XAxis dataKey="topic" interval={0} tick={({ x, y, payload }) => {
                     const words = payload.value.split(' ');
                     return (
                         <g transform={`translate(${x},${y + 10})`}>
                             {words.map((word: string, index: number) => (
-                                <text key={index} textAnchor="middle" x={0} y={index * 12} fontSize={11}>{word}</text>
+                                <text key={index} textAnchor="middle" x={0} y={index * 11} fontSize={10}>{word}</text>
                             ))}
                         </g>
                     );
                 }} />
-                <YAxis />
+                <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="difficulty">
+                <Bar dataKey="questions">
                     {chartData.map((entry, index) => (
                         <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
@@ -239,81 +202,34 @@ function DifficultyByTopicChart({ data }: { data: TopicDifficulty[] }) {
     );
 }
 
-function WeeklyRequestsChart({ data }: { data: WeeklyData[] }) {
+function TopicPie({ data }: { data: { name: string, value: number }[] }) {
     return (
-        <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="requests">
+        <ResponsiveContainer width="100%" height={360}>
+            <PieChart>
+                <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={false}>
                     {data.map((entry, index) => (
                         <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
-                </Bar>
-            </BarChart>
-        </ResponsiveContainer>
-    );
-}
-
-function SeverityChart({ doubts }: { doubts: Doubt[] }) {
-    const counts: Record<string, number> = {};
-    doubts.forEach(d => { counts[d.severity] = (counts[d.severity] || 0) + 1; });
-    const data = Object.entries(counts).map(([severity, count]) => ({ severity, count }));
-    return (
-        <ResponsiveContainer width="100%" height={350}>
-            <PieChart>
-                <Pie data={data} dataKey="count" nameKey="severity"
-                    cx="50%" cy="50%" innerRadius={60} outerRadius={110} label>
-                    {data.map((entry, index) => (
-                        <Cell key={index} fill={SEVERITY_COLORS[entry.severity] || '#888'} />
-                    ))}
                 </Pie>
-                <Tooltip />
-                <Legend layout="vertical" verticalAlign="middle" align="right" />
+                <Tooltip formatter={(value: number, name: string) => [`${value}`, name]} />
+                <Legend layout="vertical" verticalAlign="middle" align="right"
+                    wrapperStyle={{ fontSize: '11px', maxWidth: '45%' }} />
             </PieChart>
         </ResponsiveContainer>
     );
 }
 
-function ContextChart({ doubts }: { doubts: Doubt[] }) {
-    const counts: Record<string, number> = {};
-    doubts.forEach(d => { counts[d.context] = (counts[d.context] || 0) + 1; });
-    const data = Object.entries(counts).map(([context, count]) => ({ context, count }));
+function ContextPie({ data }: { data: ContextCount[] }) {
     return (
         <ResponsiveContainer width="100%" height={400}>
             <PieChart>
-                <Pie data={data} dataKey="count" nameKey="context"
-                    cx="50%" cy="50%" outerRadius={120} label>
+                <Pie data={data} dataKey="count" nameKey="context" cx="50%" cy="50%" outerRadius={130} label>
                     {data.map((entry, index) => (
                         <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                 </Pie>
                 <Tooltip />
-                <Legend layout="vertical" verticalAlign="middle" align="right" />
-            </PieChart>
-        </ResponsiveContainer>
-    );
-}
-
-function TopicPercentageChart({ doubts }: { doubts: Doubt[] }) {
-    const counts: Record<number, number> = {};
-    doubts.forEach(d => { counts[d.topic.topicId] = (counts[d.topic.topicId] || 0) + 1; });
-    const data = Object.entries(counts).map(([tid, count]) => {
-        const name = doubts.find(d => d.topic.topicId === Number(tid))?.topic.name || `Topic ${tid}`;
-        return { topic: name, count };
-    });
-    return (
-        <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-                <Pie data={data} dataKey="count" nameKey="topic"
-                    cx="50%" cy="50%" outerRadius={120} label={false}>
-                    {data.map((entry, index) => (
-                        <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                </Pie>
-                <Tooltip />
-                <Legend layout="vertical" verticalAlign="middle" align="right" />
+                <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '13px' }} />
             </PieChart>
         </ResponsiveContainer>
     );
@@ -329,33 +245,21 @@ function StatCard({ label, value }: { label: string, value: string | number }) {
     );
 }
 
-function ChartCard({ title, children }: { title: string, children: React.ReactNode }) {
-    return (
-        <div style={cardStyle}>
-            <h3 style={{ marginTop: 0, fontWeight: 400, fontSize: '20px', marginBottom: '20px' }}>{title}</h3>
-            {children}
-        </div>
-    );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-    const c = SEVERITY_BADGE[severity] || { bg: '#eee', text: '#333' };
-    return (
-        <span style={{
-            padding: '4px 12px', borderRadius: '12px', fontSize: '12px',
-            backgroundColor: c.bg, color: c.text
-        }}>
-            {severity}
-        </span>
-    );
-}
-
 const navItemStyle: React.CSSProperties = {
     padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '15px'
 };
 const cardStyle: React.CSSProperties = {
     backgroundColor: '#fafaf5', border: '1px solid #e0d9cc',
     borderRadius: '12px', padding: '24px'
+};
+const sectionTitleStyle: React.CSSProperties = {
+    marginTop: 0, fontWeight: 400, fontSize: '26px', marginBottom: '6px'
+};
+const subTextStyle: React.CSSProperties = {
+    color: '#777', fontSize: '14px', marginTop: 0, marginBottom: '20px'
+};
+const pieTitleStyle: React.CSSProperties = {
+    fontWeight: 400, fontSize: '16px', color: '#444', marginBottom: '8px'
 };
 const thStyle: React.CSSProperties = { padding: '12px 8px', fontSize: '14px', color: '#333' };
 const tdStyle: React.CSSProperties = { padding: '14px 8px', fontSize: '14px', color: '#555' };
