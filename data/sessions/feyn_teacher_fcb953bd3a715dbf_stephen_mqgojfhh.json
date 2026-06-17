@@ -1,0 +1,65 @@
+{
+  "sessionId": "feyn:teacher:fcb953bd3a715dbf:stephen:mqgojfhh",
+  "studentName": "stephen",
+  "lectureId": "fcb953bd3a715dbf",
+  "creator": "teacher",
+  "createdAt": 1781616629045,
+  "feynman": {
+    "topic": "Large Language Model",
+    "difficulty": "kid",
+    "mood": "Sad",
+    "concepts": [
+      {
+        "id": "c1",
+        "name": "Transformer-based neural networks",
+        "hint": "Foundation of LLM architecture"
+      },
+      {
+        "id": "c2",
+        "name": "Tokenization and embeddings",
+        "hint": "Processing input text effectively"
+      },
+      {
+        "id": "c3",
+        "name": "Prompt engineering",
+        "hint": "Influences model output quality"
+      },
+      {
+        "id": "c4",
+        "name": "Chain-of-Thought prompting",
+        "hint": "Enhances multi-step reasoning accuracy"
+      },
+      {
+        "id": "c5",
+        "name": "Hallucinations in outputs",
+        "hint": "Challenge in educational applications"
+      }
+    ],
+    "covered": [],
+    "weak": [
+      "c2",
+      "c1"
+    ],
+    "score": 4,
+    "avgQuality": 4,
+    "coverage": {
+      "covered": 0,
+      "total": 5,
+      "percent": 12
+    },
+    "mastery": "Emerging",
+    "startTime": 1781616629045,
+    "ended": false,
+    "turns": [
+      {
+        "explanation": "hmm screw you",
+        "quality": 4,
+        "coveredNow": [],
+        "message": "Oh, I don't think that was very nice! 😮 Can you tell me what \"Large Language Model\" means again? Like, is it like a super smart robot that talks? 🦾✨"
+      }
+    ],
+    "report": null,
+    "updatedAt": 1781616648426
+  },
+  "treePoints": 12
+}

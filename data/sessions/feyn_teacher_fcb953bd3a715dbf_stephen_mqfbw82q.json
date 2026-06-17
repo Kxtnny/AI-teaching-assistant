@@ -1,0 +1,119 @@
+{
+  "sessionId": "feyn:teacher:fcb953bd3a715dbf:stephen:mqfbw82q",
+  "studentName": "stephen",
+  "lectureId": "fcb953bd3a715dbf",
+  "creator": "teacher",
+  "createdAt": 1781534929910,
+  "feynman": {
+    "topic": "Large Language Model",
+    "difficulty": "kid",
+    "mood": "Okay",
+    "concepts": [
+      {
+        "id": "c1",
+        "name": "Transformer architecture",
+        "hint": "Foundation of LLMs"
+      },
+      {
+        "id": "c2",
+        "name": "Tokenization",
+        "hint": "Breaking text into units"
+      },
+      {
+        "id": "c3",
+        "name": "Prompt engineering",
+        "hint": "Crafting effective input prompts"
+      },
+      {
+        "id": "c4",
+        "name": "Chain-of-Thought",
+        "hint": "Intermediate reasoning steps"
+      },
+      {
+        "id": "c5",
+        "name": "Hallucinations",
+        "hint": "Inaccurate or fabricated outputs"
+      }
+    ],
+    "covered": [
+      "c1",
+      "c2"
+    ],
+    "weak": [
+      "c3"
+    ],
+    "score": 65,
+    "avgQuality": 7.222222222222222,
+    "coverage": {
+      "covered": 2,
+      "total": 5,
+      "percent": 49
+    },
+    "mastery": "Developing",
+    "startTime": 1781534926793,
+    "ended": false,
+    "turns": [
+      {
+        "explanation": "Its using neural netowrk to generate text",
+        "quality": 7,
+        "coveredNow": [
+          "c1"
+        ],
+        "message": "You mentioned neural networks! How do they actually break down words into those smaller pieces called tokens? That sounds really cool! 😊"
+      },
+      {
+        "explanation": "Hmm it uses embedding model",
+        "quality": 7,
+        "coveredNow": [],
+        "message": "Embedding model sounds fascinating! How does it help in breaking down words into those smaller pieces called tokens? 😊"
+      },
+      {
+        "explanation": "it groups the words that are similiar together",
+        "quality": 7,
+        "coveredNow": [],
+        "message": "I love how you said it groups similar words together! 🌟 How does it actually break those words down into those smaller pieces called tokens?"
+      },
+      {
+        "explanation": "it changes them into vectors",
+        "quality": 7,
+        "coveredNow": [],
+        "message": "I love how you said it changes them into vectors! 🌟 How do those smaller pieces called tokens get made in the first place?"
+      },
+      {
+        "explanation": "Tokens are made by a tokenizer, which splits text into smaller reusable pieces before the language model processes it.",
+        "quality": 8,
+        "coveredNow": [
+          "c2"
+        ],
+        "message": "I like how you mentioned the tokenizer splits text into smaller pieces! 🌟 What kind of things can we do with those smaller pieces when we give them to the language model?"
+      },
+      {
+        "explanation": "it helps to generate text",
+        "quality": 7,
+        "coveredNow": [],
+        "message": "I love how you said it helps to generate text! 🌟 How does it actually break that text into those smaller pieces called tokens?"
+      },
+      {
+        "explanation": "It uses a tokenization algorithm with a fixed vocabulary of known text pieces.",
+        "quality": 7,
+        "coveredNow": [],
+        "message": "I like how you mentioned the tokenization algorithm! 🌟 Can you share what kinds of text pieces are turned into tokens?"
+      },
+      {
+        "explanation": "the text given by the user",
+        "quality": 7,
+        "coveredNow": [],
+        "message": "You mentioned how it breaks text into smaller units called tokens! 🌟 Can you give me an example of what those tokens might look like for a simple sentence?"
+      },
+      {
+        "explanation": "l o w e r  Common pairs might be merged step by step:  l + o → lo lo + w → low e + r → er  Eventually, the vocabulary may contain pieces such as:  low, er, ing, the, and tion  When new text arrives, the tokenizer applies those learned pieces to split it.  For example:  lowering  might become:  low + er + ing  The tokenizer then converts each token into an ID:  low → 912 er → 381 ing → 278  The language model receives those IDs, not the original letters directly.  Different models use different tokenizers, so the same sentence may be split differently. Some use BPE, while others use methods such as WordPiece or Unigram tokenization.",
+        "quality": 8,
+        "coveredNow": [],
+        "message": "I love how you explained how tokens are made! 🌟 Can you share what happens with those tokens when they go into the model? How does it use them to make answers?"
+      }
+    ],
+    "report": null,
+    "updatedAt": 1781535276288
+  },
+  "treePoints": 49
+}

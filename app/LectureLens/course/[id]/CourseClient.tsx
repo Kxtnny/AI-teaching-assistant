@@ -82,10 +82,10 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
           <div className={styles.actions}>
             
 
-            {/* <Link href={`/LectureLens/course/${lectureId}/chat${q}`} className={`${styles.card} ${styles.chat}`}>
-              <h4 className={styles.cardTitle}>Ask the Tutor</h4>
-              <p className={styles.cardText}>Ask lecture-specific questions and get guided help.</p>
-            </Link> */}
+            <Link href={`/LectureLens/course/${lectureId}/feynman${q}`} className={`${styles.card} ${styles.chat}`}>
+              <h4 className={styles.cardTitle}>Teach The tutor</h4>
+              <p className={styles.cardText}>Feynman Technique</p>
+            </Link> 
             <Link href={`/LectureLens/course/${lectureId}/quiz${q}`} className={`${styles.card} ${styles.quiz}`}>
               <h4 className={styles.cardTitle}>Practice Quiz</h4>
               <p className={styles.cardText}>Generate MCQs and test your understanding.</p>

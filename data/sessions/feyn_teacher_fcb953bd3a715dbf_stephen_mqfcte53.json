@@ -1,0 +1,103 @@
+{
+  "sessionId": "feyn:teacher:fcb953bd3a715dbf:stephen:mqfcte53",
+  "studentName": "stephen",
+  "lectureId": "fcb953bd3a715dbf",
+  "creator": "teacher",
+  "createdAt": 1781536474065,
+  "feynman": {
+    "topic": "Large Language Model",
+    "difficulty": "teen",
+    "mood": "Stressed",
+    "concepts": [
+      {
+        "id": "c1",
+        "name": "Transformer architecture",
+        "hint": "Foundation of LLMs."
+      },
+      {
+        "id": "c2",
+        "name": "Tokenization",
+        "hint": "Converts text into embeddings."
+      },
+      {
+        "id": "c3",
+        "name": "Prompt engineering",
+        "hint": "Shapes model outputs."
+      },
+      {
+        "id": "c4",
+        "name": "Automatic Prompt Engineer",
+        "hint": "Generates task-specific prompts."
+      },
+      {
+        "id": "c5",
+        "name": "Chain-of-Thought prompting",
+        "hint": "Enhances multi-step reasoning."
+      },
+      {
+        "id": "c6",
+        "name": "Hallucinations",
+        "hint": "Fabricated outputs challenge accuracy."
+      }
+    ],
+    "covered": [
+      "c1",
+      "c2",
+      "c6"
+    ],
+    "weak": [
+      "c3"
+    ],
+    "score": 48,
+    "avgQuality": 7.6,
+    "coverage": {
+      "covered": 3,
+      "total": 6,
+      "percent": 58
+    },
+    "mastery": "Developing",
+    "startTime": 1781536472380,
+    "ended": false,
+    "turns": [
+      {
+        "explanation": "LLM is an AI using neuarl network to generate words",
+        "quality": 7,
+        "coveredNow": [
+          "c1"
+        ],
+        "message": "Tokenization is a key part of how LLMs process text. Can you explain how breaking down text into tokens helps the model understand language better? 😊"
+      },
+      {
+        "explanation": "Tokenization isn’t just a technical step; it actually makes language understandable for the model in a structured way.",
+        "quality": 8,
+        "coveredNow": [
+          "c2"
+        ],
+        "message": "I love how you mentioned that tokenization makes language understandable for the model! Can you give an example of how a specific word might be tokenized differently depending on its context? 😊"
+      },
+      {
+        "explanation": "it uses vectors",
+        "quality": 7,
+        "coveredNow": [],
+        "message": "You mentioned that it uses vectors, which is really cool! 😊 How do these vectors help the model understand the relationships between different words?"
+      },
+      {
+        "explanation": "ach token is turned into a list of numbers (a vector), like:  \"dog\" → [0.2, -1.3, 0.7, ...] \"cat\" → [0.25, -1.1, 0.65, ...] \"car\" → [-0.9, 0.4, 1.2, ...]  These numbers don’t mean anything by themselves—but their position in space does.  📍 1. Similar Words Are Close Together  In this “vector space”:  \"dog\" is close to \"cat\" \"car\" is far from \"banana\"  👉 The model learns:  Words used in similar contexts → get similar vectors  So it understands relationships like:",
+        "quality": 8,
+        "coveredNow": [],
+        "message": "I like how you explained the vector space! 😊 Can you give an example of how prompt engineering might change the way the model responds to a question?"
+      },
+      {
+        "explanation": "it imrpoves hallucination and reliabiltoy",
+        "quality": 8,
+        "coveredNow": [
+          "c6"
+        ],
+        "message": "I like how you mentioned that it improves hallucinations and reliability! 😊 How does prompt engineering specifically help reduce those hallucinations in the model's responses?"
+      }
+    ],
+    "report": null,
+    "updatedAt": 1781536759073
+  },
+  "treePoints": 58
+}

@@ -1,0 +1,53 @@
+{
+  "sessionId": "feyn:teacher:fcb953bd3a715dbf:anon:mqf1i9l1",
+  "studentName": "anon",
+  "lectureId": "fcb953bd3a715dbf",
+  "creator": "teacher",
+  "createdAt": 1781517477917,
+  "feynman": {
+    "topic": "Large Language Model",
+    "difficulty": "kid",
+    "concepts": [
+      {
+        "id": "c1",
+        "name": "Large Language Models",
+        "hint": "Transformer-based neural networks for text."
+      },
+      {
+        "id": "c2",
+        "name": "Tokenization",
+        "hint": "Breaking text into manageable units."
+      },
+      {
+        "id": "c3",
+        "name": "Prompt Engineering",
+        "hint": "Crafting prompts to guide model output."
+      },
+      {
+        "id": "c4",
+        "name": "Chain-of-Thought Prompting",
+        "hint": "Generating reasoning steps for tasks."
+      },
+      {
+        "id": "c5",
+        "name": "Hallucinations",
+        "hint": "Fabricated outputs from the model."
+      }
+    ],
+    "covered": [],
+    "weak": [],
+    "score": 0,
+    "coverage": {
+      "covered": 0,
+      "total": 5,
+      "percent": 0
+    },
+    "mastery": "Emerging",
+    "startTime": 1781517477917,
+    "ended": false,
+    "turns": [],
+    "report": null,
+    "updatedAt": 1781517477917
+  },
+  "treePoints": 0
+}

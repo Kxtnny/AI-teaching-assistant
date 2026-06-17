@@ -1,0 +1,97 @@
+{
+  "sessionId": "feyn:teacher:fcb953bd3a715dbf:anon:mqf1fadi",
+  "studentName": "anon",
+  "lectureId": "fcb953bd3a715dbf",
+  "creator": "teacher",
+  "createdAt": 1781517341441,
+  "feynman": {
+    "topic": "Large Language Model",
+    "difficulty": "kid",
+    "concepts": [
+      {
+        "id": "c1",
+        "name": "Large Language Models",
+        "hint": "Transformer-based neural networks for text."
+      },
+      {
+        "id": "c2",
+        "name": "Tokenization",
+        "hint": "Breaking text into manageable units."
+      },
+      {
+        "id": "c3",
+        "name": "Prompt Engineering",
+        "hint": "Crafting inputs to guide model outputs."
+      },
+      {
+        "id": "c4",
+        "name": "Chain-of-Thought Prompting",
+        "hint": "Generating reasoning steps for accuracy."
+      },
+      {
+        "id": "c5",
+        "name": "Hallucinations",
+        "hint": "Fabricated outputs from the model."
+      }
+    ],
+    "covered": [
+      "c1"
+    ],
+    "weak": [
+      "c2"
+    ],
+    "score": 20,
+    "coverage": {
+      "covered": 1,
+      "total": 5,
+      "percent": 20
+    },
+    "mastery": "Emerging",
+    "startTime": 1781517341440,
+    "ended": true,
+    "endReason": "manual",
+    "turns": [
+      {
+        "explanation": "Large langauge model is a neural network that generates text",
+        "coveredNow": [
+          "c1"
+        ],
+        "weakNow": [
+          "c2"
+        ],
+        "feedback": "Great start! Let's explore how the model breaks down text into smaller pieces.",
+        "question": "What do you think happens when we give the model a sentence?"
+      },
+      {
+        "explanation": "not sure",
+        "coveredNow": [],
+        "weakNow": [
+          "c2"
+        ],
+        "feedback": "Great start! Let's explore how words are broken down in language models.",
+        "question": "How do you think we can ask questions to get better answers?"
+      }
+    ],
+    "report": {
+      "understanding": 20,
+      "mastered": [
+        "Large Language Models"
+      ],
+      "gaps": [
+        "Tokenization",
+        "Prompt Engineering",
+        "Chain-of-Thought Prompting",
+        "Hallucinations"
+      ],
+      "quality": "Your explanation of a Large Language Model as a neural network that generates text is a solid foundation! However, it would be helpful to clarify how it processes language by breaking it down into smaller parts.",
+      "recommendations": [
+        "Learn about tokenization and how words are divided into tokens.",
+        "Explore prompt engineering and how to create effective prompts for the model.",
+        "Understand chain-of-thought prompting and how it helps the model think step-by-step."
+      ],
+      "summary": "Fantastic job on mastering the concept of Large Language Models! You're making great strides in understanding this fascinating topic, and I can't wait to see how you tackle the next concepts!"
+    },
+    "updatedAt": 1781517439343
+  },
+  "treePoints": 20
+}
