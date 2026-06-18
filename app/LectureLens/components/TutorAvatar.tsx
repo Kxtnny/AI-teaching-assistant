@@ -29,7 +29,7 @@ export default function TutorAvatar({
   speaking = false,
   variant = "grove",
   className = "",
-  label = "Your tutor",
+  label = "Dr. Feynman",
 }: TutorAvatarProps) {
   if (variant === "feynman") {
     return (
