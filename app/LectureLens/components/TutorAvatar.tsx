@@ -43,12 +43,12 @@ export default function TutorAvatar({
             <radialGradient id="fK" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stopColor="#e58a63" stopOpacity="0.5" /><stop offset="1" stopColor="#e58a63" stopOpacity="0" /></radialGradient>
           </defs>
           <ellipse cx="130" cy="368" rx="74" ry="10" fill="#1f352c" opacity=".25" />
-          <path d="M58 380 C52 290 74 250 130 250 C186 250 198 290 192 380 Z" fill="url(#fC)" />
-          <path d="M130 252 C112 252 100 262 94 280 L130 304 L166 280 C160 262 148 252 130 252 Z" fill="#fbf6e6" />
-          <path d="M112 254 L130 276 L148 254" fill="none" stroke="#fbf6e6" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M58 380 C52 270 74 222 130 222 C186 222 198 270 192 380 Z" fill="url(#fC)" />
+          <path d="M130 224 C112 224 100 234 94 252 L130 276 L166 252 C160 234 148 224 130 224 Z" fill="#fbf6e6" />
+          <path d="M112 226 L130 248 L148 226" fill="none" stroke="#fbf6e6" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M66 286 C48 306 46 334 56 360" fill="none" stroke="url(#fC)" strokeWidth="28" strokeLinecap="round" /><circle cx="58" cy="360" r="14" fill="url(#fA)" />
           <g className="fy-arm"><path d="M190 282 C228 268 244 248 252 226" fill="none" stroke="url(#fC)" strokeWidth="28" strokeLinecap="round" /><circle cx="252" cy="223" r="14.5" fill="url(#fA)" /></g>
-          <rect x="114" y="202" width="32" height="38" rx="14" fill="#e0a574" /><ellipse cx="130" cy="206" rx="34" ry="13" fill="#c98c58" opacity=".45" />
+          <path d="M 128,202 L 132,202 A 14,14 0 0 1 146,216 L 146,226 L 114,226 L 114,216 A 14,14 0 0 1 128,202 Z" fill="#e0a574" />
           <ellipse cx="130" cy="150" rx="56" ry="60" fill="url(#fS)" />
           <ellipse cx="75" cy="154" rx="10" ry="14" fill="#e0a574" /><ellipse cx="185" cy="154" rx="10" ry="14" fill="#e0a574" />
           <path d="M74 152 C66 88 98 64 130 64 C162 64 194 88 186 152 C183 126 178 116 160 110 C160 96 148 90 134 94 C112 78 88 96 86 118 C80 128 77 134 74 152 Z" fill="url(#fH)" />
@@ -107,14 +107,14 @@ export default function TutorAvatar({
         <ellipse cx="120" cy="348" rx="62" ry="9" fill="#3a2f23" opacity=".10" />
 
         {/* torso / cardigan */}
-        <path d="M58 360 C54 280 70 246 120 246 C170 246 186 280 182 360 Z" fill="url(#grvCardi)" />
+        <path d="M58 360 C54 260 70 218 120 218 C170 218 186 260 182 360 Z" fill="url(#grvCardi)" />
         {/* cardigan shading on the right */}
-        <path d="M120 246 C170 246 186 280 182 360 L150 360 C156 300 150 262 120 250 Z" fill="#34503f" opacity=".45" />
+        <path d="M120 218 C170 218 186 260 182 360 L150 360 C156 300 150 234 120 222 Z" fill="#34503f" opacity=".45" />
         {/* shirt V */}
-        <path d="M120 248 C104 248 92 258 86 274 L120 296 L154 274 C148 258 136 248 120 248 Z" fill="#fbf6e6" />
-        <path d="M120 250 L120 300" stroke="#e2dac4" strokeWidth="3" />
+        <path d="M120 220 C104 220 92 230 86 246 L120 268 L154 246 C148 230 136 220 120 220 Z" fill="#fbf6e6" />
+        <path d="M120 222 L120 288" stroke="#e2dac4" strokeWidth="3" />
         {/* collar */}
-        <path d="M104 250 L120 270 L136 250" fill="none" stroke="#fbf6e6" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M104 222 L120 242 L136 222" fill="none" stroke="#fbf6e6" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
         {/* buttons */}
         <circle cx="120" cy="312" r="3" fill="#2f4a39" /><circle cx="120" cy="332" r="3" fill="#2f4a39" />
 
@@ -130,9 +130,8 @@ export default function TutorAvatar({
           <path d="M228 212 q8 -3 12 4" fill="none" stroke="#cf9163" strokeWidth="3" strokeLinecap="round" />
         </g>
 
-        {/* neck + chin shadow */}
-        <rect x="106" y="198" width="28" height="34" rx="12" fill="#e3a878" />
-        <ellipse cx="120" cy="200" rx="30" ry="12" fill="#cf9163" opacity=".4" />
+        {/* neck */}
+        <path d="M 118,198 L 122,198 A 12,12 0 0 1 134,210 L 134,222 L 106,222 L 106,210 A 12,12 0 0 1 118,198 Z" fill="#e3a878" />
 
         {/* head */}
         <ellipse cx="120" cy="150" rx="50" ry="54" fill="url(#grvSkin)" />
