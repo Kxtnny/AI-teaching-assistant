@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Send, Volume2, VolumeX } from "lucide-react";
+import TutorAvatar from "@/app/LectureLens/components/TutorAvatar";
 
 type Phase = "entry" | "primer" | "learning" | "bridge" | "format" | "assessment" | "summary";
 type Tone = "playful" | "guided" | "accurate";
@@ -178,117 +179,6 @@ function Whiteboard({ children, minHeight = 440 }: { children: React.ReactNode; 
 }
 
 interface Primer { sections: { title: string; bullets: string[] }[]; keyTerms: string[] }
-
-// ─── Tutor avatar — sits beside the board and "speaks" while bullets reveal ───
-function TutorAvatar({ speaking }: { speaking: boolean }) {
-  return (
-    <div className={`grv-avatar ${speaking ? "speaking" : ""}`}>
-      <svg viewBox="0 0 240 360" width="210" height="315" aria-hidden="true">
-        <defs>
-          <linearGradient id="grvSkin" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f3c79f" /><stop offset="1" stopColor="#e3a878" />
-          </linearGradient>
-          <linearGradient id="grvSkinArm" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#eebd92" /><stop offset="1" stopColor="#dca06f" />
-          </linearGradient>
-          <linearGradient id="grvHair" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#6f5743" /><stop offset="1" stopColor="#46362a" />
-          </linearGradient>
-          <linearGradient id="grvCardi" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#5d8a6c" /><stop offset="1" stopColor="#3a5a46" />
-          </linearGradient>
-          <radialGradient id="grvCheek" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#e98f68" stopOpacity="0.55" /><stop offset="1" stopColor="#e98f68" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        {/* ground shadow */}
-        <ellipse cx="120" cy="348" rx="62" ry="9" fill="#3a2f23" opacity=".10" />
-
-        {/* torso / cardigan */}
-        <path d="M58 360 C54 280 70 246 120 246 C170 246 186 280 182 360 Z" fill="url(#grvCardi)" />
-        {/* cardigan shading on the right */}
-        <path d="M120 246 C170 246 186 280 182 360 L150 360 C156 300 150 262 120 250 Z" fill="#34503f" opacity=".45" />
-        {/* shirt V */}
-        <path d="M120 248 C104 248 92 258 86 274 L120 296 L154 274 C148 258 136 248 120 248 Z" fill="#fbf6e6" />
-        <path d="M120 250 L120 300" stroke="#e2dac4" strokeWidth="3" />
-        {/* collar */}
-        <path d="M104 250 L120 270 L136 250" fill="none" stroke="#fbf6e6" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-        {/* buttons */}
-        <circle cx="120" cy="312" r="3" fill="#2f4a39" /><circle cx="120" cy="332" r="3" fill="#2f4a39" />
-
-        {/* resting left arm */}
-        <path d="M64 280 C48 300 46 326 56 348" fill="none" stroke="url(#grvCardi)" strokeWidth="26" strokeLinecap="round" />
-        <circle cx="58" cy="348" r="13" fill="url(#grvSkinArm)" />
-
-        {/* gesturing right arm toward the board */}
-        <g className="grv-avatar-arm">
-          <path d="M176 276 C212 262 226 244 234 224" fill="none" stroke="url(#grvCardi)" strokeWidth="26" strokeLinecap="round" />
-          <circle cx="234" cy="221" r="13.5" fill="url(#grvSkinArm)" />
-          {/* thumb hint */}
-          <path d="M228 212 q8 -3 12 4" fill="none" stroke="#cf9163" strokeWidth="3" strokeLinecap="round" />
-        </g>
-
-        {/* neck + chin shadow */}
-        <rect x="106" y="198" width="28" height="34" rx="12" fill="#e3a878" />
-        <ellipse cx="120" cy="200" rx="30" ry="12" fill="#cf9163" opacity=".4" />
-
-        {/* head */}
-        <ellipse cx="120" cy="150" rx="50" ry="54" fill="url(#grvSkin)" />
-        {/* ears */}
-        <ellipse cx="71" cy="152" rx="9" ry="12" fill="#e3a878" />
-        <ellipse cx="169" cy="152" rx="9" ry="12" fill="#e3a878" />
-        <ellipse cx="71" cy="152" rx="4" ry="6" fill="#cf9163" opacity=".6" />
-        <ellipse cx="169" cy="152" rx="4" ry="6" fill="#cf9163" opacity=".6" />
-
-        {/* hair — swept side part */}
-        <path d="M70 150 C64 96 92 74 120 74 C150 74 178 96 172 150 C170 128 166 118 150 112 C150 100 140 96 128 98 C108 84 86 100 84 120 C80 128 72 132 70 150 Z" fill="url(#grvHair)" />
-        <path d="M120 74 C150 74 178 96 172 150 C170 128 166 118 150 112 C150 100 140 96 128 98 Z" fill="#3a2c21" opacity=".35" />
-
-        {/* cheeks */}
-        <ellipse cx="92" cy="166" rx="13" ry="9" fill="url(#grvCheek)" />
-        <ellipse cx="148" cy="166" rx="13" ry="9" fill="url(#grvCheek)" />
-
-        {/* glasses */}
-        <g stroke="#3a2f23" strokeWidth="3.2" fill="#fffdf6" fillOpacity=".10">
-          <rect x="80" y="140" width="30" height="26" rx="11" />
-          <rect x="130" y="140" width="30" height="26" rx="11" />
-        </g>
-        <path d="M110 152 q10 -5 20 0" fill="none" stroke="#3a2f23" strokeWidth="3.2" />
-        <path d="M80 150 L70 148" stroke="#3a2f23" strokeWidth="3" strokeLinecap="round" />
-        <path d="M160 150 L170 148" stroke="#3a2f23" strokeWidth="3" strokeLinecap="round" />
-
-        {/* eyes (blink via CSS group) */}
-        <g className="grv-avatar-eyes">
-          <ellipse cx="95" cy="153" rx="5.4" ry="6.2" fill="#fff" />
-          <ellipse cx="145" cy="153" rx="5.4" ry="6.2" fill="#fff" />
-          <circle cx="96" cy="154" r="3.4" fill="#3a2a1e" />
-          <circle cx="146" cy="154" r="3.4" fill="#3a2a1e" />
-          <circle cx="94.4" cy="152" r="1.1" fill="#fff" />
-          <circle cx="144.4" cy="152" r="1.1" fill="#fff" />
-        </g>
-
-        {/* brows */}
-        <g className="grv-avatar-brows">
-          <path d="M84 132 q11 -6 22 -1" fill="none" stroke="#4a3a2c" strokeWidth="3.4" strokeLinecap="round" />
-          <path d="M134 131 q11 -5 22 1" fill="none" stroke="#4a3a2c" strokeWidth="3.4" strokeLinecap="round" />
-        </g>
-
-        {/* nose */}
-        <path d="M118 158 q-5 12 3 16" fill="none" stroke="#cf9163" strokeWidth="3" strokeLinecap="round" />
-
-        {/* mouth — opens/closes when speaking */}
-        <g className="grv-avatar-mouth-g">
-          <path className="grv-avatar-lip" d="M104 184 q16 6 32 0" fill="none" stroke="#9c5a44" strokeWidth="3.2" strokeLinecap="round" />
-          <ellipse className="grv-avatar-mouth" cx="120" cy="186" rx="11" ry="3" fill="#7a3f30" />
-        </g>
-      </svg>
-
-      <span className="grv-speech-waves" aria-hidden><span /><span /><span /></span>
-      <span className="grv-avatar-name">Your tutor</span>
-    </div>
-  );
-}
 
 export default function GrovePage() {
   const params = useParams<{ id: string }>();
@@ -847,31 +737,7 @@ export default function GrovePage() {
         .grv-bullet-mark { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; margin-top:2px; font-size:16px; }
         .grv-step-num { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:var(--sage); color:#fbf7ee; font-family:"Fraunces",serif; font-size:15px; font-weight:600; }
 
-        /* ── tutor avatar ── */
-        .grv-avatar { flex:0 0 auto; position:relative; display:flex; flex-direction:column; align-items:center; align-self:center; filter:drop-shadow(0 12px 20px rgba(58,54,44,.18)); }
-        .grv-avatar svg { display:block; }
-        .grv-avatar-name { margin-top:4px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
-        /* gentle idle bob; livelier when speaking */
-        .grv-avatar { animation:grvBob 5s ease-in-out infinite; }
-        .grv-avatar.speaking { animation:grvBob 2.8s ease-in-out infinite; }
-        @keyframes grvBob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
-        /* eyes blink periodically */
-        .grv-avatar-eyes { transform-box:fill-box; transform-origin:center; animation:grvBlink 5.5s ease-in-out infinite; }
-        @keyframes grvBlink { 0%,94%,100%{ transform:scaleY(1); } 97%{ transform:scaleY(.1); } }
-        /* mouth: still when idle, opening/closing when speaking */
-        .grv-avatar-mouth { transform-box:fill-box; transform-origin:center; transform:scaleY(.35); }
-        .grv-avatar-lip { opacity:.9; }
-        .grv-avatar.speaking .grv-avatar-mouth { animation:grvTalk .3s ease-in-out infinite; }
-        @keyframes grvTalk { 0%,100%{ transform:scaleY(.4); } 50%{ transform:scaleY(1.6); } }
-        .grv-avatar.speaking .grv-avatar-arm { animation:grvGesture 2.8s ease-in-out infinite; transform-box:fill-box; transform-origin:55% 92%; }
-        @keyframes grvGesture { 0%,100%{ transform:rotate(0deg); } 50%{ transform:rotate(-6deg); } }
-        /* speech waves near the mouth side */
-        .grv-speech-waves { position:absolute; top:34%; right:-10px; display:flex; flex-direction:column; gap:5px; opacity:0; transition:opacity .25s; }
-        .grv-avatar.speaking .grv-speech-waves { opacity:1; }
-        .grv-speech-waves span { display:block; width:16px; height:3px; border-radius:2px; background:var(--sage); animation:grvWave 1s ease-in-out infinite; }
-        .grv-speech-waves span:nth-child(2){ width:22px; animation-delay:.15s; }
-        .grv-speech-waves span:nth-child(3){ width:12px; animation-delay:.3s; }
-        @keyframes grvWave { 0%,100%{ opacity:.3; transform:scaleX(.7); } 50%{ opacity:1; transform:scaleX(1); } }
+        /* tutor avatar styles now live in app/LectureLens/components/TutorAvatar.tsx */
 
         /* sound toggle */
         .grv-sound-toggle { position:absolute; top:24px; right:28px; display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:24px; border:1px solid var(--line); background:var(--surface); color:var(--sage-deep); font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(58,54,44,.08); transition:background .15s,color .15s,transform .12s; z-index:5; }
@@ -994,14 +860,11 @@ export default function GrovePage() {
 
         @keyframes grvshimmer { 0%,100%{opacity:.4;} 50%{opacity:1;} }
         @keyframes grvblink { 0%,50%{opacity:1;} 51%,100%{opacity:0;} }
-        @media (prefers-reduced-motion:reduce){ .grv-ready,.grv-shimmer,.grv-caret,.grv-thinking span,.grv-timer.low,.grv-avatar,.grv-avatar.speaking,.grv-avatar-mouth,.grv-avatar-arm,.grv-avatar-eyes,.grv-speech-waves span{animation:none;} }
+        @media (prefers-reduced-motion:reduce){ .grv-ready,.grv-shimmer,.grv-caret,.grv-thinking span,.grv-timer.low{animation:none;} }
         @media (max-width:1100px){ .grv-convo,.grv-scene.mentor-scene .grv-composer,.grv-topbar.mentor { width:88vw; } }
         @media (max-width:960px){
           .grv-board-inner { padding:48px 36px; } .grv-board { max-width:100%; }
           .grv-primer-stage { flex-direction:column; gap:0; }
-          .grv-avatar { align-self:center; order:-1; margin-bottom:-22px; z-index:2; }
-          .grv-avatar svg { width:132px; height:198px; }
-          .grv-speech-waves { display:none; }
           .grv-sound-toggle { top:16px; right:16px; }
         }
         @media (max-width:640px){ .grv-h1{font-size:36px;} .grv-line{font-size:22px;} .grv-ready { right:14px; padding:12px 16px; font-size:14px; } .grv-board-inner { padding:36px 22px; } .grv-pick-num{font-size:30px;} .grv-bullet{font-size:18px;} }

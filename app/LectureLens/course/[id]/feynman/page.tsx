@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Send, Volume2, VolumeX, Music, Music2, Clock, Sprout } from "lucide-react";
+import TutorAvatar from "@/app/LectureLens/components/TutorAvatar";
 
 const TUTOR_NAME = "Dr. Feynman";
 const MUSIC_SRC = ""; // drop a looping track in /public and set its path to enable music
@@ -45,40 +46,6 @@ const slug = (s: string) => (s || "anon").toLowerCase().replace(/[^a-z0-9]+/g, "
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
 // ─── Dr. Feynman avatar (full) ───────────────────────────────────────────────
-function TutorAvatar({ speaking }: { speaking: boolean }) {
-  return (
-    <div className={`fy-avatar ${speaking ? "speaking" : ""}`}>
-      <svg viewBox="0 0 260 380" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <defs>
-          <linearGradient id="fS" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor="#f4cda6" /><stop offset="1" stopColor="#e0a574" /></linearGradient>
-          <linearGradient id="fA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#edbd92" /><stop offset="1" stopColor="#d99f6d" /></linearGradient>
-          <linearGradient id="fH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7b6450" /><stop offset="1" stopColor="#4f3d2f" /></linearGradient>
-          <linearGradient id="fC" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stopColor="#6f9a7e" /><stop offset="1" stopColor="#456a55" /></linearGradient>
-          <radialGradient id="fK" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stopColor="#e58a63" stopOpacity="0.5" /><stop offset="1" stopColor="#e58a63" stopOpacity="0" /></radialGradient>
-        </defs>
-        <ellipse cx="130" cy="368" rx="74" ry="10" fill="#1f352c" opacity=".25" />
-        <path d="M58 380 C52 290 74 250 130 250 C186 250 198 290 192 380 Z" fill="url(#fC)" />
-        <path d="M130 252 C112 252 100 262 94 280 L130 304 L166 280 C160 262 148 252 130 252 Z" fill="#fbf6e6" />
-        <path d="M112 254 L130 276 L148 254" fill="none" stroke="#fbf6e6" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M66 286 C48 306 46 334 56 360" fill="none" stroke="url(#fC)" strokeWidth="28" strokeLinecap="round" /><circle cx="58" cy="360" r="14" fill="url(#fA)" />
-        <g className="fy-arm"><path d="M190 282 C228 268 244 248 252 226" fill="none" stroke="url(#fC)" strokeWidth="28" strokeLinecap="round" /><circle cx="252" cy="223" r="14.5" fill="url(#fA)" /></g>
-        <rect x="114" y="202" width="32" height="38" rx="14" fill="#e0a574" /><ellipse cx="130" cy="206" rx="34" ry="13" fill="#c98c58" opacity=".45" />
-        <ellipse cx="130" cy="150" rx="56" ry="60" fill="url(#fS)" />
-        <ellipse cx="75" cy="154" rx="10" ry="14" fill="#e0a574" /><ellipse cx="185" cy="154" rx="10" ry="14" fill="#e0a574" />
-        <path d="M74 152 C66 88 98 64 130 64 C162 64 194 88 186 152 C183 126 178 116 160 110 C160 96 148 90 134 94 C112 78 88 96 86 118 C80 128 77 134 74 152 Z" fill="url(#fH)" />
-        <path d="M77 146 q3 -18 12 -28" fill="none" stroke="#b6a890" strokeWidth="3" strokeLinecap="round" opacity=".5" />
-        <ellipse cx="98" cy="170" rx="14" ry="10" fill="url(#fK)" /><ellipse cx="162" cy="170" rx="14" ry="10" fill="url(#fK)" />
-        <g stroke="#3a2f23" strokeWidth="3.4" fill="#fffdf6" fillOpacity=".12"><rect x="84" y="142" width="34" height="29" rx="13" /><rect x="142" y="142" width="34" height="29" rx="13" /></g>
-        <path d="M118 155 q12 -5 24 0" fill="none" stroke="#3a2f23" strokeWidth="3.4" />
-        <g className="fy-eyes"><ellipse cx="101" cy="156" rx="6" ry="6.8" fill="#fff" /><ellipse cx="159" cy="156" rx="6" ry="6.8" fill="#fff" /><circle cx="102" cy="157" r="3.7" fill="#43301f" /><circle cx="160" cy="157" r="3.7" fill="#43301f" /><circle cx="100.3" cy="154.8" r="1.2" fill="#fff" /><circle cx="158.3" cy="154.8" r="1.2" fill="#fff" /></g>
-        <g><path d="M88 133 q12 -7 25 -1" fill="none" stroke="#5a4634" strokeWidth="3.6" strokeLinecap="round" /><path d="M147 132 q13 -6 25 1" fill="none" stroke="#5a4634" strokeWidth="3.6" strokeLinecap="round" /></g>
-        <path d="M127 160 q-6 14 4 19" fill="none" stroke="#c98c58" strokeWidth="3.2" strokeLinecap="round" />
-        <g><path d="M110 189 q20 9 40 0" fill="none" stroke="#9c5a44" strokeWidth="3.4" strokeLinecap="round" /><ellipse className="fy-mouth" cx="130" cy="191" rx="13" ry="3.4" fill="#7a3f30" /></g>
-      </svg>
-    </div>
-  );
-}
-
 // circular head badge for the teaching header
 function AvatarBadge({ speaking }: { speaking?: boolean }) {
   return (
@@ -417,7 +384,7 @@ export default function FeynmanChallenge() {
             {/* hero avatar before teaching */}
             {!teaching && (
               <motion.div className="fy-hero" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }}>
-                <TutorAvatar speaking={speaking} />
+                <TutorAvatar variant="feynman" speaking={speaking} />
               </motion.div>
             )}
 
@@ -547,7 +514,6 @@ export default function FeynmanChallenge() {
         /* stage / layout */
         .fy-stage { position:relative; z-index:1; min-height:100vh; max-width:1340px; margin:0 auto; padding:0 26px 28px; display:flex; flex-direction:column; }
         .fy-hero { display:flex; justify-content:center; margin:26px 0 -4px; }
-        .fy-hero .fy-avatar { width:188px; }
 
         .fy-body { flex:1; display:flex; gap:40px; min-height:0; padding-top:8px; }
         /* left rail: tree sits centered in the vertical middle */
@@ -617,18 +583,7 @@ export default function FeynmanChallenge() {
 
         .fy-toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--sage-deep); color:var(--cream); padding:11px 22px; border-radius:24px; font-size:15px; font-weight:600; box-shadow:0 12px 30px rgba(82,95,60,.3); z-index:40; }
 
-        /* avatar */
-        .fy-avatar { position:relative; width:188px; filter:drop-shadow(0 12px 20px rgba(74,64,42,.18)); animation:fyBob 5s ease-in-out infinite; }
-        .fy-avatar svg { display:block; width:100%; height:auto; }
-        .fy-avatar.speaking { animation:fyBob 2.8s ease-in-out infinite; }
-        @keyframes fyBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
-        .fy-eyes { transform-box:fill-box; transform-origin:center; animation:fyBlink 5.5s ease-in-out infinite; }
-        @keyframes fyBlink { 0%,94%,100%{transform:scaleY(1);} 97%{transform:scaleY(.1);} }
-        .fy-mouth { transform-box:fill-box; transform-origin:center; transform:scaleY(.35); }
-        .fy-avatar.speaking .fy-mouth { animation:fyTalk .3s ease-in-out infinite; }
-        @keyframes fyTalk { 0%,100%{transform:scaleY(.4);} 50%{transform:scaleY(1.6);} }
-        .fy-avatar.speaking .fy-arm { animation:fyGes 2.8s ease-in-out infinite; transform-box:fill-box; transform-origin:55% 92%; }
-        @keyframes fyGes { 0%,100%{transform:rotate(0);} 50%{transform:rotate(-6deg);} }
+        /* avatar styles now live in app/LectureLens/components/TutorAvatar.tsx */
         .fy-badge { display:inline-block; width:30px; height:30px; border-radius:50%; overflow:hidden; box-shadow:0 2px 6px rgba(74,64,42,.22); }
         .fy-badge svg { display:block; width:100%; height:100%; }
 
@@ -650,11 +605,10 @@ export default function FeynmanChallenge() {
         .fy-sum p { font-family:"Fraunces",serif; font-size:18px; }
         .fy-result-actions { display:flex; gap:12px; margin-top:22px; }
 
-        @media (prefers-reduced-motion:reduce){ .fy-avatar,.fy-avatar.speaking,.fy-mouth,.fy-arm,.fy-eyes,.fy-caret,.fy-stat.low{animation:none;} }
+        @media (prefers-reduced-motion:reduce){ .fy-caret,.fy-stat.low{animation:none;} }
         @media (max-width:820px){
           .fy-head { grid-template-columns:auto 1fr auto; padding:12px 16px; margin:0 -16px 4px; }
           .fy-brand { display:none; }
-          .fy-hero .fy-avatar { width:140px; }
           .fy-body { flex-direction:column; gap:16px; }
           .fy-aside { order:1; flex:none; justify-content:flex-start; }
           .fy-tree-wrap { min-height:0; }
