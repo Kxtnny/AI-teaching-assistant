@@ -5,16 +5,22 @@
 // Shared tutor avatar. Self-contained: carries its own scoped styles + keyframes,
 // so it animates correctly on any page regardless of that page's CSS.
 //
-// Two visual variants (kept identical to their original inline implementations):
+// Visual variants:
 //   • "grove"   — used on the active-learning primer (speech waves + name label)
-//   • "feynman" — used on the Dr. Feynman challenge hero (responsive width)
+//   • "feynman" — the adult tutor on the Dr. Feynman challenge hero (responsive)
+//   • "kid"     — younger, rounder tutor for the "like a kid" difficulty
+//   • "teen"    — hoodie + headphones tutor for the "like a teenager" difficulty
+// The kid/teen/feynman variants share the feynman viewBox + bob so they swap
+// cleanly by difficulty level.
 //
 // Usage:
 //   <TutorAvatar speaking={isSpeaking} />                    // grove (default)
-//   <TutorAvatar variant="feynman" speaking={isSpeaking} />  // feynman
+//   <TutorAvatar variant="feynman" speaking={isSpeaking} />  // adult
+//   <TutorAvatar variant="kid" speaking={isSpeaking} />      // child
+//   <TutorAvatar variant="teen" speaking={isSpeaking} />     // teenager
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type TutorAvatarVariant = "grove" | "feynman";
+export type TutorAvatarVariant = "grove" | "feynman" | "kid" | "teen";
 
 interface TutorAvatarProps {
   speaking?: boolean;
@@ -76,6 +82,106 @@ export default function TutorAvatar({
           @keyframes fyGes { 0%,100%{transform:rotate(0);} 50%{transform:rotate(-6deg);} }
           @media (prefers-reduced-motion:reduce){ .fy-avatar,.fy-avatar.speaking,.fy-mouth,.fy-arm,.fy-eyes{animation:none;} }
           @media (max-width:820px){ .fy-avatar { width:140px; } }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (variant === "kid") {
+    return (
+      <div className={`kd-avatar ${speaking ? "speaking" : ""} ${className}`.trim()}>
+        <svg viewBox="0 0 260 380" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <defs>
+            <linearGradient id="kS" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor="#ffd9b2" /><stop offset="1" stopColor="#f3b27e" /></linearGradient>
+            <linearGradient id="kA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f6c79b" /><stop offset="1" stopColor="#eaa873" /></linearGradient>
+            <linearGradient id="kH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6f4a32" /><stop offset="1" stopColor="#48301f" /></linearGradient>
+            <linearGradient id="kC" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stopColor="#f7bd4d" /><stop offset="1" stopColor="#e89222" /></linearGradient>
+            <radialGradient id="kK" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stopColor="#f4795a" stopOpacity="0.55" /><stop offset="1" stopColor="#f4795a" stopOpacity="0" /></radialGradient>
+          </defs>
+          <ellipse cx="130" cy="368" rx="70" ry="9" fill="#1f352c" opacity=".22" />
+          <path d="M68 380 C64 304 88 236 130 236 C172 236 196 304 192 380 Z" fill="url(#kC)" />
+          <path d="M84 286 C60 300 56 332 66 360" fill="none" stroke="url(#kC)" strokeWidth="30" strokeLinecap="round" /><circle cx="66" cy="360" r="15" fill="url(#kA)" />
+          <g className="kd-arm"><path d="M176 286 C214 290 234 270 242 246" fill="none" stroke="url(#kC)" strokeWidth="30" strokeLinecap="round" /><circle cx="242" cy="243" r="15.5" fill="url(#kA)" /></g>
+          <path d="M104 248 q26 16 52 0" fill="none" stroke="#fff" strokeWidth="7" strokeLinecap="round" opacity=".55" />
+          <path d="M 122,206 L 138,206 A 13,13 0 0 1 151,219 L 151,238 L 109,238 L 109,219 A 13,13 0 0 1 122,206 Z" fill="#eaa873" />
+          <ellipse cx="130" cy="152" rx="64" ry="62" fill="url(#kS)" />
+          <ellipse cx="68" cy="160" rx="11" ry="15" fill="#eaa873" /><ellipse cx="192" cy="160" rx="11" ry="15" fill="#eaa873" />
+          <path d="M66 156 C58 84 102 58 130 58 C158 58 202 84 194 156 C190 122 176 106 130 106 C84 106 70 122 66 156 Z" fill="url(#kH)" />
+          <path d="M126 60 q4 -16 18 -13 q-9 6 -7 17 z" fill="url(#kH)" />
+          <ellipse cx="92" cy="176" rx="16" ry="12" fill="url(#kK)" /><ellipse cx="168" cy="176" rx="16" ry="12" fill="url(#kK)" />
+          <g className="kd-eyes"><ellipse cx="104" cy="158" rx="9" ry="11" fill="#fff" /><ellipse cx="156" cy="158" rx="9" ry="11" fill="#fff" /><circle cx="105" cy="160" r="5.4" fill="#43301f" /><circle cx="157" cy="160" r="5.4" fill="#43301f" /><circle cx="102.4" cy="157" r="1.9" fill="#fff" /><circle cx="154.4" cy="157" r="1.9" fill="#fff" /></g>
+          <path d="M92 140 q12 -7 24 -2" fill="none" stroke="#5a4634" strokeWidth="3.4" strokeLinecap="round" /><path d="M144 138 q12 -5 24 2" fill="none" stroke="#5a4634" strokeWidth="3.4" strokeLinecap="round" />
+          <circle cx="130" cy="176" r="3.4" fill="#e2a06f" />
+          <g><path d="M108 188 q22 7 44 0" fill="none" stroke="#9c5a44" strokeWidth="3.8" strokeLinecap="round" /><ellipse className="kd-mouth" cx="130" cy="191" rx="13" ry="3.6" fill="#7a3f30" /></g>
+        </svg>
+
+        <style jsx>{`
+          .kd-avatar { position:relative; width:188px; filter:drop-shadow(0 12px 20px rgba(74,64,42,.18)); animation:kdBob 4.6s ease-in-out infinite; }
+          .kd-avatar svg { display:block; width:100%; height:auto; }
+          .kd-avatar.speaking { animation:kdBob 2.4s ease-in-out infinite; }
+          @keyframes kdBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+          .kd-eyes { transform-box:fill-box; transform-origin:center; animation:kdBlink 4.4s ease-in-out infinite; }
+          @keyframes kdBlink { 0%,93%,100%{transform:scaleY(1);} 96%{transform:scaleY(.1);} }
+          .kd-mouth { transform-box:fill-box; transform-origin:center; transform:scaleY(.4); }
+          .kd-avatar.speaking .kd-mouth { animation:kdTalk .3s ease-in-out infinite; }
+          @keyframes kdTalk { 0%,100%{transform:scaleY(.5);} 50%{transform:scaleY(1.9);} }
+          .kd-avatar.speaking .kd-arm { animation:kdGes 2.2s ease-in-out infinite; transform-box:fill-box; transform-origin:60% 90%; }
+          @keyframes kdGes { 0%,100%{transform:rotate(0);} 50%{transform:rotate(-11deg);} }
+          @media (prefers-reduced-motion:reduce){ .kd-avatar,.kd-avatar.speaking,.kd-mouth,.kd-arm,.kd-eyes{animation:none;} }
+          @media (max-width:820px){ .kd-avatar { width:140px; } }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (variant === "teen") {
+    return (
+      <div className={`tn-avatar ${speaking ? "speaking" : ""} ${className}`.trim()}>
+        <svg viewBox="0 0 260 380" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <defs>
+            <linearGradient id="tS" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor="#f3c79f" /><stop offset="1" stopColor="#e0a878" /></linearGradient>
+            <linearGradient id="tA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#edbd92" /><stop offset="1" stopColor="#d9a06f" /></linearGradient>
+            <linearGradient id="tH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3b3a4e" /><stop offset="1" stopColor="#23222f" /></linearGradient>
+            <linearGradient id="tC" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stopColor="#5b6bb0" /><stop offset="1" stopColor="#39437a" /></linearGradient>
+            <radialGradient id="tK" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stopColor="#e98f68" stopOpacity="0.4" /><stop offset="1" stopColor="#e98f68" stopOpacity="0" /></radialGradient>
+          </defs>
+          <ellipse cx="130" cy="368" rx="74" ry="10" fill="#1f352c" opacity=".25" />
+          <path d="M56 380 C50 286 76 226 130 226 C184 226 210 286 204 380 Z" fill="url(#tC)" />
+          <path d="M130 234 L130 360" stroke="#2c3354" strokeWidth="3" opacity=".55" />
+          <path d="M98 318 q32 16 64 0" fill="none" stroke="#2c3354" strokeWidth="3" opacity=".45" />
+          <path d="M64 284 C46 304 44 332 54 358" fill="none" stroke="url(#tC)" strokeWidth="30" strokeLinecap="round" /><circle cx="56" cy="358" r="14.5" fill="url(#tA)" />
+          <g className="tn-arm"><path d="M196 282 C234 268 250 248 258 226" fill="none" stroke="url(#tC)" strokeWidth="30" strokeLinecap="round" /><circle cx="258" cy="223" r="15" fill="url(#tA)" /></g>
+          <path d="M 124,204 L 136,204 A 12,12 0 0 1 148,216 L 148,232 L 112,232 L 112,216 A 12,12 0 0 1 124,204 Z" fill="#e0a878" />
+          <path d="M96 232 C108 220 152 220 164 232 C156 248 104 248 96 232 Z" fill="#2d3560" opacity=".6" />
+          <path d="M118 240 L113 286" stroke="#e7ebf5" strokeWidth="3.6" strokeLinecap="round" /><path d="M142 240 L147 286" stroke="#e7ebf5" strokeWidth="3.6" strokeLinecap="round" /><circle cx="113" cy="289" r="3.4" fill="#e7ebf5" /><circle cx="147" cy="289" r="3.4" fill="#e7ebf5" />
+          <ellipse cx="130" cy="150" rx="56" ry="58" fill="url(#tS)" />
+          <ellipse cx="74" cy="154" rx="10" ry="13" fill="#e0a878" /><ellipse cx="186" cy="154" rx="10" ry="13" fill="#e0a878" />
+          <path d="M74 150 C66 86 102 62 130 62 C168 62 196 90 186 150 C184 124 178 114 162 108 C150 90 116 90 106 104 C92 102 82 114 82 126 C78 134 76 140 74 150 Z" fill="url(#tH)" />
+          <path d="M84 122 C112 100 152 100 182 120 C158 112 138 116 118 128 C106 134 94 132 84 122 Z" fill="url(#tH)" />
+          <ellipse cx="98" cy="168" rx="12" ry="8" fill="url(#tK)" /><ellipse cx="162" cy="168" rx="12" ry="8" fill="url(#tK)" />
+          <g className="tn-eyes"><ellipse cx="103" cy="156" rx="6.4" ry="7.6" fill="#fff" /><ellipse cx="157" cy="156" rx="6.4" ry="7.6" fill="#fff" /><circle cx="104" cy="157" r="4" fill="#33271c" /><circle cx="158" cy="157" r="4" fill="#33271c" /><circle cx="102" cy="154.6" r="1.4" fill="#fff" /><circle cx="156" cy="154.6" r="1.4" fill="#fff" /></g>
+          <path d="M90 138 q13 -6 24 -2" fill="none" stroke="#2e2c3a" strokeWidth="3.4" strokeLinecap="round" /><path d="M146 136 q12 -4 24 2" fill="none" stroke="#2e2c3a" strokeWidth="3.4" strokeLinecap="round" />
+          <path d="M127 160 q-5 12 4 16" fill="none" stroke="#cf9163" strokeWidth="3" strokeLinecap="round" />
+          <g><path d="M112 186 q18 7 36 0" fill="none" stroke="#9c5a44" strokeWidth="3.4" strokeLinecap="round" /><ellipse className="tn-mouth" cx="130" cy="188" rx="12" ry="3.2" fill="#7a3f30" /></g>
+          <path d="M68 152 C64 84 110 60 130 60 C150 60 196 84 192 152" fill="none" stroke="#2b3350" strokeWidth="9" strokeLinecap="round" />
+          <rect x="58" y="140" width="20" height="36" rx="9" fill="#2b3350" /><rect x="182" y="140" width="20" height="36" rx="9" fill="#2b3350" />
+          <rect x="61" y="145" width="14" height="26" rx="7" fill="#49538a" /><rect x="185" y="145" width="14" height="26" rx="7" fill="#49538a" />
+        </svg>
+
+        <style jsx>{`
+          .tn-avatar { position:relative; width:188px; filter:drop-shadow(0 12px 20px rgba(74,64,42,.18)); animation:tnBob 5s ease-in-out infinite; }
+          .tn-avatar svg { display:block; width:100%; height:auto; }
+          .tn-avatar.speaking { animation:tnBob 2.8s ease-in-out infinite; }
+          @keyframes tnBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+          .tn-eyes { transform-box:fill-box; transform-origin:center; animation:tnBlink 5.2s ease-in-out infinite; }
+          @keyframes tnBlink { 0%,94%,100%{transform:scaleY(1);} 97%{transform:scaleY(.1);} }
+          .tn-mouth { transform-box:fill-box; transform-origin:center; transform:scaleY(.35); }
+          .tn-avatar.speaking .tn-mouth { animation:tnTalk .3s ease-in-out infinite; }
+          @keyframes tnTalk { 0%,100%{transform:scaleY(.4);} 50%{transform:scaleY(1.6);} }
+          .tn-avatar.speaking .tn-arm { animation:tnGes 2.8s ease-in-out infinite; transform-box:fill-box; transform-origin:55% 92%; }
+          @keyframes tnGes { 0%,100%{transform:rotate(0);} 50%{transform:rotate(-7deg);} }
+          @media (prefers-reduced-motion:reduce){ .tn-avatar,.tn-avatar.speaking,.tn-mouth,.tn-arm,.tn-eyes{animation:none;} }
+          @media (max-width:820px){ .tn-avatar { width:140px; } }
         `}</style>
       </div>
     );

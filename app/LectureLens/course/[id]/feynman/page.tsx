@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Send, Volume2, VolumeX, Music, Music2, Clock, Sprout } from "lucide-react";
-import TutorAvatar from "@/app/LectureLens/components/TutorAvatar";
+import TutorAvatar, { type TutorAvatarVariant } from "@/app/LectureLens/components/TutorAvatar";
 
 const TUTOR_NAME = "Dr. Feynman";
 const MUSIC_SRC = ""; // drop a looping track in /public and set its path to enable music
@@ -162,6 +162,8 @@ export default function FeynmanChallenge() {
   const coverageRef = useRef({ covered: 0, total: 0, percent: 0 });
   const teaching = stage === "teaching";
   const speaking = botTyping || grading;
+  // tutor avatar matches the difficulty the student picked (adult = original feynman)
+  const tutorVariant: TutorAvatarVariant = difficulty === "kid" ? "kid" : difficulty === "adult" ? "feynman" : "teen";
 
   // prefs
   useEffect(() => { setName(localStorage.getItem("grove_name") || ""); setMusicOn(localStorage.getItem("grove_music") === "on"); setVoiceOn(localStorage.getItem("grove_voice") !== "off"); }, []);
@@ -456,6 +458,13 @@ export default function FeynmanChallenge() {
               )}
             </div>
 
+            {/* tutor in the bottom-right — reflects the chosen difficulty level */}
+            {teaching && (
+              <motion.div className="fy-tutor-corner" aria-hidden="true" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+                <TutorAvatar variant={tutorVariant} speaking={speaking} />
+              </motion.div>
+            )}
+
             <AnimatePresence>
               {toast && <motion.div className="fy-toast" initial={{ opacity: 0, y: 16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10 }}>{toast}</motion.div>}
             </AnimatePresence>
@@ -586,6 +595,8 @@ export default function FeynmanChallenge() {
         /* avatar styles now live in app/LectureLens/components/TutorAvatar.tsx */
         .fy-badge { display:inline-block; width:30px; height:30px; border-radius:50%; overflow:hidden; box-shadow:0 2px 6px rgba(74,64,42,.22); }
         .fy-badge svg { display:block; width:100%; height:100%; }
+        /* difficulty-matched tutor tucked into the bottom-right empty space */
+        .fy-tutor-corner { position:fixed; right:26px; bottom:108px; z-index:15; pointer-events:none; transform:scale(.84); transform-origin:bottom right; }
 
         /* results */
         .fy-results { position:relative; z-index:1; max-width:760px; margin:0 auto; padding:54px 24px 80px; min-height:100vh; display:flex; flex-direction:column; }
@@ -618,6 +629,7 @@ export default function FeynmanChallenge() {
           .fy-mood { width:66px; height:66px; font-size:34px; }
           .fy-cards { grid-template-columns:1fr; }
           .fy-result-head { flex-direction:column; text-align:center; }
+          .fy-tutor-corner { display:none; }
         }
       `}</style>
     </div>
