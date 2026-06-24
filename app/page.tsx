@@ -83,7 +83,7 @@ function FloatingIcons() {
 }
 
 const HEADING = "Dr Feynman";
-const SUBHEADING = "Learn by Teaching with AI";
+const SUBHEADING = "Learn by Teaching";
 const DESC =
   "An AI-powered platform that enhances the Feynman learning technique using LLMs, so you can explain clearly, find gaps, and build real understanding.";
 

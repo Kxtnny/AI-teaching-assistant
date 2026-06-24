@@ -86,19 +86,6 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
               <h4 className={styles.cardTitle}>Teach The tutor</h4>
               <p className={styles.cardText}>Feynman Technique</p>
             </Link> 
-            <Link href={`/LectureLens/course/${lectureId}/quiz${q}`} className={`${styles.card} ${styles.quiz}`}>
-              <h4 className={styles.cardTitle}>Practice Quiz</h4>
-              <p className={styles.cardText}>Generate MCQs and test your understanding.</p>
-            </Link>
-            <Link href={`/LectureLens/course/${lectureId}/adaptive${q}`} className={`${styles.card} ${styles.adaptive}`}>
-              <h4 className={styles.cardTitle}>Adaptive Learning</h4>
-              <p className={styles.cardText}>Get personalized support based on your learning needs.</p>
-            </Link>
-
-            <Link href={`/LectureLens/course/${lectureId}/solosprintui${q}`} className={styles.card}>
-              <h4 className={styles.cardTitle}>Solo Feynman Sprint</h4>
-              <p className={styles.cardText}>practise your understanding using this gamified approach.</p>
-            </Link>
             <Link href={`/LectureLens/course/${lectureId}/activelearning${q}`} className={styles.card}>
               <h4 className={styles.cardTitle}>Active Learning</h4>
               <p className={styles.cardText}>Engage with the material through interactive exercises.</p>
