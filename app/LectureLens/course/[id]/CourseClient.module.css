@@ -1,121 +1,140 @@
 .page {
   min-height: 100vh;
-  background: #f6f4f1;
-  padding: 22px;
-  color: #151515;
+  background: var(--ll-bg);
+  background-attachment: fixed;
+  padding: 26px 26px 60px;
+  color: var(--ll-ink);
 }
 
 .back {
   text-decoration: none;
-  color: #6b645b;
+  color: var(--ll-muted);
   font-weight: 600;
+  font-size: 14px;
 }
+.back:hover { color: var(--ll-ink); }
 
 .hero {
-  margin-top: 12px;
-  border-radius: 16px;
-  padding: 28px 26px;
-  background: linear-gradient(120deg, #191313 0%, #201515 65%, #211a33 100%);
-  border: 1px solid #2f2727;
+  margin: 22px auto 4px;
+  max-width: 1180px;
+  text-align: center;
+}
+
+.eyebrow {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ll-muted);
+  margin-bottom: 10px;
 }
 
 .title {
   margin: 0;
-  font-size: clamp(36px, 4vw, 62px);
+  font-size: clamp(38px, 5vw, 64px);
   line-height: 1.08;
-  letter-spacing: -0.02em;
-  color: #fff;
-  font-family: serif;
+  letter-spacing: -0.01em;
+  color: var(--ll-ink);
+  font-family: var(--ll-serif);
+  font-weight: 500;
 }
 
 .contentGrid {
-  margin-top: 16px;
+  margin: 22px auto 0;
+  max-width: 1180px;
   display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 14px;
+  grid-template-columns: 380px 1fr;
+  gap: 18px;
 }
 
 .summaryCard,
 .modeWrap {
-  border: 1px solid #e3ddd6;
-  border-radius: 16px;
-  background: #fff;
-  padding: 18px;
+  border: 1px solid var(--ll-line);
+  border-radius: 18px;
+  background: var(--ll-surface);
+  padding: 22px 24px;
+  box-shadow: 0 6px 18px rgba(63, 55, 38, 0.06);
 }
 
 .sectionLabel {
-  margin: 0 0 10px;
-  font-size: 13px;
-  letter-spacing: 0.12em;
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #6a635a;
+  color: var(--ll-muted);
   font-weight: 700;
 }
 
 .summaryText {
   margin: 0;
-  color: #4c4741;
+  color: var(--ll-ink-soft);
   line-height: 1.7;
   font-size: 16px;
 }
 
 .summaryLine {
-  margin: 0 0 6px;
-  line-height: 1.6;
+  margin: 0 0 8px;
+  line-height: 1.7;
 }
 
 .modeHeading {
-  margin: 2px 0 12px;
-  font-size: 34px;
+  margin: 2px 0 16px;
+  font-size: clamp(26px, 3vw, 34px);
   line-height: 1.15;
-  font-family: serif;
-  color: #221d19;
+  font-family: var(--ll-serif);
+  color: var(--ll-ink);
+  font-weight: 500;
 }
 
 .actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(210px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(210px, 1fr));
+  gap: 14px;
 }
 
 .card {
   text-decoration: none;
   color: inherit;
-  border: 1px solid #e2ddd6;
-  border-radius: 14px;
-  padding: 16px;
+  border: 1px solid var(--ll-line);
+  border-radius: 16px;
+  padding: 20px;
   min-height: 170px;
-  transition: transform .15s ease, box-shadow .15s ease;
+  background: var(--ll-surface2);
+  box-shadow: 0 4px 14px rgba(63, 55, 38, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(20, 17, 15, .08);
+  box-shadow: 0 12px 26px rgba(63, 55, 38, 0.1);
+  border-color: var(--ll-sage);
 }
 
-.quiz { background: #fff9e7; border-color: #f1dd9b; }
-.chat { background: #eef7ff; border-color: #cfe8ff; }
-.adaptive { background: #f2eeff; border-color: #ddd3ff; }
+/* feature accent rail — kept subtle and earthy */
+.chat { border-left: 3px solid var(--ll-clay); }
+.card:not(.chat) { border-left: 3px solid var(--ll-sage); }
 
 .cardTitle {
   margin: 0 0 8px;
-  font-size: 28px;
-  font-family: serif;
+  font-size: 26px;
+  font-family: var(--ll-serif);
+  font-weight: 500;
+  color: var(--ll-ink);
 }
 
 .cardText {
   margin: 0;
   font-size: 15px;
-  color: #615b52;
-  line-height: 1.5;
+  color: var(--ll-ink-soft);
+  line-height: 1.55;
 }
 
 .readMore {
   display: inline-block;
-  margin-top: 12px;
+  margin-top: 14px;
   background: none;
   border: none;
   padding: 0;
-  color: #7c6fcd;
+  color: var(--ll-sage-deep);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -126,7 +145,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 8, 8, 0.55);
+  background: rgba(58, 48, 30, 0.42);
   backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
@@ -136,14 +155,15 @@
 }
 
 .modalPanel {
-  background: #fff;
+  background: var(--ll-surface);
+  border: 1px solid var(--ll-line);
   border-radius: 20px;
   width: 100%;
   max-width: 720px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 24px 60px rgba(58, 48, 30, 0.24);
 }
 
 .modalHeader {
@@ -151,17 +171,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px 16px;
-  border-bottom: 1px solid #ece8e2;
+  border-bottom: 1px solid var(--ll-line);
   flex-shrink: 0;
 }
 
 .modalTitle {
   margin: 0;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #6a635a;
+  color: var(--ll-muted);
 }
 
 .modalClose {
@@ -169,19 +189,19 @@
   border: none;
   font-size: 18px;
   cursor: pointer;
-  color: #8a8078;
+  color: var(--ll-muted);
   line-height: 1;
   padding: 4px 6px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
-.modalClose:hover { background: #f0ece7; }
+.modalClose:hover { background: var(--ll-surface2); color: var(--ll-ink); }
 
 .modalBody {
   padding: 20px 24px 24px;
   overflow-y: auto;
-  color: #4c4741;
+  color: var(--ll-ink-soft);
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 @media (max-width: 1100px) {

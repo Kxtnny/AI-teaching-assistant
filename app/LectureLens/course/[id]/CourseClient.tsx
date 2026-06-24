@@ -58,10 +58,11 @@ export default function CourseClient({ lectureId }: { lectureId: string }) {
   const q = `?creator=${creator}`;
 
   return (
-    <div className={styles.page}>
+    <div className={`ll-theme ${styles.page}`}>
       <Link href="/LectureLens" className={styles.back}>← Back to courses</Link>
 
       <section className={styles.hero}>
+        <span className={styles.eyebrow}>Course</span>
         <h1 className={styles.title}>{title}</h1>
       </section>
 

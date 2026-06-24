@@ -15,7 +15,7 @@ type StudentSummary = {
     primaryTopic: string, topicsCovered: number, totalQuestions: number
 };
 
-const CHART_COLORS = ['#A28EFF', '#FFBB28', '#00C49F', '#0088FE', '#FF8042', '#5B5BD6', '#2A9D8F', '#FF6F61'];
+const CHART_COLORS = ['#6f7d57', '#bb8d39', '#b06a3c', '#4f7a5f', '#8a6a82', '#4a7d82', '#c79a3f', '#9c552c'];
 
 // ============ MAIN PAGE ============
 export default function DashboardPage() {
@@ -45,7 +45,7 @@ export default function DashboardPage() {
     }, [selectedStudentId]);
 
     if (!isLoaded) {
-        return <div style={{ padding: '40px', backgroundColor: '#f5f1ea', minHeight: '100vh' }}>Loading...</div>;
+        return <div className="ll-theme" style={{ padding: '40px', minHeight: '100vh', fontFamily: 'var(--ll-serif)' }}>Loading...</div>;
     }
 
     const isStudentView = selectedStudentId !== null;
@@ -59,14 +59,13 @@ export default function DashboardPage() {
     const totalMaterial = materialPercentage.reduce((sum, m) => sum + m.documents, 0);
 
     return (
-        <div style={{
-            display: 'flex', minHeight: '100vh',
-            backgroundColor: '#f5f1ea', fontFamily: 'Georgia, serif'
+        <div className="ll-theme" style={{
+            display: 'flex', minHeight: '100vh'
         }}>
             {/* Sidebar */}
-            <aside style={{ width: '220px', padding: '30px 20px', borderRight: '1px solid #e0d9cc' }}>
+            <aside style={{ width: '220px', padding: '30px 20px', borderRight: '1px solid var(--ll-line)', background: 'rgba(246, 238, 218, 0.6)' }}>
                 <div
-                    style={{ marginBottom: '40px', fontSize: '14px', color: '#666', cursor: 'pointer' }}
+                    style={{ marginBottom: '40px', fontSize: '14px', color: 'var(--ll-muted)', cursor: 'pointer', fontFamily: 'system-ui, sans-serif', fontWeight: 600 }}
                     onClick={() => setSelectedStudentId(null)}
                 >
                     ← {isStudentView ? 'Back to dashboard' : 'Back to home'}
@@ -75,19 +74,19 @@ export default function DashboardPage() {
                     <div style={navItemStyle}>Overview</div>
                     <div style={navItemStyle}>Upload Lecture</div>
                     <div style={navItemStyle}>My Lectures</div>
-                    <div style={{ ...navItemStyle, border: '1px solid #000', fontWeight: 'bold' }}>Doubt Analytics</div>
+                    <div style={{ ...navItemStyle, background: 'var(--ll-surface)', border: '1px solid var(--ll-line)', fontWeight: 700 }}>Doubt Analytics</div>
                 </nav>
             </aside>
 
             {/* Main content */}
             <main style={{ flex: 1, padding: '40px 50px' }}>
-                <div style={{ fontSize: '12px', color: '#888', letterSpacing: '2px', marginBottom: '10px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--ll-muted)', letterSpacing: '2px', marginBottom: '10px', fontFamily: 'system-ui, sans-serif' }}>
                     {isStudentView ? 'STUDENT PROFILE' : 'WELCOME BACK'}
                 </div>
-                <h1 style={{ fontSize: '48px', margin: '0 0 10px 0', fontWeight: 400 }}>
+                <h1 style={{ fontSize: '48px', margin: '0 0 10px 0', fontWeight: 500, color: 'var(--ll-ink)', fontFamily: 'var(--ll-serif)' }}>
                     {isStudentView ? currentStudentName : 'Your teaching dashboard'}
                 </h1>
-                <p style={{ color: '#777', marginBottom: '30px' }}>
+                <p style={{ color: 'var(--ll-ink-soft)', marginBottom: '30px', fontFamily: 'system-ui, sans-serif' }}>
                     {isStudentView
                         ? 'Question patterns and topic breakdown for this student.'
                         : 'Track student questions, course material coverage, and learning contexts.'}
@@ -143,7 +142,7 @@ export default function DashboardPage() {
                         <h2 style={sectionTitleStyle}>Questions by student</h2>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #e0d9cc' }}>
+                                <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--ll-line)' }}>
                                     <th style={thStyle}>Student</th>
                                     <th style={thStyle}>Most asked topic</th>
                                     <th style={thStyle}>Topics covered</th>
@@ -152,11 +151,11 @@ export default function DashboardPage() {
                             </thead>
                             <tbody>
                                 {studentSummary.map(s => (
-                                    <tr key={s.studentId} style={{ borderBottom: '1px solid #f0ebe0' }}>
+                                    <tr key={s.studentId} style={{ borderBottom: '1px solid var(--ll-line)' }}>
                                         <td style={tdStyle}>
                                             <span
                                                 onClick={() => setSelectedStudentId(s.studentId)}
-                                                style={{ color: '#333', textDecoration: 'underline', fontWeight: 'bold', cursor: 'pointer' }}>
+                                                style={{ color: 'var(--ll-sage-deep)', textDecoration: 'underline', fontWeight: 'bold', cursor: 'pointer' }}>
                                                 {s.studentName}
                                             </span>
                                         </td>
@@ -239,27 +238,28 @@ function ContextPie({ data }: { data: ContextCount[] }) {
 function StatCard({ label, value }: { label: string, value: string | number }) {
     return (
         <div style={cardStyle}>
-            <div style={{ fontSize: '11px', color: '#999', letterSpacing: '1.5px', marginBottom: '12px' }}>{label}</div>
-            <div style={{ fontSize: '40px', fontWeight: 400 }}>{value}</div>
+            <div style={{ fontSize: '11px', color: 'var(--ll-muted)', letterSpacing: '1.5px', marginBottom: '12px', fontFamily: 'system-ui, sans-serif' }}>{label}</div>
+            <div style={{ fontSize: '40px', fontWeight: 500, color: 'var(--ll-ink)', fontFamily: 'var(--ll-serif)' }}>{value}</div>
         </div>
     );
 }
 
 const navItemStyle: React.CSSProperties = {
-    padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '15px'
+    padding: '10px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '15px',
+    color: 'var(--ll-ink-soft)', fontFamily: 'system-ui, sans-serif', fontWeight: 600
 };
 const cardStyle: React.CSSProperties = {
-    backgroundColor: '#fafaf5', border: '1px solid #e0d9cc',
-    borderRadius: '12px', padding: '24px'
+    background: 'var(--ll-surface)', border: '1px solid var(--ll-line)',
+    borderRadius: '16px', padding: '24px', boxShadow: '0 6px 18px rgba(63, 55, 38, 0.06)'
 };
 const sectionTitleStyle: React.CSSProperties = {
-    marginTop: 0, fontWeight: 400, fontSize: '26px', marginBottom: '6px'
+    marginTop: 0, fontWeight: 500, fontSize: '26px', marginBottom: '6px', color: 'var(--ll-ink)', fontFamily: 'var(--ll-serif)'
 };
 const subTextStyle: React.CSSProperties = {
-    color: '#777', fontSize: '14px', marginTop: 0, marginBottom: '20px'
+    color: 'var(--ll-ink-soft)', fontSize: '14px', marginTop: 0, marginBottom: '20px', fontFamily: 'system-ui, sans-serif'
 };
 const pieTitleStyle: React.CSSProperties = {
-    fontWeight: 400, fontSize: '16px', color: '#444', marginBottom: '8px'
+    fontWeight: 500, fontSize: '16px', color: 'var(--ll-ink-soft)', marginBottom: '8px'
 };
-const thStyle: React.CSSProperties = { padding: '12px 8px', fontSize: '14px', color: '#333' };
-const tdStyle: React.CSSProperties = { padding: '14px 8px', fontSize: '14px', color: '#555' };
+const thStyle: React.CSSProperties = { padding: '12px 8px', fontSize: '14px', color: 'var(--ll-ink)' };
+const tdStyle: React.CSSProperties = { padding: '14px 8px', fontSize: '14px', color: 'var(--ll-ink-soft)' };

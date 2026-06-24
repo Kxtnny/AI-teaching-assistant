@@ -15,6 +15,42 @@
   --foreground: #171717;
 }
 
+/* ── Academy paper theme ────────────────────────────────────────────────
+   Shared design tokens so LectureLens + teacher surfaces match the
+   feynman / activelearning vibe (warm paper, sage + clay + gold).
+
+   NOTE: these are defined on .ll-theme (applied to each page's root
+   element) rather than :root because Tailwind v4 / Turbopack strips
+   custom properties from globals that aren't referenced within this
+   file — CSS Modules consume them, so a global :root definition is
+   dropped before it reaches them. Scoping to a real element keeps them. */
+.ll-theme {
+  --ll-paper: #f1e8d2;
+  --ll-paper2: #ece2c8;
+  --ll-surface: #fbf5e6;
+  --ll-surface2: #f6eeda;
+  --ll-ink: #3f3726;
+  --ll-ink-soft: #6a6048;
+  --ll-muted: #8c8064;
+  --ll-line: rgba(63, 55, 38, 0.14);
+  --ll-line-strong: rgba(63, 55, 38, 0.22);
+  --ll-sage: #6f7d57;
+  --ll-sage-deep: #525f3c;
+  --ll-clay: #b06a3c;
+  --ll-gold: #bb8d39;
+  --ll-cream: #f8f2e0;
+  --ll-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --ll-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ll-bg:
+    radial-gradient(120% 70% at 50% -8%, #fbf4e1, transparent 60%),
+    linear-gradient(168deg, #f4ecd6 0%, #ece2c8 58%, #e6dcbf 100%);
+
+  background: var(--ll-bg);
+  background-attachment: fixed;
+  color: var(--ll-ink);
+  font-family: var(--ll-sans);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

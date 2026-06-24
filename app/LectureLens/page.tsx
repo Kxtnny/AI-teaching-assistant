@@ -196,7 +196,7 @@ export default function StudentHomePage() {
   }
 
   return (
-    <div className={styles.layout}>
+    <div className={`ll-theme ${styles.layout}`}>
       <Sidebar />
       <main className={styles.main}>
         <header>

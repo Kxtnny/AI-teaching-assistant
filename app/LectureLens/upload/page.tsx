@@ -172,7 +172,7 @@ export default function StudentUploadPage() {
   }
 
   return (
-    <div className={styles.layout}>
+    <div className={`ll-theme ${styles.layout}`}>
       <Sidebar />
       <main className={styles.main}>
         <section className={styles.panel}>

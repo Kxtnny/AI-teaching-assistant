@@ -40,14 +40,15 @@
 }
 
 .btnStudent {
-  background: linear-gradient(120deg, #191313 0%, #201515 65%, #211a33 100%);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(20, 17, 15, 0.18);
+  background: var(--ll-sage);
+  color: var(--ll-cream);
+  border: 1px solid var(--ll-sage);
+  box-shadow: 0 4px 16px rgba(82, 95, 60, 0.22);
 }
 
 .btnTeacher {
-  background: #fff;
-  color: #221d19;
-  border: 1.5px solid #d6d0c8;
-  box-shadow: 0 2px 8px rgba(20, 17, 15, 0.07);
+  background: var(--ll-surface);
+  color: var(--ll-ink);
+  border: 1.5px solid var(--ll-line-strong);
+  box-shadow: 0 2px 8px rgba(63, 55, 38, 0.07);
 }

@@ -220,7 +220,7 @@ export default function TeacherStudioPage() {
   ];
 
   return (
-    <div className="teacherPage">
+    <div className="ll-theme teacherPage">
       <aside className="sidebar">
         <a href="/" className="backHome">← Back to home</a>
         <nav className="nav">
@@ -343,69 +343,79 @@ export default function TeacherStudioPage() {
       </main>
 
       <style jsx>{`
-        .teacherPage { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; background: #f6f4f1; color: #171717; }
-        .sidebar { border-right: 1px solid #e5e2dd; padding: 16px 12px; background: #f7f5f2; }
-        .backHome { display: inline-block; margin-bottom: 14px; text-decoration: none; color: #6b645b; font-weight: 600; font-size: 14px; padding: 2px 4px; }
-        .backHome:hover { color: #1f1a16; }
+        .teacherPage { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; background: var(--ll-bg); background-attachment: fixed; color: var(--ll-ink); }
+        .sidebar { border-right: 1px solid var(--ll-line); padding: 18px 14px; background: rgba(246, 238, 218, 0.6); backdrop-filter: blur(6px); }
+        .backHome { display: inline-block; margin-bottom: 16px; text-decoration: none; color: var(--ll-muted); font-weight: 600; font-size: 14px; padding: 2px 4px; }
+        .backHome:hover { color: var(--ll-ink); }
         .nav { display: grid; gap: 8px; margin-top: 8px; }
-        .navItem { text-align: left; border: 1px solid #e8e4df; background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 600; }
-        .navItem.active { background: #ece8e3; }
+        .navItem { text-align: left; border: 1px solid transparent; background: transparent; border-radius: 12px; padding: 11px 12px; cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ll-ink-soft); text-decoration: none; display: block; transition: background .15s, color .15s; }
+        .navItem:hover { background: var(--ll-surface2); color: var(--ll-ink); }
+        .navItem.active { background: var(--ll-surface); color: var(--ll-ink); border-color: var(--ll-line); }
 
-        .main { padding: 24px; }
-        .heroPlain { margin-bottom: 14px; }
-        .eyebrow { letter-spacing: .18em; font-size: 11px; color: #8a8379; margin: 0 0 6px; }
-        h1 { margin: 0; font-size: 52px; line-height: 1.05; font-family: serif; }
-        .sub { margin: 6px 0 0; color: #5f5951; }
+        .main { padding: 28px 30px; }
+        .heroPlain { margin-bottom: 18px; }
+        .eyebrow { letter-spacing: .18em; font-size: 12px; text-transform: uppercase; color: var(--ll-muted); margin: 0 0 8px; }
+        h1 { margin: 0; font-size: clamp(38px, 5vw, 52px); line-height: 1.05; font-family: var(--ll-serif); font-weight: 500; color: var(--ll-ink); }
+        .sub { margin: 8px 0 0; color: var(--ll-ink-soft); }
 
-        .stats, .analyticsStats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-        .card { border: 1px solid #e3dfd9; border-radius: 16px; padding: 16px; background: #f9f7f4; }
-        .card h3 { margin: 0 0 8px; color: #7a7268; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
-        .card p { margin: 0; font-size: 34px; font-family: serif; }
+        .stats, .analyticsStats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+        .card { border: 1px solid var(--ll-line); border-radius: 16px; padding: 18px; background: var(--ll-surface); box-shadow: 0 4px 14px rgba(63, 55, 38, 0.05); }
+        .card h3 { margin: 0 0 8px; color: var(--ll-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .14em; }
+        .card p { margin: 0; font-size: 34px; font-family: var(--ll-serif); color: var(--ll-ink); }
 
-        .uploadPanel { border: 1px solid #e3dfd9; border-radius: 18px; padding: 18px; background: #fbfaf8; margin-bottom: 18px; }
-        .uploadPanel h2 { margin: 0 0 4px; font-size: 38px; font-family: serif; }
-        .uploadPanel p { margin: 0 0 14px; color: #5f5951; }
-        .fieldLabel { margin: 0 0 10px; font-size: 13px; letter-spacing: .15em; color: #61584d; font-weight: 700; }
+        .uploadPanel { border: 1px solid var(--ll-line); border-radius: 20px; padding: 24px; background: var(--ll-surface); box-shadow: 0 6px 18px rgba(63, 55, 38, 0.06); margin-bottom: 22px; }
+        .uploadPanel h2 { margin: 0 0 6px; font-size: clamp(30px, 4vw, 38px); font-family: var(--ll-serif); font-weight: 500; color: var(--ll-ink); }
+        .uploadPanel p { margin: 0 0 16px; color: var(--ll-ink-soft); }
+        .fieldLabel { margin: 0 0 12px; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--ll-muted); font-weight: 700; }
 
-        .dropzone { display: grid; place-items: center; text-align: center; border: 1px dashed #bfb8af; border-radius: 16px; padding: 34px; background: #f7f5f2; cursor: pointer; margin-bottom: 14px; }
+        .dropzone { display: grid; place-items: center; text-align: center; border: 1px dashed var(--ll-line-strong); border-radius: 16px; padding: 38px; background: var(--ll-surface2); cursor: pointer; margin-bottom: 16px; transition: border-color .15s, background .15s; }
+        .dropzone:hover { border-color: var(--ll-sage); background: #fff8ea; }
         .dropzone input { display: none; }
-        .dropzone strong { font-size: 34px; font-family: serif; }
-        .dropzone span { color: #6f675d; font-size: 16px; }
+        .dropzone strong { font-size: clamp(26px, 4vw, 34px); font-family: var(--ll-serif); color: var(--ll-ink); }
+        .dropzone span { color: var(--ll-muted); font-size: 16px; }
 
-        .metaGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .metaGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
         .metaGrid input, .metaGrid textarea, .metaGrid select {
-          width: 100%; border: 1px solid #ddd7cf; border-radius: 12px; background: #fff; padding: 10px 12px; font-size: 14px;
+          width: 100%; border: 1px solid var(--ll-line); border-radius: 12px; background: var(--ll-surface2); padding: 11px 13px; font-size: 14px; color: var(--ll-ink); outline: none; transition: border-color .15s, box-shadow .15s;
         }
-        .metaGrid textarea { grid-column: span 2; min-height: 90px; }
+        .metaGrid input:focus, .metaGrid textarea:focus, .metaGrid select:focus { border-color: var(--ll-sage); box-shadow: 0 0 0 3px rgba(111, 125, 87, 0.16); }
+        .metaGrid input::placeholder, .metaGrid textarea::placeholder { color: var(--ll-muted); }
+        .metaGrid textarea { grid-column: span 2; min-height: 90px; resize: vertical; }
 
-        .actionRow { display: flex; gap: 8px; margin-bottom: 10px; }
-        .primary, .dangerGhost { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
-        .primary { background: #171310; color: #fff; }
-        .dangerGhost { background: #fbe8e6; color: #8f1f1f; }
+        .actionRow { display: flex; gap: 10px; margin-bottom: 12px; }
+        .primary, .dangerGhost { border: 1px solid var(--ll-line); border-radius: 12px; padding: 12px 20px; cursor: pointer; font-weight: 600; font-size: 15px; transition: transform .1s, background .15s; }
+        .primary:active, .dangerGhost:active { transform: scale(.98); }
+        .primary { background: var(--ll-sage); color: var(--ll-cream); border-color: var(--ll-sage); box-shadow: 0 2px 0 rgba(82, 95, 60, 0.3); }
+        .primary:hover { background: #647150; }
+        .dangerGhost { background: #fbf0e4; color: var(--ll-clay); border-color: rgba(176, 106, 60, 0.3); }
+        .dangerGhost:hover { background: #f6e6d6; }
+        .primary:disabled, .dangerGhost:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-        .progressWrap { border: 1px solid #d9d2ca; border-radius: 10px; padding: 8px; background: #fff; }
-        .progressTop { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
-        .track { height: 10px; background: #ece7e2; border-radius: 999px; overflow: hidden; }
-        .fill { height: 100%; background: linear-gradient(90deg,#18130f,#5f5750); }
+        .progressWrap { border: 1px solid var(--ll-line); border-radius: 12px; padding: 12px; background: var(--ll-surface2); }
+        .progressTop { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: var(--ll-ink-soft); }
+        .track { height: 10px; background: var(--ll-surface); border: 1px solid var(--ll-line); border-radius: 999px; overflow: hidden; }
+        .fill { height: 100%; background: linear-gradient(90deg, var(--ll-sage), #8a9a6b); }
 
-        .sectionHead h2 { margin: 0 0 10px; font-size: 36px; font-family: serif; }
+        .sectionHead h2 { margin: 0 0 14px; font-size: clamp(28px, 4vw, 36px); font-family: var(--ll-serif); font-weight: 500; color: var(--ll-ink); }
 
-        .grid { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 14px; }
-        .courseCard { position: relative; border: 1px solid #e1ddd7; border-radius: 16px; overflow: hidden; background: #fff; }
-        .deleteBtn { position: absolute; top: 10px; right: 10px; z-index: 3; border: 1px solid #ead9d4; background: #fff; color: #8e1f1f; border-radius: 10px; padding: 5px 8px; cursor: pointer; }
+        .grid { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 16px; }
+        .courseCard { position: relative; border: 1px solid var(--ll-line); border-radius: 16px; overflow: hidden; background: var(--ll-surface); box-shadow: 0 4px 14px rgba(63, 55, 38, 0.05); transition: transform .15s, box-shadow .15s; }
+        .courseCard:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(63, 55, 38, 0.1); }
+        .deleteBtn { position: absolute; top: 10px; right: 10px; z-index: 3; border: 1px solid rgba(176, 106, 60, 0.4); background: rgba(251, 245, 230, 0.95); color: var(--ll-clay); border-radius: 10px; padding: 5px 8px; cursor: pointer; }
+        .deleteBtn:hover { background: #fbf0e4; border-color: var(--ll-clay); }
         .cover { height: 150px; position: relative; display: grid; place-items: center; }
-        .tone0 { background: linear-gradient(135deg, #4658d6, #3346b8); }
-        .tone1 { background: linear-gradient(135deg, #9f5a21, #7f451a); }
-        .tone2 { background: linear-gradient(135deg, #1f7b65, #165d4d); }
-        .tone3 { background: linear-gradient(135deg, #6b2aac, #4f1d84); }
-        .tone4 { background: linear-gradient(135deg, #a72866, #7f1f4e); }
-        .tone5 { background: linear-gradient(135deg, #19758d, #13596b); }
-        .topBadge { position: absolute; top: 10px; left: 10px; font-size: 11px; border-radius: 999px; padding: 4px 8px; background: rgba(0,0,0,.35); color: #fff; }
-        .centerGlyph { font-family: serif; font-size: 64px; color: rgba(255,255,255,.45); }
-        .body { padding: 14px; }
-        .body h3 { margin: 0 0 6px; font-size: 24px; font-family: serif; }
-        .subText { margin: 0 0 8px; color: #7a7268; font-size: 14px; }
-        .metaRow { font-size: 12px; color: #665f55; border-top: 1px solid #eee8e1; padding-top: 10px; }
+        .tone0 { background: linear-gradient(135deg, #7a8a5e, #5f6e44); }
+        .tone1 { background: linear-gradient(135deg, #c2703d, #9c552c); }
+        .tone2 { background: linear-gradient(135deg, #4f7a5f, #3c5e49); }
+        .tone3 { background: linear-gradient(135deg, #c79a3f, #9e7728); }
+        .tone4 { background: linear-gradient(135deg, #8a6a82, #6b4f64); }
+        .tone5 { background: linear-gradient(135deg, #4a7d82, #386065); }
+        .topBadge { position: absolute; top: 10px; left: 10px; font-size: 11px; letter-spacing: .06em; border-radius: 999px; padding: 4px 9px; background: rgba(40, 32, 18, .32); color: #fff; }
+        .centerGlyph { font-family: var(--ll-serif); font-size: 64px; color: rgba(255,255,255,.5); }
+        .body { padding: 16px; }
+        .body h3 { margin: 0 0 6px; font-size: 24px; font-family: var(--ll-serif); font-weight: 500; color: var(--ll-ink); }
+        .subText { margin: 0 0 8px; color: var(--ll-muted); font-size: 14px; }
+        .metaRow { font-size: 12px; color: var(--ll-ink-soft); border-top: 1px solid var(--ll-line); padding-top: 10px; }
 
         .figGrid {
           display: grid;
