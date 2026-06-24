@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# runtime data (machine-specific paths)
+data/library.json
+data/teachersdata/library.json
+data/sessions/
