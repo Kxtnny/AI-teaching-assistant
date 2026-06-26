@@ -118,7 +118,7 @@ export async function start(body: any) {
     memory: content.memory, chunks: content.chunks, concepts, covered: new Set(), weak: new Set(),
     startTime: nowMs(), ended: false, score: 0, qualitySum: 0, qualityCount: 0, turns: [], lastMessage: "",
   };
-  const opening = `Hi${studentName !== "anon" ? ` ${studentName}` : ""}! I'm ${cfg.who}.${mood ? ` Thanks for telling me you feel ${mood.toLowerCase()} —` : ""} can you teach me about "${topic}" in your own words, like you're explaining it to a friend?${difficulty === "kid" ? " 😊" : ""}`;
+  const opening = `Alright${studentName !== "anon" ? `, ${studentName}` : ""}, let's begin! Teach me about "${topic}" in your own words, like you're explaining it to a friend.${difficulty === "kid" ? " 😊" : ""}`;
   r.lastMessage = opening;
   rooms.set(sessionId, r);
   await persist(r);

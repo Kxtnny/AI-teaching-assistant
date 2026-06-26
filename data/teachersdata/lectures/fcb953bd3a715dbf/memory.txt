@@ -1,31 +1,28 @@
 LECTURE MEMORY:  
-- Large Language Models (LLMs) are transformer-based neural networks trained on massive text corpora using self-supervised learning.  
-- LLMs process input text by tokenizing it into words, subwords, or characters, which are then converted into embeddings capturing semantic relationships.  
-- Popular LLMs like ChatGPT have billions of parameters enabling high-accuracy next-token prediction.  
-- The quality and structure of prompts critically influence LLM output reliability and accuracy; small prompt changes can cause large performance shifts.  
-- Prompt engineering programs LLMs by providing contextual instructions that constrain style, format, and content to align outputs with user goals.  
-- Automatic Prompt Engineer (APE) techniques can automatically generate task-specific instructions, improving zero-shot performance on reasoning benchmarks.  
-- Chain-of-Thought (CoT) prompting asks LLMs to generate intermediate reasoning steps, significantly boosting multi-step reasoning task accuracy.  
-- Active Prompting enhances CoT by selecting informative examples, further increasing accuracy on reasoning benchmarks.  
-- Hallucinations (fabricated or unsupported outputs) remain a challenge in educational LLM applications.  
-- Existing mitigation strategies are often generic or high-level; dedicated prompting tools for educational chatbots are less explored.  
-- The proposed prompting tool integrates APE and Active CoT to automatically refine user prompts, emphasizing clear task constraints and stepwise reasoning.  
-- This approach aims to improve answer reliability, robustness, and reduce hallucinations in educational chatbot responses.  
-- Effective prompting tools can make advanced LLM techniques accessible to non-expert users by automating prompt optimization.  
+- Large Language Models (LLMs) use transformer architectures to generate natural language by predicting tokens in sequences.  
+- Tokens are units of text (words, subwords, characters) mapped to embeddings that capture semantic relationships.  
+- LLMs like ChatGPT have billions of parameters enabling high-accuracy next-token prediction.  
+- Prompts are critical inputs that guide LLM outputs; small changes in prompts can significantly affect performance.  
+- Prompt engineering customizes LLM behavior by providing structured instructions that constrain style, format, and content.  
+- Effective prompt engineering improves relevance and accuracy of LLM responses in educational and other applications.  
+- Automatic Prompt Engineer (APE) techniques automatically generate task-specific instructions, enhancing zero-shot performance.  
+- Chain-of-Thought (CoT) prompting asks LLMs to generate intermediate reasoning steps, improving multi-step reasoning accuracy.  
+- Active Prompting selects informative examples to further boost CoT prompting effectiveness.  
+- Existing work often focuses on high-level LLM reliability and hallucination mitigation, with less emphasis on dedicated educational chatbot prompting tools.  
+- Manual prompt design is often inefficient and challenging for non-experts.  
+- The proposed prompting tool integrates APE and Active CoT within educational chatbots to refine user prompts automatically.  
+- This tool aims to improve answer reliability, reduce hallucinations, and encourage step-by-step reasoning by emphasizing clear task constraints.  
+- Improved prompting leads to more robust and accurate educational chatbot responses.  
 
 Formulas/Theorems:  
-- No explicit formulas or theorems presented; focus is on conceptual methods and prompting techniques.  
+- No explicit formulas or theorems presented; focus is on conceptual methods and techniques in prompt engineering.  
 
 Pitfalls:  
-- Minor prompt wording changes can drastically affect LLM output quality.  
-- Manual prompt design is time-consuming and requires expertise.  
-- Hallucinations can mislead users, especially in educational contexts.  
-- Overly complex prompts may confuse the model or reduce efficiency.  
+- LLM outputs are highly sensitive to prompt wording; minor prompt changes can degrade performance.  
+- Manual prompt engineering can be inefficient and inaccessible to non-expert users.  
+- Hallucinations (fabricated or unsupported outputs) remain a challenge without proper prompt constraints.  
 
 Example Problem Types:  
-- Multi-step arithmetic reasoning (e.g., MultiArith benchmark)  
-- Complex word problems requiring stepwise logical reasoning (e.g., GSM8K benchmark)  
-- Zero-shot reasoning tasks where no training examples are provided, only instructions  
-
-Combined Lecture Text:  
-This lecture covers the design and evaluation of prompting tools to improve token efficiency and accuracy in educational LLM chatbots. LLMs, based on transformer architectures, tokenize input text and use embeddings to capture semantic meaning. Prompt engineering is crucial because LLM outputs are highly sensitive to prompt phrasing. Techniques like Automatic Prompt Engineer (APE) and Chain-of-Thought (CoT) prompting improve zero-shot and multi-step reasoning performance by guiding the model through intermediate steps and task-specific instructions. Active Prompting further refines this by selecting informative examples. Despite advances, hallucinations remain a problem, especially in education, where accuracy is critical. The proposed tool combines these methods to automatically refine user prompts, making advanced prompting accessible and improving the reliability and robustness of chatbot responses.
+- Multi-step reasoning tasks (e.g., arithmetic problems like MultiArith, GSM8K benchmarks).  
+- Zero-shot reasoning tasks where no task-specific training examples are provided.  
+- Educational chatbot queries requiring accurate, stepwise explanations and reliable answers.
