@@ -34,10 +34,10 @@ const VERSIONS: { k: Difficulty; label: string; desc: string; emoji: string }[] 
   { k: "adult", label: "Adult Feynman", desc: "Deep & rigorous", emoji: "🧑‍🔬" },
 ];
 
-const LEVELS: { k: Difficulty; label: string; blurb: string; desc: string; tint: string; accent: string }[] = [
-  { k: "kid", label: "Like a kid", blurb: "everyday words & examples", desc: "Simple analogies and relatable stories. No jargon.", tint: "#faf2e2", accent: "#b06a3c" },
-  { k: "teen", label: "Like a teenager", blurb: "some terms, clear reasoning", desc: "Key vocabulary with a clear, logical flow.", tint: "#eef2fb", accent: "#41619a" },
-  { k: "adult", label: "Like an adult", blurb: "precise and deep", desc: "Technical terminology and rigorous definitions.", tint: "#eef4ec", accent: "#566f4d" },
+const LEVELS: { k: Difficulty; label: string; blurb: string; desc: string; tint: string; accent: string; voice: string; explainTo: string }[] = [
+  { k: "kid", label: "Like a kid", blurb: "everyday words & examples", desc: "Simple analogies and relatable stories. No jargon.", tint: "#faf2e2", accent: "#b06a3c", voice: "simple everyday words", explainTo: "a curious 5-year-old" },
+  { k: "teen", label: "Like a teenager", blurb: "some terms, clear reasoning", desc: "Key vocabulary with a clear, logical flow.", tint: "#eef2fb", accent: "#41619a", voice: "simple terms and clear reasoning", explainTo: "a smart high-school student" },
+  { k: "adult", label: "Like an adult", blurb: "precise and deep", desc: "Technical terminology and rigorous definitions.", tint: "#eef4ec", accent: "#566f4d", voice: "precise technical language", explainTo: "a university CS student" },
 ];
 const slug = (s: string) => (s || "anon").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "anon";
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -230,7 +230,7 @@ function AutoTyping({ text, onDone, speed = 34 }: { text: string; onDone?: () =>
   return <>{text.slice(0, n)}{n < text.length && <span className="fy-caret">▍</span>}</>;
 }
 
-interface Msg { id: string; role: "ai" | "me"; text: string; typed: boolean; after?: () => void }
+interface Msg { id: string; role: "ai" | "me"; text: string; typed: boolean; streaming?: boolean; after?: () => void }
 interface ConceptLite { id: string; name: string }
 interface Report { understanding: number; mastered: string[]; gaps: string[]; wrote: string; missing: string; better: string; improve: string[]; summary: string }
 
@@ -319,6 +319,17 @@ export default function FeynmanChallenge() {
     const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined; if (!synth) return;
     try { synth.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/[🌱🌳🌟⚡💛🌙😄🙂😣😴😕🤔😊😎🧵]/g, "")); u.rate = 0.99; u.pitch = 1.02; setTimeout(() => { try { synth.resume(); synth.speak(u); } catch {} }, 60); } catch {}
   }
+  // speak streamed tokens sentence-by-sentence (buffer until punctuation)
+  const speakBufRef = useRef("");
+  function speakLive(token: string) {
+    if (!voiceRef.current) { speakBufRef.current = ""; return; }
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined; if (!synth) return;
+    speakBufRef.current += token;
+    if (/[.!?…]\s*$|\n/.test(speakBufRef.current) && speakBufRef.current.trim().length > 2) {
+      const chunk = speakBufRef.current.trim(); speakBufRef.current = "";
+      try { const u = new SpeechSynthesisUtterance(chunk.replace(/[🌱🌳🌟⚡💛🌙😄🙂😣😴😕🤔😊😎🧵]/g, "")); u.rate = 0.99; u.pitch = 1.02; synth.resume(); synth.speak(u); } catch {}
+    }
+  }
 
   // sequential AI line queue
   function advance() {
@@ -351,7 +362,7 @@ export default function FeynmanChallenge() {
     try { localStorage.setItem("grove_name", n); } catch {}
     setNameModal(false);
     // the STUDENT greets first; the inline version picker (a Feynman bubble) follows
-    pushMe(`Hello Dr. Feynman! I'm well versed with ${topic} — let me teach you.`);
+    pushMe(`Hi Dr. Feynman, I recently learned about ${topic}. Can you help me evaluate whether my understanding is solid? I'll do my best to teach it to you.`);
   }
 
   function applySnapshot(d: any) {
@@ -381,7 +392,8 @@ export default function FeynmanChallenge() {
       setVersionPicked(true);                          // removes the inline picker, enables input
       // confirm + first question, in one Dr. Feynman bubble
       const opening = d.opening || d.message || `Let's begin — teach me about ${topic} in your own words.`;
-      say([{ text: `Great choice! I'll be the ${label} today.\n\n${opening}` }]);
+      const lvl = LEVELS.find((v) => v.k === l);
+      say([{ text: `Great choice, ${name}! I'll be the ${label} for our session. Please teach me about ${topic} in ${lvl?.voice || "your own words"}, like you're explaining it to ${lvl?.explainTo || "a friend"}.` }]);
     } catch { setGrading(false); setErr("Could not reach the service."); say([{ text: "I couldn't reach my notes just now — mind trying again?" }]); }
   }
 
@@ -389,18 +401,90 @@ export default function FeynmanChallenge() {
     const content = input.trim();
     if (!content || grading || botTyping) return;
     pushMe(content); setInput(""); setGrading(true); clearHint();
+
+    // live AI bubble we append tokens into (typed:true → no fake AutoTyping)
+    const aiId = uid();
+    let streamed = "";
+    let opened = false;
+    const openBubble = () => {
+      if (opened) return; opened = true;
+      setGrading(false); setBotTyping(true);
+      setMessages((m) => [...m, { id: aiId, role: "ai", text: "", typed: true, streaming: true }]);
+    };
+    const appendToken = (t: string) => {
+      openBubble();
+      streamed += t;
+      setMessages((m) => m.map((x) => (x.id === aiId ? { ...x, text: streamed } : x)));
+    };
+
     try {
-      const r = await fetch("/api/feynman", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "explain", sessionId, content }) });
-      const d = await r.json(); setGrading(false);
-      if (!d.ok && d.error) { say([{ text: "I didn't quite catch that — say it another way? 😊" }]); return; }
-      applySnapshot(d);
-      if (Array.isArray(d.coveredNow) && d.coveredNow.length) {
-        const names = (d.coveredNow as string[]).map((id) => concepts.find((c) => c.id === id)?.name).filter(Boolean);
-        setToast(`🌱 ${names.length > 1 ? `${names.length} concepts` : names[0] || "Concept"} taken root!`);
-        setTimeout(() => setToast(""), 2600);
+      const r = await fetch("/api/feynman", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "explainStream", sessionId, content }),
+      });
+
+      // fallback: server didn't stream (no SSE) → treat as normal JSON
+      const ctype = r.headers.get("content-type") || "";
+      if (!r.body || !ctype.includes("text/event-stream")) {
+        const d = await r.json(); setGrading(false);
+        if (!d.ok && d.error) { say([{ text: "I didn't quite catch that — say it another way? 😊" }]); return; }
+        applySnapshot(d);
+        announceCovered(d);
+        say([{ text: d.message || "Keep teaching me! 😊", after: d.done ? () => finish() : undefined }]);
+        return;
       }
-      say([{ text: d.message || "Keep teaching me! 😊", after: d.done ? () => finish() : undefined }]);
-    } catch { setGrading(false); say([{ text: "Oops, I lost the thread — could you try again? 😊" }]); }
+
+      // read the SSE stream
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let done: any = null;
+      while (true) {
+        const { value, done: rdone } = await reader.read();
+        if (rdone) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split("\n\n");
+        buf = parts.pop() || "";                 // keep the trailing partial
+        for (const part of parts) {
+          const line = part.split("\n").find((l) => l.startsWith("data:"));
+          if (!line) continue;
+          let evt: any; try { evt = JSON.parse(line.slice(5).trim()); } catch { continue; }
+          if (evt.type === "token") { appendToken(evt.t); speakLive(evt.t); }
+          else if (evt.type === "done") { done = evt; }
+          else if (evt.type === "error") { /* fall through to fallback below */ }
+        }
+      }
+
+      // finalize from the "done" snapshot
+      setBotTyping(false);
+      setMessages((m) => m.map((x) => (x.id === aiId ? { ...x, streaming: false } : x)));
+      if (done) {
+        applySnapshot(done);
+        announceCovered(done);
+        if (done.message && done.message !== streamed) {
+          // safety: if stream missed text, ensure the final message is correct
+          setMessages((m) => m.map((x) => (x.id === aiId ? { ...x, text: done.message } : x)));
+        }
+        if (done.done) finish();
+      } else if (!streamed) {
+        setMessages((m) => m.filter((x) => x.id !== aiId));
+        say([{ text: "I didn't quite catch that — say it another way? 😊" }]);
+      }
+    } catch {
+      setGrading(false); setBotTyping(false);
+      setMessages((m) => m.filter((x) => x.id !== aiId));
+      say([{ text: "Oops, I lost the thread — could you try again? 😊" }]);
+    }
+  }
+
+  // toast for newly-covered concepts (shared by streaming + fallback paths)
+  function announceCovered(d: any) {
+    if (Array.isArray(d.coveredNow) && d.coveredNow.length) {
+      const names = (d.coveredNow as string[]).map((id) => concepts.find((c) => c.id === id)?.name).filter(Boolean);
+      setToast(`🌱 ${names.length > 1 ? `${names.length} concepts` : names[0] || "Concept"} taken root!`);
+      setTimeout(() => setToast(""), 2600);
+    }
   }
 
   // the concept the hint is "for" — first one not yet covered
@@ -565,7 +649,11 @@ export default function FeynmanChallenge() {
                     m.role === "ai" ? (
                       <div key={m.id} className="fy-row fy-ai">
                         <div className="fy-bubble fy-bubble-ai">
-                          <p className="fy-msg">{!m.typed ? <AutoTyping text={m.text} onDone={() => onTyped(m)} /> : m.text}</p>
+                          <p className="fy-msg">
+                            {m.streaming
+                              ? <>{m.text}<span className="fy-caret" /></>
+                              : (!m.typed ? <AutoTyping text={m.text} onDone={() => onTyped(m)} /> : m.text)}
+                          </p>
                         </div>
                         <div className="fy-avcol"><span className="fy-av"><FeynmanPic size={48} /></span><span className="fy-avname">{TUTOR_NAME}</span></div>
                       </div>
@@ -773,6 +861,8 @@ export default function FeynmanChallenge() {
         .fy-stage:not(.is-teaching) .fy-msg { font-size:24px; }
         .fy-bubble-ai .fy-msg { color:var(--ink); }
         .fy-bubble-me .fy-msg { color:var(--cream); font-weight:500; }
+        .fy-caret { display:inline-block; width:2px; height:1em; margin-left:2px; vertical-align:text-bottom; background:var(--ink); animation:fy-blink .9s step-end infinite; }
+        @keyframes fy-blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
 
         /* avatar + name column beside each bubble */
         .fy-avcol { flex:none; width:56px; display:flex; flex-direction:column; align-items:center; gap:4px; }

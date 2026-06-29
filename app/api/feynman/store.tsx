@@ -17,15 +17,18 @@ export async function getContent(lectureId: string, creator: string): Promise<{ 
   let lib: any[] = [];
   try { lib = JSON.parse(await fsp.readFile(libPath(creator), "utf-8")); } catch { return null; }
   const lec = lib.find((l: any) => l.lecture_id === lectureId);
-  if (!lec || lec.status !== "Ready" || !lec.memory_path) return null;
-  try {
-    const memory = await fsp.readFile(lec.memory_path, "utf-8");
-    let chunks: string[] = [];
-    if (lec.chunks_path) {
-      try { const raw = JSON.parse(await fsp.readFile(lec.chunks_path, "utf-8")); chunks = Array.isArray(raw) ? raw.map((x: any) => x.text).filter(Boolean) : []; } catch {}
-    }
-    return { title: lec.title, memory, chunks };
-  } catch { return null; }
+  if (!lec || lec.status !== "Ready") return null;
+
+  // prefer text stored on the record; fall back to the text files on disk
+  let memory: string = lec.memory || "";
+  let chunks: string[] = Array.isArray(lec.chunks) ? lec.chunks.map((x: any) => x.text).filter(Boolean) : [];
+
+  if (!memory && lec.memory_path) { try { memory = await fsp.readFile(lec.memory_path, "utf-8"); } catch {} }
+  if (!chunks.length && lec.chunks_path) {
+    try { const raw = JSON.parse(await fsp.readFile(lec.chunks_path, "utf-8")); chunks = Array.isArray(raw) ? raw.map((x: any) => x.text).filter(Boolean) : []; } catch {}
+  }
+  if (!memory && !chunks.length) return null;
+  return { title: lec.title, memory, chunks };
 }
 
 // simple keyword retrieval over the existing chunks (grounds the questions)
@@ -54,5 +57,14 @@ Lecture:\n${memory.slice(0, 3500)}`,
 }
 
 const sPath = (id: string) => path.join(SESSIONS_DIR, id.replace(/[:]/g, "_") + ".json");
-export const loadSessionFile = async (id: string) => { try { return JSON.parse(await fsp.readFile(sPath(id), "utf-8")); } catch { return null; } };
-export const saveSessionFile = async (s: any) => { await fsp.mkdir(SESSIONS_DIR, { recursive: true }); await fsp.writeFile(sPath(s.sessionId), JSON.stringify(s, null, 2)); };
+
+// Conversation logs are intentionally NOT persisted for now. The live session is
+// held in memory by the engine (globalThis.feynRooms), so a session works fully
+// during use; it just isn't written to disk. To re-enable logging later, restore
+// the file reads/writes below.
+export const loadSessionFile = async (_id: string) => null;
+
+export const saveSessionFile = async (_s: any) => { /* no-op: not storing conversation logs */ };
+
+// nothing is persisted, so there are no sessions to list (teacher dashboard shows none)
+export async function listSessions(): Promise<any[]> { return []; }

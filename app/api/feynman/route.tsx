@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-import { start, explain, hint, end, snapshotFor, cheer } from "./engine";
+import { start, explain, explainStream, hint, end, snapshotFor, cheer } from "./engine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     switch (body?.action) {
       case "start": return send(await start(body));
       case "cheer": return send(await cheer(String(body?.mood || "")));
+      case "explainStream": return streamExplain(String(body?.sessionId || ""), String(body?.content || ""));
       case "explain": return send(await explain(String(body?.sessionId || ""), String(body?.content || "")));
       case "hint": return send(await hint(String(body?.sessionId || "")));
       case "end": return send(await end(String(body?.sessionId || "")));
@@ -46,4 +47,30 @@ export async function POST(req: NextRequest) {
     console.error("[feynman] error:", e);
     return NextResponse.json({ ok: false, error: e?.message || "server error" }, { status: 500 });
   }
+}
+
+// Server-Sent Events streaming for the teaching reply.
+// Emits: {type:"token", t:"…"} per chunk, then {type:"done", ...snapshot} at the end.
+function streamExplain(sessionId: string, content: string) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const sse = (obj: any) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+      try {
+        const final = await explainStream(sessionId, content, (t) => sse({ type: "token", t }));
+        sse({ type: "done", ...final });
+      } catch (e: any) {
+        sse({ type: "error", error: e?.message || "server error" });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+    },
+  });
 }

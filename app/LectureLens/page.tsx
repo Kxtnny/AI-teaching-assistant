@@ -16,7 +16,6 @@ type Lecture = {
 function Sidebar() {
   const pathname = usePathname();
   const isHome = pathname === "/LectureLens";
-  const isUpload = pathname === "/LectureLens/upload";
 
   return (
     <aside className={styles.sidebar}>
@@ -38,14 +37,6 @@ function Sidebar() {
           <span className={styles.icon}>▭</span>
           <span>My Courses</span>
         </Link>
-        <Link href="/LectureLens/upload" className={`${styles.menuItem} ${isUpload ? styles.active : ""}`}>
-          <span className={styles.icon}>⇪</span>
-          <span>Upload Lecture</span>
-        </Link>
-        <button className={`${styles.menuItem} ${styles.muted}`} disabled>
-          <span className={styles.icon}>✧</span>
-          <span>Doubt Analytics</span>
-        </button>
       </nav>
     </aside>
   );
@@ -54,30 +45,16 @@ function Sidebar() {
 export default function StudentHomePage() {
   const [library, setLibrary] = useState<Lecture[]>([]);
   const [search, setSearch] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function refreshLibrary() {
     try {
-      const [studentRes, teacherRes] = await Promise.all([
-        fetch("/api/lecture", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "load" }),
-        }).then((r) => r.json()),
-        fetch("/api/teacher-lecture", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "load" }),
-        }).then((r) => r.json()),
-      ]);
+      const teacherRes = await fetch("/api/teacher-lecture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "load" }),
+      }).then((r) => r.json());
 
-      const studentLib = (studentRes?.ok ? studentRes.library : []) || [];
       const teacherLib = (teacherRes?.ok ? teacherRes.library : []) || [];
-
-      const normalizedStudents: Lecture[] = studentLib.map((x: any) => ({
-        ...x,
-        creator: "student",
-      }));
 
       const normalizedTeachers: Lecture[] = teacherLib.map((x: any) => ({
         ...x,
@@ -85,35 +62,14 @@ export default function StudentHomePage() {
       }));
 
       const mergedMap = new Map<string, Lecture>();
-      [...normalizedTeachers, ...normalizedStudents].forEach((item) => {
+      normalizedTeachers.forEach((item) => {
         mergedMap.set(item.lecture_id, item);
       });
 
       setLibrary(Array.from(mergedMap.values()));
     } catch (e) {
-      console.error("Failed to load merged library:", e);
+      console.error("Failed to load library:", e);
       setLibrary([]);
-    }
-  }
-
-  async function deleteStudentLecture(lectureId: string) {
-    const yes = window.confirm("Delete this student lecture?");
-    if (!yes) return;
-
-    setDeletingId(lectureId);
-    try {
-      const res = await fetch("/api/lecture", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "deleteLecture", lectureId }),
-      }).then((r) => r.json());
-
-      if (!res?.ok) throw new Error(res?.error || "Delete failed");
-      await refreshLibrary();
-    } catch (e: any) {
-      alert(e?.message || "Failed to delete lecture");
-    } finally {
-      setDeletingId(null);
     }
   }
 
@@ -130,7 +86,6 @@ export default function StudentHomePage() {
   }, [ready, search]);
 
   const teacherCourses = filtered.filter((l) => l.creator === "teacher");
-  const studentCourses = filtered.filter((l) => l.creator !== "teacher");
 
   const coverTone = (idx: number) =>
     ["tone0", "tone1", "tone2", "tone3", "tone4", "tone5"][idx % 6];
@@ -150,30 +105,11 @@ export default function StudentHomePage() {
             {items.map((c, idx) => (
               <Link
                 key={c.lecture_id}
-                href={`/LectureLens/course/${c.lecture_id}?creator=${c.creator || "student"}`}
+                href={`/LectureLens/course/${c.lecture_id}?creator=${c.creator || "teacher"}`}
                 className={styles.courseCard}
               >
-                {c.creator !== "teacher" && (
-                  <button
-                    type="button"
-                    className={styles.deleteBtn}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      deleteStudentLecture(c.lecture_id);
-                    }}
-                    disabled={deletingId === c.lecture_id}
-                    aria-label="Delete lecture"
-                    title="Delete lecture"
-                  >
-                    {deletingId === c.lecture_id ? "..." : "🗑"}
-                  </button>
-                )}
-
                 <div className={`${styles.cover} ${styles[coverTone(idx)]}`}>
-                  <span className={styles.topBadge}>
-                    {c.creator === "teacher" ? "TEACHER" : "STUDENT"}
-                  </span>
+                  <span className={styles.topBadge}>TEACHER</span>
                   <div className={styles.centerGlyph}>{c.title?.[0]?.toUpperCase() || "L"}</div>
                 </div>
 
@@ -181,9 +117,6 @@ export default function StudentHomePage() {
                   <h3 title={c.title}>{c.title}</h3>
                   <p className={styles.sub}>Open course content</p>
                   <div className={styles.metaRow}>
-                    <span>⏱ 45m</span>
-                    <span>👁 120</span>
-                    <span>💬 3</span>
                     <span className={styles.date}>Apr 20</span>
                   </div>
                 </div>
@@ -200,10 +133,6 @@ export default function StudentHomePage() {
       <Sidebar />
       <main className={styles.main}>
         <header>
-          <h1 className={styles.title}>Your courses.</h1>
-          <p className={styles.subtitle}>
-            Explore your lectures, practice with quizzes, and get personalized help from your AI tutor.
-          </p>
         </header>
 
         <section className={styles.searchRow}>
@@ -216,7 +145,6 @@ export default function StudentHomePage() {
         </section>
 
         <CourseSection title="Teacher content" items={teacherCourses} />
-        <CourseSection title="Student content" items={studentCourses} />
       </main>
     </div>
   );

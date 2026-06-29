@@ -140,11 +140,16 @@ export async function explain(sessionId: string, text: string) {
 
   // run the teaching agent (it grades + grounds + asks via tools), then update state
   const { reply, grade } = await teacherTurn(r, text.trim());
+  return finishTurn(r, text.trim(), reply, grade);
+}
+
+// applies a graded turn to the room, runs end-conditions, persists, returns snapshot.
+// shared by explain() and explainStream() so both behave identically.
+async function finishTurn(r: Room, text: string, reply: string, grade: Grade) {
   const newly = applyGrade(r, grade);
   r.lastMessage = reply;
-  r.turns.push({ explanation: text.trim(), quality: grade.quality, coveredNow: newly, message: reply });
+  r.turns.push({ explanation: text, quality: grade.quality, coveredNow: newly, message: reply });
 
-  // end conditions (mastered · time up · too many turns)
   const cov = coverageOf(r);
   let reason: string | undefined;
   if (cov.covered === cov.total && cov.percent >= Math.round(DIFFICULTY[r.difficulty].threshold * 100)) reason = "mastered";
@@ -153,6 +158,20 @@ export async function explain(sessionId: string, text: string) {
   if (reason) await endRoom(r, reason); else await persist(r);
 
   return snapshot(r, { message: reply, coveredNow: newly, weakNow: grade.weak });
+}
+
+// STREAMING explain — streams reply tokens via onToken, then returns the final snapshot.
+// The route turns onToken chunks into SSE "token" events and the snapshot into a "done" event.
+export async function explainStream(sessionId: string, text: string, onToken: (s: string) => void) {
+  const r = await loadRoom(sessionId);
+  if (!r) return { status: 404, ok: false, error: "no session" };
+  if (r.ended) return snapshot(r);
+  if (timeLeft(r) <= 0) { await endRoom(r, "time"); return snapshot(r, { message: "Time's up — look how your tree has grown! 🌳" }); }
+  if (!text.trim()) return { status: 400, ok: false, error: "content required" };
+
+  const { teacherStream } = await import("./agents");
+  const { reply, grade } = await teacherStream(r, text.trim(), onToken);
+  return finishTurn(r, text.trim(), reply, grade);
 }
 
 export async function hint(sessionId: string) {

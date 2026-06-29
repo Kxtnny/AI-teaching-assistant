@@ -28,34 +28,94 @@ async function runAgent(system: string, human: string, tools: any[], temperature
   return ""; // ran out of hops without a final reply
 }
 
-// TEACHING agent — grades + grounds + asks one Feynman follow-up. Returns the
-// reply AND the grade (read from the grade tool via ctx, or graded as a fallback).
-export async function teacherTurn(r: Room, text: string): Promise<{ reply: string; grade: Grade }> {
-  const ctx: Ctx = { room: r, lastGrade: null };
-  const { retrieveTool, historyTool, gradeTool } = makeTools(ctx);
+// builds the teaching system+human prompt (shared by streaming + non-streaming)
+async function buildTeachPrompt(r: Room, text: string) {
   const cfg = DIFFICULTY[r.difficulty];
   const maxSent = r.difficulty === "adult" ? 3 : 2;
   const emoji = r.difficulty === "kid" ? " Use a friendly emoji." : "";
+  const { retrieve } = await import("./store");
+  const ref = retrieve(text, r.chunks, r.topic) || r.memory.slice(0, 800);
+  const missing = r.concepts.filter((c) => !r.covered.has(c.id)).map((c) => c.name);
+  const allConcepts = r.concepts.map((c) => c.name);
+  const recentAsked = r.turns.slice(-3).map((t) => t.message).filter(Boolean);
 
   const system = `${cfg.persona}
 
-The user is TEACHING you about "${r.topic}". Keep them teaching (Feynman technique): build on EXACTLY what they said and gently draw out the next piece. This is a warm conversation, NOT a quiz: never test them, never ask them to define a term cold, never say "tell me more" with nothing specific attached.
+The user is TEACHING you about "${r.topic}". Keep them teaching (Feynman technique): build on EXACTLY what they said and gently draw out the next piece. Warm conversation, NOT a quiz: never test them, never ask them to define a term cold, never say "tell me more" with nothing specific attached.
+
 HOW TO ASK: ${cfg.ask}
 
-USE YOUR TOOLS each turn:
-1. Call grade_${r.difficulty} once on the student's latest explanation.
-2. Call retrieve_content to ground your next question in the real lesson.
-3. Call get_history so you never repeat a question and know which concept to steer toward.
+CRITICAL: Your question must be about "${r.topic}" and its concepts — NEVER about ordinary English words (never ask "what's a sentence/word/story?"). Anchor every question to a specific technical thing the user just said or to one of these key concepts: ${allConcepts.join(", ")}.
 
-Then reply IN CHARACTER as ${cfg.who} with ONE follow-up that anchors to a specific word they used or a named concept. 1-${maxSent} short sentences.${emoji} Output ONLY what you say out loud.`;
-  const human = `The student just taught you:\n"""${text}"""\n\nGrade it, ground a follow-up, check what you've already asked, then reply with ONE warm follow-up.`;
+Reference material to ground your follow-up (use this, don't make stuff up):
+${ref}
 
+Concepts still missing for the student to teach: ${missing.length ? missing.join(", ") : "(all touched)"}
+Questions you already asked (do not repeat): ${recentAsked.length ? recentAsked.map((q) => `- ${q}`).join("\n") : "(none yet)"}
+
+Reply IN CHARACTER as ${cfg.who} with ONE follow-up that anchors to a specific topic word they used. 1-${maxSent} short sentences.${emoji} Output ONLY what you say out loud — no preamble, no labels.`;
+  const human = `The student just taught you:\n"""${text}"""\n\nReply with ONE warm, on-topic follow-up.`;
+  return { system, human };
+}
+
+// fallback follow-up if the model returns nothing usable (persona-aware)
+function fallbackReply(r: Room): string {
+  const c = r.concepts.find((x) => !r.covered.has(x.id));
+  if (r.difficulty === "kid") return c ? `wait wait i'm a little lost 🤔 can you tell me about ${c.name}? but with small words please` : `okayyy one more thing — can you tell me the WHOLE thing again real quick? 😊`;
+  if (r.difficulty === "teen") return c ? `ohh wait okay — can you break down ${c.name} for me? like how does that part actually work?` : `okay cool — can you wrap it all up? like the main idea in one go?`;
+  return c ? `Hmm, I'd like to dig into ${c.name} a bit more — could you walk me through how that actually works and why it matters?` : `Could you tie this all together — what's the core mechanism, and what would break if it weren't there?`;
+}
+
+// TEACHING agent — grades + grounds + asks one Feynman follow-up. Returns the
+// reply AND the grade. Optimized: grading + reply happen in PARALLEL on one LLM
+// call each, instead of the slow bindTools loop (which made 3-4 sequential calls).
+export async function teacherTurn(r: Room, text: string): Promise<{ reply: string; grade: Grade }> {
+  const ctx: Ctx = { room: r, lastGrade: null };
+  const { system, human } = await buildTeachPrompt(r, text);
+
+  // ── fire BOTH calls at once (grade + reply) — cuts latency roughly in half
+  const replyPromise = chat({ temperature: 0.6, maxTokens: 120 })
+    .invoke([new SystemMessage(system), new HumanMessage(human)])
+    .then((res) => String(res.content || "").trim()).catch(() => "");
+  const gradePromise = gradeExplanation(ctx, text);
+
+  const [replyRaw, grade] = await Promise.all([replyPromise, gradePromise]);
+  let reply = replyRaw;
+  if (!reply || /^(tell me more|go on|keep going|interesting)\b/i.test(reply)) reply = fallbackReply(r);
+  return { reply: reply.slice(0, 320), grade };
+}
+
+// STREAMING teaching agent — yields reply tokens as the model generates them,
+// while grading runs in parallel. Resolves the grade + final reply at the end.
+// onToken is called for each text chunk; returns { reply, grade } when done.
+export async function teacherStream(
+  r: Room,
+  text: string,
+  onToken: (chunk: string) => void
+): Promise<{ reply: string; grade: Grade }> {
+  const ctx: Ctx = { room: r, lastGrade: null };
+  const { system, human } = await buildTeachPrompt(r, text);
+
+  // grade runs in parallel — it doesn't block the streamed reply
+  const gradePromise = gradeExplanation(ctx, text);
+
+  // stream the reply token-by-token
   let reply = "";
-  try { reply = await runAgent(system, human, [gradeTool, retrieveTool, historyTool], 0.6); } catch {}
-  const grade = ctx.lastGrade || (await gradeExplanation(ctx, text)); // ensure the tree always updates
+  try {
+    const stream = await chat({ temperature: 0.6, maxTokens: 120 }).stream([
+      new SystemMessage(system), new HumanMessage(human),
+    ]);
+    for await (const chunk of stream) {
+      const piece = String(chunk?.content || "");
+      if (piece) { reply += piece; onToken(piece); }
+    }
+    reply = reply.trim();
+  } catch { reply = ""; }
+
+  const grade = await gradePromise;
   if (!reply || /^(tell me more|go on|keep going|interesting)\b/i.test(reply)) {
-    const c = r.concepts.find((x) => !r.covered.has(x.id));
-    reply = c ? `Ooh, I think I follow 🤔 — can you walk me through ${c.name} in your own words?` : `Lovely — can you tie it together in one sentence to finish? 🌟`;
+    reply = fallbackReply(r);
+    onToken(reply); // emit the fallback so the client still shows something
   }
   return { reply: reply.slice(0, 320), grade };
 }

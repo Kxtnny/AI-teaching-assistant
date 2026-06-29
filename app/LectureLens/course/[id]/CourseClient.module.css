@@ -16,7 +16,7 @@
 
 .hero {
   margin: 22px auto 4px;
-  max-width: 1180px;
+  max-width: 90vw;       /* was 1180px */
   text-align: center;
 }
 
@@ -41,9 +41,9 @@
 
 .contentGrid {
   margin: 22px auto 0;
-  max-width: 1180px;
+  max-width: 90vw;       /* was 1180px */
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 420px 1fr;   /* was 380px 1fr — slightly wider summary */
   gap: 18px;
 }
 

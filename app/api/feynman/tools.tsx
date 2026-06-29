@@ -16,13 +16,28 @@ export async function gradeExplanation(ctx: Ctx, text: string): Promise<Grade> {
   const conceptLines = r.concepts.map((c) => `${c.id}: ${c.name}`).join("\n");
   const ref = retrieve(text, r.chunks, r.topic) || r.memory.slice(0, 1500);
   const o = await askJSON(
-    `Grade this explanation for the "${cfg.label}" level of a Feynman exercise about "${r.topic}".
-MARKING RULE: ${cfg.mark}
-Concepts:\n${conceptLines}
-Reference:\n${ref}
-Student said:\n"""${text.slice(0, 1500)}"""
-Return ONLY JSON: {"covered":["c1"],"weak":["c2"],"quality":0-10,"note":"one line: solid / missing"}`,
-    { temperature: 0.2, maxTokens: 300 }
+    `You are grading a Feynman-technique explanation. The student is teaching at the "${cfg.label}" level about "${r.topic}".
+
+MARKING RULE for this level: ${cfg.mark}
+
+QUALITY SCORE (0-10) — score by THIS level's standard, not absolute correctness:
+- 0-3 = the explanation wouldn't satisfy this audience at all (too vague, wrong, or wrong register)
+- 4-5 = partial — touches the idea but misses the level's core ask (analogy for kid / mechanism for teen / precision for adult)
+- 6-7 = solid for this level — meets the bar but with small gaps
+- 8-9 = excellent for this level — clear, complete, and in the right voice
+- 10 = nailed it perfectly for this audience
+Use the WHOLE range. Do not default to 5-7.
+
+COVERED vs WEAK: a concept goes in "covered" only if the student's words would PASS the marking rule above. If they touched it but the rule isn't met, put it in "weak". Do not be generous — weak is the right call when the bar isn't met.
+
+Concepts to track:\n${conceptLines}
+
+Reference material (truth source):\n${ref}
+
+Student's explanation:\n"""${text.slice(0, 1500)}"""
+
+Return ONLY JSON: {"covered":["concept-id"],"weak":["concept-id"],"quality":0-10,"note":"one short line on what was strong or missing"}`,
+    { temperature: 0.2, maxTokens: 180 }
   );
   const valid = new Set(r.concepts.map((c) => c.id));
   let quality = o ? Number(o.quality) : 5; if (!Number.isFinite(quality)) quality = 5;
