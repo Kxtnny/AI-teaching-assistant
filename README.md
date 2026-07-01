@@ -4,7 +4,74 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 First, run the development server:
 
+```bash# AI Teaching Assistant
+
+## 1. Clone the Repository
+
 ```bash
+git clone https://github.com/Kxtnny/AI-teaching-assistant.git
+cd AI-teaching-assistant
+```
+
+## 2. Install Node.js
+
+Make sure Node.js is installed on your computer. Install the LTS version.
+
+Check installation:
+
+```bash
+node -v
+npm -v
+```
+
+## 3. Install Dependencies
+
+```bash
+npm install --legacy-peer-deps
+```
+
+## 4. Create Local Environment File
+
+Create a file called:
+
+```bash
+.env.local
+```
+
+Inside `.env.local`, add:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+FFMPEG_PATH=./lib/ffmpeg/ffmpeg.exe
+FFPROBE_PATH=./lib/ffmpeg/ffprobe.exe
+OLLAMA_VISION_MODEL=llama3.2-vision
+VISION_MAX_FRAMES=2
+VISION_CONCURRENCY=1
+VISION_TIMEOUT_MS=10000
+```
+
+The OpenAI API key provided for this project is a dedicated API key created specifically for the AI Teaching Assistant. Please keep it private and do not upload your `.env.local` file to GitHub.
+
+## 5. Run the Application
+
+```bash
+npm run dev
+```
+
+Open the application at:
+
+```bash
+http://localhost:3000
+```
+
+## Notes
+
+* This project uses a dedicated OpenAI API key created specifically for the AI Teaching Assistant.
+* The system supports multimodal teacher uploads, including PDFs, images, audio, and videos.
+* Avoid uploading very large audio or video files, as they may significantly increase processing time and API usage.
+* Keep uploaded lecture materials to a reasonable size to ensure smooth processing and faster response times.
+* Never commit or upload your `.env.local` file or API keys to GitHub.
+
 npm run dev
 # or
 yarn dev
